@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Validation\ValidationException;
 
-#[Fillable(['project_id', 'reference', 'name', 'description', 'supervisor_id', 'status', 'priority', 'planned_start_date', 'planned_end_date', 'actual_start_date', 'actual_end_date', 'instructions'])]
+#[Fillable(['project_id', 'reference', 'name', 'description', 'supervisor_id', 'status', 'priority', 'planned_start_date', 'planned_end_date', 'actual_start_date', 'actual_end_date', 'instructions', 'measurement_import_hash'])]
 class WorkOrder extends Model
 {
     /** @use HasFactory<WorkOrderFactory> */

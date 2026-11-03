@@ -619,7 +619,7 @@ Se reutilizan los formularios y las reglas de los modelos; los futuros efectos d
 RelatedRecordSelectTest comprueba la cobertura de selectores en los 25 resources y flujos reales de creación, selección, modales anidados, roles, contexto de orden/producto/familia fiscal, errores y autorización.
 Pruebas con SQLite en memoria y comprobación previa de conexión.
 No se han creado migraciones ni modificado registros de la base MySQL en esta etapa.
-Resultado final: pendiente de completar.
+Resultado final: 37 pruebas de selectores correctas; suite completa correcta con 190 pruebas y 2.197 aserciones. Pint pasa sobre RecordSelect, AppServiceProvider, las traducciones y las pruebas modificadas. Se intentó --dirty según AGENTS.md y se utilizaron rutas explícitas al no existir repositorio Git. No se requieren cambios de esquema, carga de datos ni compilación frontend.
 
 
 

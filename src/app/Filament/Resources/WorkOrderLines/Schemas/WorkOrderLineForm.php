@@ -4,6 +4,7 @@ namespace App\Filament\Resources\WorkOrderLines\Schemas;
 
 use App\Models\ProductUnit;
 use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -42,6 +43,7 @@ class WorkOrderLineForm
                 return $query;
             })->searchable()->preload())->label(__('business.fields.work_order_phase_id')),
             TextInput::make('position')->label(__('business.fields.position'))->required()->numeric()->minValue(1)->integer(),
+            TextInput::make('source_code')->label('Código de partida')->maxLength(80),
             Select::make('type')->options(['material' => __('business.options.material'), 'service' => __('business.options.service'), 'labor' => __('business.options.labor'), 'rental' => __('business.options.rental')])->label(__('business.fields.type'))->required(),
             (array_key_exists('product_id', $context) ? Hidden::make('product_id')->default($context['product_id']) : Select::make('product_id')->relationship('product', 'name')->searchable()->preload()->live()->afterStateUpdated(function (Set $set): void {
                 $set('product_unit_id', null);
@@ -68,6 +70,20 @@ class WorkOrderLineForm
             TextInput::make('estimated_unit_cost')->label(__('business.fields.estimated_unit_cost'))->required()->default('0')->numeric()->minValue(0),
             TextInput::make('estimated_unit_sale_price')->label(__('business.fields.estimated_unit_sale_price'))->required()->default('0')->numeric()->minValue(0),
             Textarea::make('notes')->rows(3)->columnSpanFull()->label(__('business.fields.notes')),
+            Repeater::make('measurement_details')
+                ->label('Desglose de medición del arquitecto')
+                ->helperText('Datos originales del Excel, incluidos los descuentos negativos. Se conserva el total de medición indicado en el documento.')
+                ->schema([
+                    TextInput::make('label')->label('Descripción')->columnSpanFull(),
+                    TextInput::make('units')->label('Unidades'),
+                    TextInput::make('length')->label('Largo'),
+                    TextInput::make('width')->label('Ancho'),
+                    TextInput::make('height')->label('Alto'),
+                    TextInput::make('subtotal')->label('Parcial'),
+                    TextInput::make('source_row')->label('Fila del Excel'),
+                ])
+                ->columns(3)->columnSpanFull()->disabled()->dehydrated(false)
+                ->visible(fn (?Model $record): bool => ! empty($record?->measurement_details)),
         ]);
     }
 }
