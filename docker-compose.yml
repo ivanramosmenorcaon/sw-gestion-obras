@@ -1,0 +1,17 @@
+services:
+  app:
+    build:
+      args:
+        user: www-data
+        uid: 1000
+      context: ./
+      dockerfile: dockerfile
+    image: sw-gestion-obras
+    container_name: sw-gestion-obras
+    restart: unless-stopped
+    working_dir: /var/www/html/
+    volumes:
+      - ./src:/var/www/html/
+    ports:
+      - 8080:80
+    entrypoint: ["/usr/local/bin/docker-entrypoint.sh"]

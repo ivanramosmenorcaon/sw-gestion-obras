@@ -1,0 +1,15 @@
+{
+	"name": "PHP (motor-web)",
+	"dockerComposeFile": "../docker-compose.yml",
+	"service": "app",
+	"workspaceFolder": "/var/www/html",
+	"overrideCommand": false,
+	"forwardPorts": [80],
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"xdebug.php-debug"
+			]
+		}
+	}
+}
