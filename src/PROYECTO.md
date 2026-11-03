@@ -24,7 +24,7 @@ Fecha inicial: 3 de noviembre de 2026.
 | Stock, consumos, costes y horas | Propuesto; pendiente |
 | Certificaciones, proformas, facturas, anticipos y tesorería | Propuesto; pendiente |
 | Integración VERI*FACTU y facturación electrónica | Pendiente |
-| Modelos y Filament | Pendiente; se abordarán después de los bloques de migraciones |
+| Modelos y Filament | 25 modelos, 23 resources y 18 relation managers para las tablas existentes; interfaz en español. Véase apartado 12. |
 
 Versiones comprobadas: PHP 8.3.36, Laravel 13.39.0, Filament 5.11.1 y Boost 2.10.4.
 Las versiones mínimas de composer.json no se deben confundir con las versiones instaladas.
@@ -154,7 +154,7 @@ Fuentes oficiales consultadas en la fase de diseño:
 
 ## 8. Validaciones pendientes de la capa de aplicación
 
-Las claves foráneas, unicidad y dominios enum ya protegen parte del esquema. Todavía deben implementarse:
+Las claves foráneas, unicidad y dominios enum protegen parte del esquema. Este listado recoge los pendientes iniciales; el apartado 12 detalla las validaciones ya implementadas al adelantar los modelos y Filament:
 - Normalización y validación fiscal según país y documento.
 - Una dirección fiscal y un contacto principal efectivos por tercero.
 - Coherencia entre roles y extensiones comerciales.
@@ -192,6 +192,7 @@ Corrección: phpunit.xml fuerza DB_CONNECTION=sqlite, DB_DATABASE=:memory: y DB_
 - 2026-11-03: creado el bloque de 17 tablas de maestros, seeder sin datos de negocio ficticios y pruebas de integridad. Modelos y Filament quedan para fases posteriores.
 - 2026-11-03: verificado formato, 7 pruebas con 39 aserciones en SQLite en memoria y carga de BusinessMasterSeeder en MySQL. Todas las migraciones figuran aplicadas. Documentada la reinicialización accidental de MySQL y corregido el aislamiento de pruebas; recuperación de datos previos sin resolver.
 - 2026-11-03: segundo bloque aplicado tras copia privada previa: ocho tablas de proyectos y ejecución, 25 tablas de negocio acumuladas. Verificadas 18 pruebas y 77 aserciones en memoria, formato PHP y esquema resultante en MySQL. Siguiente bloque propuesto: presupuestos versionados de venta y presupuestos recibidos.
+- 2026-11-03: a petición del usuario se adelantan modelos y Filament para los dos bloques existentes: 25 modelos/factories, 23 resources, 18 gestores de relaciones, cinco grupos de navegación y traducciones españolas. Sin migraciones nuevas ni carga de datos en MySQL.
 
 ## 11. Segundo bloque: proyectos y ejecución
 
@@ -287,5 +288,140 @@ Antes de migrar MySQL se ha creado una copia con mysqldump --single-transaction,
 storage/app/private/backups/before_project_execution_20261103_155149.sql (40.271 bytes).
 Esta copia conserva el estado anterior al segundo bloque; no recupera el estado previo a la incidencia del primero.
 Estado final: migración aplicada correctamente en MySQL como lote 2; comprobadas las claves foráneas e índices de work_order_lines con Artisan. Formato PHP correcto. Ambos archivos de pruebas pasan con 18 pruebas y 77 aserciones en SQLite en memoria (11 pruebas del segundo bloque y 7 del primero). Pint --dirty se intentó según AGENTS.md; al no existir repositorio Git, se formatearon explícitamente los dos archivos PHP del bloque. No se ejecutó migrate:fresh ni rollback sobre MySQL.
+
+## 12. Panel Filament en español, modelos y relaciones
+
+### Cambio de orden solicitado
+
+El usuario solicita adelantar la interfaz de los dos bloques existentes. Se crean ahora sus modelos y pantallas, antes de continuar con presupuestos, compras y facturación. No se han creado tablas nuevas ni alterado los registros de MySQL en esta etapa.
+
+Se han leído filament-development, laravel-best-practices y testing-best-practices, y consultado la documentación oficial de Filament 5.11.1. Se han utilizado los comandos make:model, make:filament-resource y make:filament-relation-manager.
+
+### Modelos y factories
+
+Hay 25 modelos de negocio, uno por cada tabla existente, con:
+- Asignación masiva explícita mediante el atributo Fillable.
+- Relaciones belongsTo, hasMany y hasOne con claves explícitas y tipos de retorno.
+- Casts booleanos, de fechas y decimales. Los importes y factores se devuelven como cadenas decimales.
+- Valores iniciales coherentes con las migraciones.
+- Validación al guardar y protección de borrado cuando hay relaciones dependientes.
+- Una factory útil por modelo. PartyFactory dispone de estados customer, supplier y contractor que crean el rol correspondiente.
+
+No se añaden seeders vacíos por modelo ni se cargan datos de prueba en la aplicación. BusinessMasterSeeder sigue siendo el punto de entrada de los catálogos iniciales.
+
+Al crear un producto mediante Eloquent se crea automáticamente una presentación base: código base, unidad del producto y factor 1. No se puede borrar esta presentación. La unidad base del producto queda protegida frente a cambios mientras existan presentaciones; actualmente la presentación automática activa esta protección desde el alta. Esta decisión evita reinterpretar cantidades existentes; cualquier futura operación de cambio de unidad deberá diseñarse explícitamente.
+
+### Navegación
+
+Se registran 23 resources: diez visibles en el menú y trece auxiliares con rutas propias, utilizados también por las relaciones. Las dos tablas de condiciones comerciales de terceros se editan como relaciones hasOne dentro del formulario del tercero, por lo que no necesitan resources separados.
+
+| Grupo | Entradas visibles |
+| --- | --- |
+| Obras | Proyectos; Órdenes de trabajo |
+| Contactos | Clientes, proveedores y contratistas |
+| Catálogo | Productos y servicios; Categorías; Tarifas; Unidades de medida |
+| Equipo | Empleados |
+| Configuración | Empresa; Condiciones de pago |
+
+No se añaden entradas de presupuestos, facturas o almacenes hasta implementar sus tablas y comportamiento.
+
+### Relation managers
+
+Se crean 18 gestores registrados en sus resources:
+
+| Registro padre | Gestores |
+| --- | --- |
+| Tercero | Roles; Direcciones; Personas de contacto; Referencias de proveedores; Proyectos |
+| Producto | Presentaciones; Referencias de proveedores; Precios |
+| Unidad | Conversiones desde esa unidad |
+| Condición de pago | Tramos de pago |
+| Tarifa | Precios |
+| Proyecto | Capítulos; Órdenes de trabajo |
+| Orden de trabajo | Fases; Partidas; Personal asignado; Contratistas asignados |
+| Empleado | Asignaciones a órdenes |
+
+Los formularios y tablas se comparten entre los resources auxiliares y los relation managers, evitando dos definiciones distintas para el mismo dato. En un relation manager la relación propietaria se introduce por contexto; en las partidas de una orden también se proporciona el proyecto de esa orden.
+
+Las relaciones de una sola fila customerSettings y supplierSettings están integradas mediante secciones del formulario del tercero. Cada una mantiene sus condiciones de pago y referencias; la del cliente permite asignar una tarifa.
+
+### Flujo básico de trabajo
+
+1. Configurar los datos de la empresa.
+2. Crear un tercero y añadir sus roles desde la pestaña Roles.
+3. Crear las unidades, categorías y productos necesarios; cada producto recibe su presentación base.
+4. Crear un proyecto seleccionando un tercero con rol de cliente.
+5. Añadir capítulos y órdenes desde el proyecto.
+6. Dentro de una orden, añadir fases, partidas y asignaciones.
+7. Para asignar un contratista, el tercero debe tener el rol de subcontratista. Para una referencia de compra, debe tener el rol de proveedor.
+8. Configurar tarifas y condiciones comerciales cuando se necesiten.
+
+Las asignaciones y partidas siguen siendo planificación; no crean automáticamente consumos, costes reales ni facturas.
+
+### Idioma y traducciones
+
+El idioma principal y el de respaldo son es. Se actualizan los valores por defecto de config/app.php y las claves APP_LOCALE, APP_FALLBACK_LOCALE y APP_FAKER_LOCALE de .env y .env.example. Faker utiliza es_ES.
+
+Archivos:
+- lang/es/business.php: grupos, nombres singulares/plurales, campos, estados, opciones, ayudas y errores de negocio.
+- lang/es/validation.php: mensajes de validación utilizados por los formularios.
+- lang/es/auth.php: errores de autenticación.
+
+Los labels de campos, columnas, filtros, pestañas de relación y nombres de recursos utilizan claves de traducción. Los botones, navegación de páginas, búsquedas, paginación y avisos estándar aprovechan las traducciones españolas incluidas en Filament.
+Los valores internos de estados y enums siguen en inglés: solo se traduce su presentación. El contenido introducido por los usuarios no se trata como clave de traducción.
+Fechas visibles: d/m/Y. Los selectores de fecha usan el componente de Filament con localización de la aplicación. Los números de las tablas utilizan formato español.
+Se podrán incorporar otros idiomas añadiendo sus archivos equivalentes, sin renombrar columnas ni enums.
+
+### Validación implementada
+
+BusinessRecordRules define reglas explícitas de los campos, unicidades y relaciones dependientes. BusinessRecordValidator centraliza las comprobaciones antes de guardar; los errores se asignan a la ruta del campo correspondiente en páginas y modales.
+
+Se implementan:
+- Campos obligatorios, longitudes, valores enum, existencia de referencias y unicidades simples/compuestas.
+- Normalización de país/moneda a mayúsculas y eliminación de espacios en la identificación fiscal.
+- Formato de país/moneda, correo, zona horaria, precisión y límites decimales, cantidades no negativas y factores positivos.
+- Coherencia de fechas finales respecto de fechas iniciales informadas.
+- Roles de cliente/proveedor/subcontratista al realizar nuevas vinculaciones.
+- Pertenencia de órdenes/capítulos al proyecto y de fases a la orden, también antes de llegar a las claves foráneas.
+- Correspondencia entre producto y presentación, y compatibilidad de unidades/tipo al crear o modificar la vinculación de una partida.
+- Ausencia de ciclos entre categorías/capítulos.
+- Conversiones entre unidades distintas de la misma magnitud.
+- Una dirección fiscal y un contacto principal por tercero.
+- Suma de tramos de pago no superior al 100 %, calculada con enteros escalados para evitar aritmética float.
+- Ausencia de solapamientos de precios de la misma tarifa, presentación y tramo de cantidad.
+- Una sola configuración de empresa; el alta queda bloqueada una vez existe.
+
+Los selectores presentan nombres en lugar de identificadores y filtran capítulos, fases, órdenes y presentaciones por su contexto. Cambiar un proyecto/producto invalida las selecciones dependientes. Elegir una presentación en una partida copia su unidad, unidad base, etiqueta y factor, conservándolos como datos de esa partida.
+
+### Conservación y transacciones
+
+El panel activa transacciones de base de datos para las operaciones de Filament. Esto incluye el alta de producto con su presentación y el guardado de relaciones del formulario.
+Los maestros se mantienen mediante is_active y los documentos de ejecución mediante estados. Las pantallas principales no ofrecen acciones de borrado.
+Los gestores de relaciones permiten borrar únicamente registros sin dependencias; la configuración de empresa y la presentación base quedan protegidas. Los listados precargan indicadores de existencia de dependencias para evitar consultas de comprobación por cada fila.
+Las validaciones de modelo complementan las restricciones de base de datos; no sustituyen estas últimas. Los cálculos y aprobaciones futuros que requieran serialización concurrente necesitarán sus propios bloqueos y transacciones de dominio.
+
+### Acceso al panel
+
+Se mantiene un panel interno sin registro público. User implementa FilamentUser y permite el acceso al panel admin a cuentas existentes autenticadas. Todos esos usuarios tienen actualmente el mismo acceso administrativo.
+No se crean cuentas ni contraseñas en esta etapa. Una matriz de permisos por función y policies específicas será una evolución separada antes de ofrecer accesos limitados a empleados o terceros.
+
+### Límites y trabajo pendiente
+
+La interfaz cubre las 25 tablas existentes. No representa todavía presupuestos, stock real, horas trabajadas, certificaciones, facturas ni VERI*FACTU.
+No se ha implementado comprobación fiscal completa de NIF/NIE/identificadores extranjeros.
+Durante la edición se permite que una condición de pago sume menos del 100 %; antes de utilizarla para facturar se deberá exigir el 100 % exacto.
+Quedan pendientes las reglas de aprobación/transiciones de estado, conflictos de agenda, coherencia completa de vigencias entre cabecera de tarifa y sus precios, restricciones tras ejecución/facturación y permisos por función.
+Las restricciones de roles se comprueban al realizar una nueva vinculación; todavía no hay un proceso de reclasificación de terceros con trabajos históricos.
+Las validaciones realizadas por Eloquent no se ejecutan al escribir con Query Builder o actualizaciones masivas; los futuros importadores deberán utilizar las operaciones de dominio apropiadas.
+
+### Verificación
+
+Pruebas nuevas:
+- BusinessModelsTest: factories de los 25 modelos, normalización fiscal, ciclos, magnitudes incompatibles, tramos, solapamientos, precisión decimal y protección de presentación base.
+- FilamentResourcesTest: apertura de listados/altas/ediciones de los 23 resources, alta real desde cada formulario, apertura de los 18 relation managers y sus modales, autenticación, menús y errores en español, creación/edición de productos, condiciones comerciales, creación de fases/partidas y rechazo de relaciones incompatibles.
+
+Todas utilizan SQLite en memoria con comprobación previa de conexión, y usuarios creados mediante factories exclusivamente en esa base. Se ejecutan también las pruebas de esquema de los bloques anteriores.
+No se requiere instalar dependencias ni compilar frontend: esta etapa modifica PHP y traducciones.
+Resultado final: php artisan test --compact pasa con 124 pruebas y 666 aserciones. Pint pasa sobre todos los archivos PHP de esta etapa. Se intentó --dirty como exige AGENTS.md; al no existir repositorio Git se indicaron las rutas explícitamente. La configuración efectiva app.locale es es y el estado de migraciones de MySQL conserva los mismos lotes 1 y 2, sin migraciones nuevas en esta etapa.
+
 
 

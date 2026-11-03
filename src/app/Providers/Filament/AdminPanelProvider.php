@@ -6,6 +6,7 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Navigation\NavigationGroup;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
@@ -28,6 +29,14 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->databaseTransactions()
+            ->navigationGroups([
+                NavigationGroup::make()->label(fn (): string => __('business.groups.works')),
+                NavigationGroup::make()->label(fn (): string => __('business.groups.contacts')),
+                NavigationGroup::make()->label(fn (): string => __('business.groups.catalog')),
+                NavigationGroup::make()->label(fn (): string => __('business.groups.team')),
+                NavigationGroup::make()->label(fn (): string => __('business.groups.settings')),
+            ])
             ->sidebarCollapsibleOnDesktop()
             ->maxContentWidth('full')
             ->colors([
