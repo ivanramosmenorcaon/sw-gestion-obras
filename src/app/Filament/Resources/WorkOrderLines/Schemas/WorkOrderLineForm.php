@@ -72,7 +72,7 @@ class WorkOrderLineForm
             Textarea::make('notes')->rows(3)->columnSpanFull()->label(__('business.fields.notes')),
             Repeater::make('measurement_details')
                 ->label('Desglose de medición del arquitecto')
-                ->helperText('Datos originales del Excel, incluidos los descuentos negativos. Se conserva el total de medición indicado en el documento.')
+                ->helperText('Datos originales del archivo, incluidos los descuentos negativos. Se conserva el total de medición indicado en el documento.')
                 ->schema([
                     TextInput::make('label')->label('Descripción')->columnSpanFull(),
                     TextInput::make('units')->label('Unidades'),
@@ -80,10 +80,26 @@ class WorkOrderLineForm
                     TextInput::make('width')->label('Ancho'),
                     TextInput::make('height')->label('Alto'),
                     TextInput::make('subtotal')->label('Parcial'),
-                    TextInput::make('source_row')->label('Fila del Excel'),
+                    TextInput::make('source_row')->label('Fila o registro de origen'),
                 ])
                 ->columns(3)->columnSpanFull()->disabled()->dehydrated(false)
                 ->visible(fn (?Model $record): bool => ! empty($record?->measurement_details)),
+            Repeater::make('budget_breakdown')
+                ->label('Descompuestos originales del BC3')
+                ->helperText('Recursos y rendimientos del presupuesto original. Son datos de referencia; no generan productos ni asignaciones de personal.')
+                ->schema([
+                    TextInput::make('code')->label('Código'),
+                    TextInput::make('parent_code')->label('Código padre'),
+                    TextInput::make('name')->label('Recurso')->columnSpanFull(),
+                    TextInput::make('unit')->label('Unidad'),
+                    TextInput::make('factor')->label('Factor'),
+                    TextInput::make('quantity')->label('Rendimiento'),
+                    TextInput::make('price')->label('Precio unitario original'),
+                    Textarea::make('description')->label('Descripción')->columnSpanFull(),
+                ])
+                ->itemLabel(fn (array $state): string => ($state['code'] ?? '').' · '.($state['name'] ?? ''))
+                ->collapsed()->columns(3)->columnSpanFull()->disabled()->dehydrated(false)
+                ->visible(fn (?Model $record): bool => ! empty($record?->budget_breakdown)),
         ]);
     }
 }

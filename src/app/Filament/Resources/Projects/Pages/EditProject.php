@@ -7,6 +7,7 @@ use App\Filament\Resources\Projects\ProjectResource;
 use App\Filament\Resources\WorkOrderLines\WorkOrderLineResource;
 use App\Filament\Resources\WorkOrders\WorkOrderResource;
 use App\Support\ArchitectMeasurementSpreadsheet;
+use App\Support\Bc3BudgetImporter;
 use App\Support\BusinessRecordValidator;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
@@ -22,6 +23,35 @@ class EditProject extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('importBc3Budget')
+                ->label('Importar presupuesto BC3')
+                ->authorize(fn (): bool => ProjectResource::canEdit($this->getRecord())
+                    && WorkOrderResource::canCreate()
+                    && WorkOrderLineResource::canCreate()
+                    && ProjectChapterResource::canCreate())
+                ->modalHeading('Importar presupuesto BC3')
+                ->modalDescription('Se creará una nueva orden de trabajo en borrador con los capítulos, partidas, precios unitarios y mediciones del presupuesto. Los descompuestos se conservarán como referencia dentro de cada partida. Los capítulos con el mismo código se conservarán sin cambios.')
+                ->modalSubmitActionLabel('Importar presupuesto')
+                ->schema([
+                    TextInput::make('name')->label('Nombre de la orden de trabajo')
+                        ->default('Presupuesto BC3')->required()->maxLength(255),
+                    FileUpload::make('file')->label('Presupuesto BC3')
+                        ->helperText('Archivo .bc3 de hasta 5 MB. Precios unitarios directos en la divisa de la obra. No se aplican impuestos, bajas ni gastos generales globales; los archivos que los incluyan se rechazarán.')
+                        ->acceptedFileTypes(['text/plain', 'application/octet-stream'])
+                        ->mimeTypeMap(['bc3' => 'text/plain'])
+                        ->rules(['extensions:bc3'])
+                        ->maxSize(5120)->storeFiles(false)->required(),
+                ])
+                ->action(function (array $data): void {
+                    $order = BusinessRecordValidator::inForm(
+                        fn () => app(Bc3BudgetImporter::class)->import($this->getRecord(), $data['file']->getRealPath(), $data['name']),
+                        $this->getMountedActionSchema()?->getStatePath() ?? '',
+                    );
+                    Notification::make()->success()->title('Presupuesto BC3 importado')
+                        ->body($order->workOrderLines()->count().' partidas creadas en una orden de trabajo en borrador.')
+                        ->send();
+                    $this->redirect(WorkOrderResource::getUrl('edit', ['record' => $order]));
+                }),
             Action::make('importArchitectMeasurements')
                 ->label('Importar mediciones')
                 ->authorize(fn (): bool => ProjectResource::canEdit($this->getRecord())

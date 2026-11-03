@@ -153,7 +153,7 @@ final class ArchitectMeasurementSpreadsheet
 
                     continue;
                 }
-                if ($chapterCode === null || $text === '' || mb_strlen($code) > 80 || isset($items[$code]) || ! isset(self::UNITS[mb_strtolower($unit)])) {
+                if ($chapterCode === null || $text === '' || mb_strlen($code) > 80 || isset($items[$code]) || ! ProjectMeasurementImporter::supportsUnit($unit)) {
                     $this->fail('Fila '.$line.': partida sin capítulo, código repetido o unidad no reconocida ('.$unit.').');
                 }
                 $item = [

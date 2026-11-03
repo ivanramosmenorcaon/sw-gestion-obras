@@ -22,12 +22,22 @@ final class ProjectMeasurementImporter
         'm3' => ['cubic_meter', 'Metro cúbico', 'm³', 'volume'],
         'm³' => ['cubic_meter', 'Metro cúbico', 'm³', 'volume'],
         'kg' => ['kilogram', 'Kilogramo', 'kg', 'mass'],
+        'h' => ['hour', 'Hora', 'h', 'time'],
+        'h.' => ['hour', 'Hora', 'h', 'time'],
+        'l' => ['liter', 'Litro', 'l', 'volume'],
+        't' => ['tonne', 'Tonelada', 't', 'mass'],
+        'tn' => ['tonne', 'Tonelada', 't', 'mass'],
     ];
 
+    public static function supportsUnit(string $unit): bool
+    {
+        return isset(self::UNITS[mb_strtolower($unit)]);
+    }
+
     /**
-     * @param array{chapters: list<array{code: string, name: string, parent?: string}>, items: list<array<string, mixed>>, measurements: int, instructions?: string} $document
+     * @param  array{chapters: list<array{code: string, name: string, parent?: string}>, items: list<array<string, mixed>>, measurements: int, instructions?: string}  $document
      */
-    public function import(Project $project, array $document, string $name, string $source = "Mediciones de arquitecto"): WorkOrder
+    public function import(Project $project, array $document, string $name, string $source = 'Mediciones de arquitecto'): WorkOrder
     {
         $fingerprint = hash('sha256', json_encode($document, JSON_THROW_ON_ERROR));
 
@@ -50,6 +60,9 @@ final class ProjectMeasurementImporter
             }
             $units = [];
             foreach ($document['items'] as $item) {
+                if (! self::supportsUnit($item['unit'])) {
+                    $this->fail('Unidad no reconocida en la partida '.$item['code'].': '.$item['unit'].'.');
+                }
                 [$code, $unitName, $symbol, $magnitude] = self::UNITS[mb_strtolower($item['unit'])];
                 if (! isset($units[$code])) {
                     $unit = Unit::query()->firstOrCreate(['code' => $code], [
