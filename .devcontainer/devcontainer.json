@@ -4,7 +4,7 @@
 	"service": "app",
 	"workspaceFolder": "/var/www/html",
 	"overrideCommand": false,
-	"forwardPorts": [80],
+	"forwardPorts": [80,3306],
 	"customizations": {
 		"vscode": {
 			"extensions": [

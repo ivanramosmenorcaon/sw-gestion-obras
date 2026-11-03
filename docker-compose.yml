@@ -35,6 +35,8 @@ services:
       MYSQL_USER: gestion_obras
       MYSQL_PASSWORD: gestion_obras
       MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
