@@ -72,6 +72,7 @@ final class BusinessRecordRules
             'actual_end_date' => ['nullable', 'date'],
         ],
         'work_order_lines' => [
+            'source_code' => ['nullable', 'string', 'max:80'],
             'project_id' => ['required', 'integer', 'exists:projects,id'],
             'work_order_id' => ['required', 'integer', 'exists:work_orders,id'],
             'project_chapter_id' => ['nullable', 'integer', 'exists:project_chapters,id'],

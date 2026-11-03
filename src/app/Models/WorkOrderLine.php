@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Validation\ValidationException;
 
-#[Fillable(['project_id', 'work_order_id', 'project_chapter_id', 'work_order_phase_id', 'position', 'type', 'product_id', 'product_unit_id', 'description', 'unit_id', 'unit_label', 'base_unit_id', 'base_unit_factor', 'planned_quantity', 'estimated_unit_cost', 'estimated_unit_sale_price', 'notes'])]
+#[Fillable(['project_id', 'work_order_id', 'project_chapter_id', 'work_order_phase_id', 'position', 'type', 'product_id', 'product_unit_id', 'description', 'unit_id', 'unit_label', 'base_unit_id', 'base_unit_factor', 'planned_quantity', 'estimated_unit_cost', 'estimated_unit_sale_price', 'notes', 'source_code', 'measurement_details'])]
 class WorkOrderLine extends Model
 {
     /** @use HasFactory<WorkOrderLineFactory> */
@@ -43,6 +43,7 @@ class WorkOrderLine extends Model
         return [
             'base_unit_factor' => 'decimal:12',
             'planned_quantity' => 'decimal:6',
+            'measurement_details' => 'array',
             'estimated_unit_cost' => 'decimal:6',
             'estimated_unit_sale_price' => 'decimal:6',
         ];

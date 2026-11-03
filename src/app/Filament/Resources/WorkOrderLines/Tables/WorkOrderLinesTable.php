@@ -15,6 +15,7 @@ class WorkOrderLinesTable
             ->dragReorderableColumns()
             ->stickableColumns()
             ->columns([
+                TextColumn::make('source_code')->label('Código de partida')->searchable()->sortable()->toggleable(),
                 TextColumn::make('description')->label(__('business.fields.description'))->limit(60)->searchable(),
                 TextColumn::make('project.name')->searchable()->sortable()->label(__('business.fields.project_id'))->toggleable(),
                 TextColumn::make('workOrder.name')->searchable()->sortable()->label(__('business.fields.work_order_id'))->toggleable(isToggledHiddenByDefault: true),
