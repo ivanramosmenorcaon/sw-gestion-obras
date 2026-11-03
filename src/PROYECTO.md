@@ -732,3 +732,13 @@ Consulta del 3 de noviembre de 2026:
 - [AEAT: cuadro de retenciones y condiciones](https://sede.agenciatributaria.gob.es/Sede/ayuda/manuales-videos-folletos/manuales-practicos/folleto-actividades-economicas/7-otras-obligaciones-fiscales-retenciones/7_1-cuadro-relacion-tipos-retencion-porcentaje.html). La página consultada sigue rotulada como tipos aplicables de **2025**: no se presenta como certificado de vigencia de cualquier porcentaje para 2026.
 
 En `resources/verifactu` se conservan los XSD de suministro, información común y respuesta, el WSDL oficial y el esquema XMLDSIG del W3C para validación sin red. En el XSD común se ha localizado únicamente el import de XMLDSIG a su copia local; no se han relajado las restricciones de la AEAT. La validación XSD es necesaria pero no sustituye las comprobaciones semánticas ni una prueba real de integración.
+
+### Despliegue local y comprobación de esta entrega
+
+La migración aditiva se ha aplicado a MySQL, seguida únicamente de `BillingSeeder`. Se han creado las series de pruebas; no se han generado facturas de ejemplo en la base de trabajo ni se han modificado sus contactos, productos u órdenes. Se conserva una copia SQL previa en `storage/app/private/backups/pre-sales-billing-20261103-202653.sql`, con permisos privados. Los envíos permanecen desactivados; el cron y el certificado no se han configurado automáticamente.
+
+Las pruebas se ejecutan con SQLite `:memory:` y comprobación explícita de conexión antes de refrescar la base. La cobertura nueva incluye el flujo de Filament, facturación parcial, pertenencia de fases, reservas, cancelación de borradores, inmutabilidad y editores obsoletos, numeración/encadenamiento, el vector oficial de hash, XSD, exenciones, ISP documentada, IRPF, redondeos, créditos parciales, permisos, creación anidada de fichas, impresión/XML autenticados y reintentos HTTP con historial. Las llamadas HTTP de las pruebas están simuladas; no se ha usado un certificado real ni se ha enviado un registro a AEAT.
+
+Pint se ha aplicado a los archivos PHP modificados. Se intentó `--dirty` conforme a AGENTS.md; al no existir repositorio Git, se pasó la lista explícita de archivos. No se han instalado dependencias ni ha sido necesario compilar assets frontend.
+
+Resultado final: **317 pruebas correctas y 3.189 aserciones** en la suite completa, incluidas **32 pruebas específicas de facturación**. La migración figura aplicada y las rutas de Filament, impresión y exportación XML están registradas. El comando de envío confirma que los envíos están desactivados.
