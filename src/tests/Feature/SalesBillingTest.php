@@ -457,6 +457,31 @@ class SalesBillingTest extends TestCase
         $page->callAction(TestAction::make('createOption')->schemaComponent('work_order_id'), ['project_id' => $project->id, 'reference' => 'OT-OTRO', 'name' => 'Otra obra'])->assertHasFormErrors(['project_id']);
         $this->assertDatabaseMissing('work_orders', ['reference' => 'OT-OTRO']);
     }
+
+    public function test_rounding_does_not_assign_vat_to_a_free_line(): void
+    {
+        $invoice = $this->invoice();
+        $free = $invoice->lines()->first();
+        $free->update(['unit_price' => '0']);
+        foreach ([2, 3] as $position) {
+            SalesInvoiceLine::factory()->create(['sales_invoice_id' => $invoice->id, 'position' => $position, 'tax_profile_id' => $free->tax_profile_id, 'unit_price' => '0.02']);
+        }
+        $issued = app(SalesBilling::class)->issue($invoice);
+        $this->assertSame('0.00', $free->fresh()->tax_amount);
+        $this->assertSame('0.01', $issued->tax_total);
+        $this->assertSame('0.05', $issued->gross_total);
+    }
+
+    public function test_line_form_saves_valid_data_and_displays_business_validation_errors(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $invoice = $this->invoice();
+        $page = Livewire::test(LinesRelationManager::class, ['ownerRecord' => $invoice, 'pageClass' => EditSalesInvoice::class]);
+        $page->callAction(TestAction::make('create')->table(), ['position' => 2, 'description' => 'Mano de obra', 'quantity' => '2', 'unit_price' => '30', 'discount_percentage' => '0', 'tax_profile_id' => $invoice->lines()->first()->tax_profile_id])->assertHasNoFormErrors();
+        $this->assertDatabaseHas('sales_invoice_lines', ['sales_invoice_id' => $invoice->id, 'description' => 'Mano de obra', 'quantity' => '2']);
+        $page->callAction(TestAction::make('create')->table(), ['position' => 3, 'description' => 'Cantidad negativa', 'quantity' => '-1', 'unit_price' => '30', 'discount_percentage' => '0', 'tax_profile_id' => $invoice->lines()->first()->tax_profile_id])->assertHasFormErrors(['quantity']);
+        $this->assertDatabaseCount('sales_invoice_lines', 2);
+    }
 }
 
 class DenyBillingUpdates

@@ -25,7 +25,7 @@ final class InvoiceCalculator
     /** @return array{lines: array<int, array<string, mixed>>, groups: array<int, array<string, mixed>>, totals: array<string, string>} */
     public function calculate(SalesInvoice $invoice, bool $issuing = false): array
     {
-        $invoice->loadMissing('lines.taxProfile.taxRate', 'lines.taxProfile.surchargeRate', 'lines.withholdingRate', 'customer');
+        $invoice->loadMissing('lines.taxProfile.taxRate', 'lines.taxProfile.surchargeRate', 'lines.withholdingRate', 'lines.rectifiesLine', 'lines.product', 'customer');
         $lines = [];
         $groups = [];
         $members = [];
@@ -50,14 +50,14 @@ final class InvoiceCalculator
                 $original = $line->rectifiesLine;
                 $otherCredits = SalesInvoiceLine::where('rectifies_line_id', $original->id)->whereKeyNot($line->id)->whereHas('invoice', fn ($query) => $query->where('status', 'issued'))->get();
                 $remainingQuantity = $otherCredits->reduce(fn (BigDecimal $sum, SalesInvoiceLine $credit): BigDecimal => $sum->plus($credit->quantity), BigDecimal::of($original->quantity));
-                foreach (['net_amount' => 'base', 'tax_amount' => 'tax', 'surcharge_amount' => 'surcharge', 'withholding_amount' => 'withholding'] as $field => $variable) {
+                $amounts = ['net_amount' => $base, 'tax_amount' => $tax, 'surcharge_amount' => $surcharge, 'withholding_amount' => $withholding];
+                foreach ($amounts as $field => $amount) {
                     $available = $otherCredits->reduce(fn (BigDecimal $sum, SalesInvoiceLine $credit): BigDecimal => $sum->plus($credit->$field), BigDecimal::of($original->$field));
-                    if (BigDecimal::of($line->quantity)->abs()->compareTo($remainingQuantity) === 0) {
-                        $$variable = self::money($available->negated());
-                    } elseif (BigDecimal::of($$variable)->abs()->compareTo($available->abs()) > 0) {
-                        $$variable = self::money($available->negated());
+                    if (BigDecimal::of($line->quantity)->abs()->compareTo($remainingQuantity) === 0 || BigDecimal::of($amount)->abs()->compareTo($available->abs()) > 0) {
+                        $amounts[$field] = self::money($available->negated());
                     }
                 }
+                ['net_amount' => $base, 'tax_amount' => $tax, 'surcharge_amount' => $surcharge, 'withholding_amount' => $withholding] = $amounts;
             }
             $lines[$line->id] = ['fiscal_snapshot' => $fiscal, 'net_amount' => $base, 'tax_amount' => $tax, 'surcharge_amount' => $surcharge, 'withholding_amount' => $withholding];
             $key = json_encode(array_diff_key($fiscal, array_flip(['withholding_percentage', 'legal_basis'])), JSON_THROW_ON_ERROR);
@@ -84,6 +84,9 @@ final class InvoiceCalculator
                 foreach ($members[$key] as $id) {
                     if ($difference->compareTo('0') === 0) {
                         break;
+                    }
+                    if (BigDecimal::of($lines[$id]['net_amount'])->compareTo('0') <= 0 || ($difference->compareTo('0') < 0 && BigDecimal::of($lines[$id][$lineField])->compareTo('0') <= 0)) {
+                        continue;
                     }
                     $adjustment = $difference->compareTo('0') > 0 ? '0.01' : '-0.01';
                     $lines[$id][$lineField] = self::money(BigDecimal::of($lines[$id][$lineField])->plus($adjustment));
@@ -126,7 +129,7 @@ final class InvoiceCalculator
         if ($evidenceRequired && blank($invoice->fiscal_evidence)) {
             throw ValidationException::withMessages(['fiscal_evidence' => __('billing.messages.evidence')]);
         }
-        $issuerNif = CompanySetting::where('scope', 'company')->value('tax_identification_number');
+        $issuerNif = $line->withholding_rate_id ? CompanySetting::where('scope', 'company')->value('tax_identification_number') : null;
         if ($line->withholding_rate_id && ! preg_match('/^(?:[0-9]{8}[A-Z]|[XYZKLM][0-9]{7}[A-Z])$/', $issuerNif ?? '')) {
             throw ValidationException::withMessages(['withholding_rate_id' => __('billing.messages.withholding_issuer')]);
         }
