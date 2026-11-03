@@ -17,6 +17,9 @@ class ProductsTable
         return $table->modifyQueryUsing(fn (Builder $query): Builder => $query->withExists(['workOrderLines', 'productUnits', 'supplierProducts', 'priceListItems']))->columns([
             TextColumn::make('reference')->searchable()->sortable()->label(__('business.fields.reference'))->toggleable(),
             TextColumn::make('name')->searchable()->sortable()->label(__('business.fields.name'))->toggleable(),
+            TextColumn::make('salesTaxProfile.name')->label(__('fiscal.fields.sales_tax_profile_id'))->toggleable(),
+            TextColumn::make('purchaseTaxProfile.name')->label(__('fiscal.fields.purchase_tax_profile_id'))->toggleable(isToggledHiddenByDefault: true),
+            TextColumn::make('salesWithholdingRate.name')->label(__('fiscal.fields.sales_withholding_rate_id'))->toggleable(isToggledHiddenByDefault: true),
             TextColumn::make('productCategory.name')->searchable()->sortable()->label(__('business.fields.product_category_id'))->toggleable(isToggledHiddenByDefault: true),
             TextColumn::make('type')->badge()->formatStateUsing(fn (?string $state): string => $state === null ? '' : __('business.options.'.$state))->label(__('business.fields.type'))->toggleable(),
             TextColumn::make('baseUnit.name')->searchable()->sortable()->label(__('business.fields.base_unit_id'))->toggleable(isToggledHiddenByDefault: true),

@@ -24,7 +24,8 @@ Fecha inicial: 3 de noviembre de 2026.
 | Stock, consumos, costes y horas | Propuesto; pendiente |
 | Certificaciones, proformas, facturas, anticipos y tesorería | Propuesto; pendiente |
 | Integración VERI*FACTU y facturación electrónica | Pendiente |
-| Modelos y Filament | 25 modelos, 23 resources y 18 relation managers para las tablas existentes; interfaz en español. Véase apartado 12. |
+| Modelos y Filament | 27 modelos, 25 resources y 18 relation managers; interfaz en español. Véanse apartados 12 y 13. |
+| Parametrización fiscal | Dos tablas de catálogos, identificación y países oficiales, perfiles y retenciones de compra/venta en terceros/productos/empresa. Véase apartado 13. |
 
 Versiones comprobadas: PHP 8.3.36, Laravel 13.39.0, Filament 5.11.1 y Boost 2.10.4.
 Las versiones mínimas de composer.json no se deben confundir con las versiones instaladas.
@@ -193,6 +194,7 @@ Corrección: phpunit.xml fuerza DB_CONNECTION=sqlite, DB_DATABASE=:memory: y DB_
 - 2026-11-03: verificado formato, 7 pruebas con 39 aserciones en SQLite en memoria y carga de BusinessMasterSeeder en MySQL. Todas las migraciones figuran aplicadas. Documentada la reinicialización accidental de MySQL y corregido el aislamiento de pruebas; recuperación de datos previos sin resolver.
 - 2026-11-03: segundo bloque aplicado tras copia privada previa: ocho tablas de proyectos y ejecución, 25 tablas de negocio acumuladas. Verificadas 18 pruebas y 77 aserciones en memoria, formato PHP y esquema resultante en MySQL. Siguiente bloque propuesto: presupuestos versionados de venta y presupuestos recibidos.
 - 2026-11-03: a petición del usuario se adelantan modelos y Filament para los dos bloques existentes: 25 modelos/factories, 23 resources, 18 gestores de relaciones, cinco grupos de navegación y traducciones españolas. Sin migraciones nuevas ni carga de datos en MySQL.
+- 2026-11-03: ampliada la parametrización fiscal tras contrastar AEAT y BOE: países e identificación, situación fiscal, tipos con vigencia, perfiles y retenciones independientes de compra/venta. Dos migraciones nuevas aplicadas como lote 3, copia previa y carga inicial sin asignación automática a datos existentes.
 
 ## 11. Segundo bloque: proyectos y ejecución
 
@@ -422,6 +424,147 @@ Pruebas nuevas:
 Todas utilizan SQLite en memoria con comprobación previa de conexión, y usuarios creados mediante factories exclusivamente en esa base. Se ejecutan también las pruebas de esquema de los bloques anteriores.
 No se requiere instalar dependencias ni compilar frontend: esta etapa modifica PHP y traducciones.
 Resultado final: php artisan test --compact pasa con 124 pruebas y 666 aserciones. Pint pasa sobre todos los archivos PHP de esta etapa. Se intentó --dirty como exige AGENTS.md; al no existir repositorio Git se indicaron las rutas explícitamente. La configuración efectiva app.locale es es y el estado de migraciones de MySQL conserva los mismos lotes 1 y 2, sin migraciones nuevas en esta etapa.
+
+## 13. Parametrización fiscal de terceros, productos y empresa
+
+### Motivo y alcance
+
+El usuario solicita completar los datos fiscales necesarios para preparar la facturación española y VERI*FACTU: identificación del tercero, países, IVA, exenciones, retenciones y otros tratamientos.
+Se implementa la parametrización y su validación. El módulo de emisión de facturas, sus cálculos definitivos y el envío a AEAT siguen pendientes. No se declara que la aplicación ya cumpla íntegramente el RRSIF por disponer de estos maestros.
+
+### Fuentes oficiales y versión
+
+Contrastadas el 3 de noviembre de 2026:
+- [AEAT: esquemas y tipos comunes](https://prewww2.aeat.es/static_files/common/internet/dep/aplicaciones/es/aeat/tikeV1.0/cont/ws/SuministroInformacion.xsd).
+- [AEAT: diseño de registros y listas L1, L7, L8A, L8B, L9 y L10](https://www.agenciatributaria.es/static_files/AEAT_Desarrolladores/EEDD/IVA/VERI-FACTU/DsRegistroVeriFactu.xlsx).
+- [AEAT: validaciones y errores, versión 1.2.2](https://www.agenciatributaria.es/static_files/AEAT_Desarrolladores/EEDD/IVA/VERI-FACTU/Validaciones_Errores_Veri-Factu.pdf).
+- [Reglamento de facturación, RD 1619/2012](https://www.boe.es/buscar/act.php?id=BOE-A-2012-14696).
+- [AEAT: tipos de retención y condiciones](https://sede.agenciatributaria.gob.es/Sede/ayuda/manuales-videos-folletos/manuales-practicos/folleto-actividades-economicas/7-otras-obligaciones-fiscales-retenciones/7_1-cuadro-relacion-tipos-retencion-porcentaje.html).
+- [AEAT: retenciones en los registros de facturación](https://sede.agenciatributaria.gob.es/Sede/iva/sistemas-informaticos-facturacion-verifactu/preguntas-frecuentes/registros-facturacion-alta.html).
+
+Los catálogos y reglas deberán revisarse cuando cambie la documentación oficial. La estructura XSD por sí sola no basta: el documento de validaciones impone restricciones adicionales.
+
+### Identificación del tercero y países
+
+Se mantienen separados:
+- Tipo de persona: física o entidad (campo type existente).
+- Condición en la que actúa: particular, empresario/profesional o Administración/organismo público.
+- Roles comerciales: cliente, proveedor, subcontratista.
+- Tipo de identificación fiscal y país emisor de esa identificación.
+- País de cada domicilio, que no determina por sí solo el impuesto de una operación.
+
+El país fiscal y los países de direcciones, proyectos y empresa pasan a ser selectores. FiscalCatalog utiliza los 246 códigos de CountryType2 del XSD consultado, incluidos sus códigos especiales. Los nombres de países y las opciones están en lang/es/fiscal.php. No se permite introducir libremente códigos ajenos al catálogo ni se crea una tabla editable que pueda desvirtuar la lista oficial. El código especial XG conserva una etiqueta explícita de código especial AEAT, sin asignarle una denominación geográfica no contrastada.
+
+Tipos de identificación disponibles:
+- nif: NIF español, incluidos DNI, NIE y NIF de entidades; utiliza el elemento NIF.
+- 02: NIF-IVA.
+- 03: Pasaporte.
+- 04: Documento oficial del país de residencia.
+- 05: Certificado de residencia.
+- 06: Otro documento probatorio.
+- 07: No censado, exclusivamente como destinatario y con país ES.
+
+Los tipos 02 a 07 utilizan IDOtro. No se inventa un IDType 01 para el NIF español.
+Se comprueba la compatibilidad de país/tipo. El código 07 no se habilita para la empresa emisora.
+Los maestros siguen permitiendo contactos comerciales sin número fiscal. FiscalIdentity::recipient exige identificación al preparar los datos de un destinatario, produce una sola rama NIF o IDOtro y aplica límites de nombre e identificador del esquema.
+El nombre fiscal se limita a 120 caracteres en la aplicación. NIF: hasta 9 caracteres al mantener el maestro y exactamente 9 con formato compatible al preparar la identidad; IDOtro: máximo 20.
+La acción «Comprobar identificación guardada» revisa los datos persistidos y su formato. No consulta el censo AEAT ni VIES, no certifica el alta censal y no realiza una validación completa de todos los dígitos de control o estructuras nacionales extranjeras.
+No se convierten ni truncan silenciosamente identificaciones o nombres antiguos. Los valores históricos fuera de estos límites requerirán revisión al editarlos o antes de facturar.
+
+### Situación fiscal y valores predeterminados
+
+Se añaden a terceros y empresa:
+- taxpayer_capacity: condición en la que actúa.
+- tax_territory: Península/Baleares, Canarias, Ceuta, Melilla, otro territorio UE o tercero.
+- iae_code: epígrafe de actividad.
+- withholding_obliged: obligación de practicar retenciones.
+- equivalence_surcharge_applicable: acogimiento al recargo de equivalencia.
+
+Los dos indicadores son de tres estados: sí, no y sin determinar. No se interpreta un dato desconocido como una respuesta negativa. La interfaz conserva correctamente el valor no al volver a abrir un registro.
+
+Terceros, productos y empresa incorporan:
+- sales_tax_profile_id y purchase_tax_profile_id.
+- sales_withholding_rate_id y purchase_withholding_rate_id.
+- fiscal_notes: observaciones y referencias de justificación.
+
+Estos campos son propuestas para operaciones de venta/compra diferentes. No se copia automáticamente un IVA o un IRPF a los registros existentes y no se aplica una jerarquía ciega de sustitución entre cliente y producto.
+El futuro motor de factura deberá resolver cada línea según fecha, territorio de realización, destinatario, actividad del emisor, bien/servicio y documentos justificativos, permitiendo confirmar el tratamiento antes de emitir.
+Una retención de producto no obliga a retener a un particular. En compras importa la obligación de la empresa pagadora y la naturaleza/régimen de la actividad del proveedor. En ventas importa la actividad del emisor y la condición del destinatario.
+El domicilio español de un contacto no decide por sí solo entre IVA, IGIC o IPSI. La operativa foral y sus sistemas propios deberán analizarse para cada empresa antes de su puesta en producción; este bloque no implementa TicketBAI ni Batuz.
+
+### Nuevas tablas
+
+| Tabla | Contenido |
+| --- | --- |
+| tax_rates | Código único, nombre, familia, porcentaje DECIMAL(7,4), vigencia desde/hasta, fundamento legal, necesidad de evidencia y activo. |
+| tax_profiles | Código único, nombre, impuesto, clave de régimen, calificación, exención, tipo y recargo vinculados, fundamento legal, necesidad de evidencia y activo. |
+
+Familias de tipos: IVA, IGIC, IPSI, retención IRPF, recargo de equivalencia y otro impuesto indirecto.
+Los porcentajes de impuestos indirectos se comprueban con la precisión y tamaño del campo de tipo del esquema; las retenciones se conservan separadamente. Una retención no puede utilizarse como tipo indirecto.
+Las claves de impuesto son 01 IVA, 02 IPSI, 03 IGIC y 05 otros. Las listas de régimen y causas de exención dependen del impuesto.
+Los tipos tienen vigencia para permitir versiones futuras. No se sobrescribe una fila existente al repetir el seeder.
+
+### Tratamientos fiscales
+
+Se representan de forma distinta:
+- S1: sujeta y no exenta sin inversión. Tiene un tipo, que puede ser 0 % si corresponde legalmente.
+- S2: sujeta y no exenta con inversión del sujeto pasivo. El perfil exige tipo cero y no permite recargo.
+- N1: no sujeta por artículo 7, 14 u otros.
+- N2: no sujeta por reglas de localización.
+- exempt: marcador interno de operación exenta; exige una causa de exención compatible y no contiene tipo ni recargo. Al generar el futuro registro se informará OperacionExenta, no el texto interno exempt.
+
+Para IVA se admiten E1 a E6; IGIC tiene sus causas propias y admite además E7 y E8 conforme al documento de validaciones. Los textos legales no se reutilizan entre impuestos aunque coincida el código.
+Se validan familia de tipo, ausencia de tipo/recargo en exentas y no sujetas, correspondencia IVA/recargo y combinaciones básicas de régimen y calificación.
+Se incluyen, entre otras, las restricciones de exportación, régimen de caja, operaciones por cuenta de terceros y localización documentadas por AEAT. Las restricciones que necesitan tipo de factura, destinatarios o fecha de operación se completarán al crear las facturas.
+
+Para una ejecución de obra no se elige automáticamente S2 por tratarse de construcción: el perfil exige revisar el supuesto contractual y los requisitos de los intervinientes.
+El IVA al 10 % en determinadas obras tampoco se aplica globalmente por pertenecer a una categoría de producto o porque el cliente sea un particular.
+
+### Retenciones y recargo
+
+El IRPF se guarda fuera del perfil de impuesto indirecto. La retención modifica el importe a pagar/cobrar, no se resta del total del registro VERI*FACTU.
+En el futuro módulo de factura se distinguirán expresamente base, cuotas de impuesto, cuota de recargo, total fiscal, retención y líquido a pagar.
+Las retenciones de garantía de obra son otro concepto y no se confundirán con retenciones fiscales.
+
+Se distingue entre:
+- Proveedor en régimen general que repercute un recargo al minorista: los perfiles iniciales con recargo usan clave de régimen 01.
+- Emisor acogido a su propio régimen especial de recargo: clave 18, que no se selecciona simplemente porque el cliente esté en recargo.
+
+### Seeders
+
+FiscalCatalogSeeder se incorpora a DatabaseSeeder después de BusinessMasterSeeder.
+Carga 11 tipos iniciales: IVA 21/10/4/0; IRPF 15/7/1; recargo 5,2/1,4/0,5/0.
+Carga 16 perfiles: los cuatro tipos sujetos, inversión en obra, seis causas de exención, dos no sujeciones y tres perfiles con recargo.
+Las retenciones reducidas y los tratamientos especiales se señalan como condicionados y con necesidad de justificación.
+La fecha inicial 2026-01-01 es el comienzo del catálogo configurado para esta instalación, no una afirmación de que todos esos tipos entraran legalmente en vigor ese día. No se pretende reconstruir períodos históricos ni asignar retroactivamente impuestos a documentos.
+IGIC, IPSI y otros tienen estructura y catálogos de claves; sus tipos concretos deben configurarse y contrastarse antes de utilizarlos. No se precargan porcentajes regionales sin comprobar el caso.
+La carga es transaccional, repetible y conserva las personalizaciones. No asigna perfiles ni retenciones a terceros, productos o empresa.
+
+### Filament y traducciones
+
+Nuevo grupo Fiscalidad:
+- Tipos impositivos y retenciones.
+- Perfiles fiscales.
+
+Se crean dos resources, modelos y factories. Acumulado: 27 modelos de negocio, 25 resources y 18 relation managers.
+Los formularios fiscales son condicionales según impuesto y tratamiento. Al cambiar de calificación se limpian las selecciones incompatibles; los campos ocultos conservan la deshidratación necesaria para guardar los valores nulos.
+FiscalDefaults es una sección reutilizada por terceros, productos y empresa. Sus selectores de retención solo ofrecen la familia IRPF.
+Se añaden columnas de perfiles fiscales a los listados de productos/terceros y filtros de identificación/territorio en terceros.
+Los labels, opciones, ayudas y errores nuevos están en lang/es/fiscal.php.
+
+### Migraciones, seguridad y comprobación
+
+Se crean dos migraciones nuevas, sin editar las ya aplicadas:
+- create_fiscal_configuration_tables.
+- add_fiscal_defaults_to_business_records.
+
+Los nuevos campos en tablas existentes son anulables y no se modifica su contenido anterior.
+Copia privada previa: storage/app/private/backups/before_fiscal_configuration_20261103_171135.sql (135.733 bytes).
+Ambas migraciones se han aplicado en MySQL como lote 3 y se ha ejecutado FiscalCatalogSeeder.
+Pruebas fiscales en FiscalConfigurationTest: ramas de identificación, país/tipo, datos incompletos, catálogos repetibles, incompatibilidades, IGIC, asignación de IRPF, independencia de compra/venta, estados sí/no/desconocido y pantallas.
+Se conserva la comprobación previa de SQLite en memoria en todas las pruebas que refrescan la base.
+Resultado final: 29 pruebas fiscales específicas correctas; suite completa correcta con 153 pruebas y 814 aserciones. Formato PHP verificado con Pint sobre las rutas modificadas (--dirty no está disponible porque no hay repositorio Git). Comprobado con Artisan el esquema MySQL de tax_profiles y sus claves foráneas. No se ha ejecutado migrate:fresh ni rollback sobre MySQL.
+
 
 
 

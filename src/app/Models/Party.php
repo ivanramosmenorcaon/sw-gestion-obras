@@ -7,11 +7,12 @@ use Database\Factories\PartyFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Validation\ValidationException;
 
-#[Fillable(['type', 'legal_name', 'trade_name', 'tax_country_code', 'tax_identification_type', 'tax_identification_number', 'locale', 'notes', 'is_active'])]
+#[Fillable(['type', 'legal_name', 'trade_name', 'tax_country_code', 'tax_identification_type', 'tax_identification_number', 'locale', 'notes', 'is_active', 'sales_tax_profile_id', 'purchase_tax_profile_id', 'sales_withholding_rate_id', 'purchase_withholding_rate_id', 'fiscal_notes', 'taxpayer_capacity', 'tax_territory', 'iae_code', 'withholding_obliged', 'equivalence_surcharge_applicable'])]
 class Party extends Model
 {
     /** @use HasFactory<PartyFactory> */
@@ -42,6 +43,8 @@ class Party extends Model
     protected function casts(): array
     {
         return [
+            'withholding_obliged' => 'boolean',
+            'equivalence_surcharge_applicable' => 'boolean',
             'is_active' => 'boolean',
         ];
     }
@@ -84,5 +87,25 @@ class Party extends Model
     public function supplierSettings(): HasOne
     {
         return $this->hasOne(PartySupplierSetting::class, 'party_id');
+    }
+
+    public function salesTaxProfile(): BelongsTo
+    {
+        return $this->belongsTo(TaxProfile::class, 'sales_tax_profile_id');
+    }
+
+    public function purchaseTaxProfile(): BelongsTo
+    {
+        return $this->belongsTo(TaxProfile::class, 'purchase_tax_profile_id');
+    }
+
+    public function salesWithholdingRate(): BelongsTo
+    {
+        return $this->belongsTo(TaxRate::class, 'sales_withholding_rate_id');
+    }
+
+    public function purchaseWithholdingRate(): BelongsTo
+    {
+        return $this->belongsTo(TaxRate::class, 'purchase_withholding_rate_id');
     }
 }

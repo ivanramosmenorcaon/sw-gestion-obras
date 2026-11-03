@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Validation\ValidationException;
 
-#[Fillable(['reference', 'name', 'description', 'product_category_id', 'type', 'base_unit_id', 'tracks_stock', 'is_active'])]
+#[Fillable(['reference', 'name', 'description', 'product_category_id', 'type', 'base_unit_id', 'tracks_stock', 'is_active', 'sales_tax_profile_id', 'purchase_tax_profile_id', 'sales_withholding_rate_id', 'purchase_withholding_rate_id', 'fiscal_notes'])]
 class Product extends Model
 {
     /** @use HasFactory<ProductFactory> */
@@ -81,5 +81,25 @@ class Product extends Model
     public function priceListItems(): HasMany
     {
         return $this->hasMany(PriceListItem::class, 'product_id');
+    }
+
+    public function salesTaxProfile(): BelongsTo
+    {
+        return $this->belongsTo(TaxProfile::class, 'sales_tax_profile_id');
+    }
+
+    public function purchaseTaxProfile(): BelongsTo
+    {
+        return $this->belongsTo(TaxProfile::class, 'purchase_tax_profile_id');
+    }
+
+    public function salesWithholdingRate(): BelongsTo
+    {
+        return $this->belongsTo(TaxRate::class, 'sales_withholding_rate_id');
+    }
+
+    public function purchaseWithholdingRate(): BelongsTo
+    {
+        return $this->belongsTo(TaxRate::class, 'purchase_withholding_rate_id');
     }
 }

@@ -7,9 +7,10 @@ use Database\Factories\CompanySettingFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Validation\ValidationException;
 
-#[Fillable(['scope', 'legal_name', 'trade_name', 'tax_identification_type', 'tax_identification_number', 'address_line_1', 'address_line_2', 'city', 'province', 'postal_code', 'country_code', 'currency_code', 'timezone', 'email', 'phone'])]
+#[Fillable(['scope', 'legal_name', 'trade_name', 'tax_identification_type', 'tax_identification_number', 'address_line_1', 'address_line_2', 'city', 'province', 'postal_code', 'country_code', 'currency_code', 'timezone', 'email', 'phone', 'sales_tax_profile_id', 'purchase_tax_profile_id', 'sales_withholding_rate_id', 'purchase_withholding_rate_id', 'fiscal_notes', 'taxpayer_capacity', 'tax_territory', 'iae_code', 'withholding_obliged', 'equivalence_surcharge_applicable'])]
 class CompanySetting extends Model
 {
     /** @use HasFactory<CompanySettingFactory> */
@@ -41,6 +42,28 @@ class CompanySetting extends Model
     protected function casts(): array
     {
         return [
+            'withholding_obliged' => 'boolean',
+            'equivalence_surcharge_applicable' => 'boolean',
         ];
+    }
+
+    public function salesTaxProfile(): BelongsTo
+    {
+        return $this->belongsTo(TaxProfile::class, 'sales_tax_profile_id');
+    }
+
+    public function purchaseTaxProfile(): BelongsTo
+    {
+        return $this->belongsTo(TaxProfile::class, 'purchase_tax_profile_id');
+    }
+
+    public function salesWithholdingRate(): BelongsTo
+    {
+        return $this->belongsTo(TaxRate::class, 'sales_withholding_rate_id');
+    }
+
+    public function purchaseWithholdingRate(): BelongsTo
+    {
+        return $this->belongsTo(TaxRate::class, 'purchase_withholding_rate_id');
     }
 }

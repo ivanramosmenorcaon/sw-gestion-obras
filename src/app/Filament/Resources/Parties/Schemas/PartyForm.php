@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Parties\Schemas;
 
+use App\Filament\Schemas\FiscalDefaults;
+use App\Support\FiscalCatalog;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -15,12 +17,13 @@ class PartyForm
     public static function configure(Schema $schema, array $context = []): Schema
     {
         return $schema->columns(2)->components([
+            FiscalDefaults::make(true),
             Select::make('type')->options(['individual' => __('business.options.individual'), 'organization' => __('business.options.organization')])->label(__('business.fields.type'))->required(),
-            TextInput::make('legal_name')->label(__('business.fields.legal_name'))->required()->maxLength(255)->helperText(__('business.helpers.role')),
+            TextInput::make('legal_name')->label(__('business.fields.legal_name'))->required()->maxLength(120)->helperText(__('business.helpers.role')),
             TextInput::make('trade_name')->label(__('business.fields.trade_name'))->maxLength(255),
-            TextInput::make('tax_country_code')->label(__('business.fields.tax_country_code'))->required()->default('ES')->maxLength(2)->helperText(__('business.helpers.country')),
-            TextInput::make('tax_identification_type')->label(__('business.fields.tax_identification_type'))->required()->default('nif')->maxLength(30),
-            TextInput::make('tax_identification_number')->label(__('business.fields.tax_identification_number'))->maxLength(40),
+            Select::make('tax_country_code')->options(FiscalCatalog::countries())->searchable()->label(__('business.fields.tax_country_code'))->required()->default('ES')->helperText(__('business.helpers.country')),
+            Select::make('tax_identification_type')->options(FiscalCatalog::identityTypes())->live()->label(__('business.fields.tax_identification_type'))->required()->default('nif'),
+            TextInput::make('tax_identification_number')->label(__('business.fields.tax_identification_number'))->maxLength(20),
             TextInput::make('locale')->label(__('business.fields.locale'))->required()->default('es')->maxLength(10),
             Textarea::make('notes')->rows(3)->columnSpanFull()->label(__('business.fields.notes')),
             Toggle::make('is_active')->label(__('business.fields.is_active'))->required()->default(true),

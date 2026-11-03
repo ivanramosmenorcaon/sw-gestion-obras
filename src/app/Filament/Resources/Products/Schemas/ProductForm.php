@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Products\Schemas;
 
+use App\Filament\Schemas\FiscalDefaults;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -15,6 +16,7 @@ class ProductForm
     public static function configure(Schema $schema, array $context = []): Schema
     {
         return $schema->columns(2)->components([
+            FiscalDefaults::make(false),
             TextInput::make('reference')->label(__('business.fields.reference'))->required()->maxLength(80)->unique(ignoreRecord: true),
             TextInput::make('name')->label(__('business.fields.name'))->required()->maxLength(255),
             Textarea::make('description')->rows(3)->columnSpanFull()->label(__('business.fields.description')),

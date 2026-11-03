@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\PartyAddresses\Schemas;
 
+use App\Support\FiscalCatalog;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -21,7 +22,7 @@ class PartyAddressForm
             TextInput::make('city')->label(__('business.fields.city'))->required()->maxLength(120),
             TextInput::make('province')->label(__('business.fields.province'))->maxLength(120),
             TextInput::make('postal_code')->label(__('business.fields.postal_code'))->maxLength(20),
-            TextInput::make('country_code')->label(__('business.fields.country_code'))->required()->default('ES')->maxLength(2)->helperText(__('business.helpers.country')),
+            Select::make('country_code')->options(FiscalCatalog::countries())->searchable()->label(__('business.fields.country_code'))->required()->default('ES')->helperText(__('business.helpers.country')),
             Toggle::make('is_fiscal')->label(__('business.fields.is_fiscal'))->required()->default(false),
             Toggle::make('is_delivery')->label(__('business.fields.is_delivery'))->required()->default(false),
             Toggle::make('is_active')->label(__('business.fields.is_active'))->required()->default(true),

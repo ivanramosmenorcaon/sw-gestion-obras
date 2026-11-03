@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Projects\Schemas;
 
+use App\Support\FiscalCatalog;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
@@ -34,7 +35,7 @@ class ProjectForm
             TextInput::make('city')->label(__('business.fields.city'))->maxLength(120),
             TextInput::make('province')->label(__('business.fields.province'))->maxLength(120),
             TextInput::make('postal_code')->label(__('business.fields.postal_code'))->maxLength(20),
-            TextInput::make('country_code')->label(__('business.fields.country_code'))->required()->default('ES')->maxLength(2)->helperText(__('business.helpers.country')),
+            Select::make('country_code')->options(FiscalCatalog::countries())->searchable()->label(__('business.fields.country_code'))->required()->default('ES')->helperText(__('business.helpers.country')),
             DatePicker::make('planned_start_date')->native(false)->displayFormat('d/m/Y')->label(__('business.fields.planned_start_date')),
             DatePicker::make('planned_end_date')->native(false)->displayFormat('d/m/Y')->label(__('business.fields.planned_end_date'))->afterOrEqual(fn (Get $get): ?string => $get('planned_start_date')),
             DatePicker::make('actual_start_date')->native(false)->displayFormat('d/m/Y')->label(__('business.fields.actual_start_date')),

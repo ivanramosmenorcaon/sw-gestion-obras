@@ -170,6 +170,7 @@ final class BusinessRecordValidator
             }
         });
         $validator->validate();
+        FiscalValidator::validate($record);
     }
 
     public static function canDelete(Model $record): bool
