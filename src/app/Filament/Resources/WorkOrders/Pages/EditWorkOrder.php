@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\WorkOrders\Pages;
 
+use App\Filament\Resources\WorkOrders\Tables\WorkOrdersTable;
 use App\Filament\Resources\WorkOrders\WorkOrderResource;
 use App\Support\BusinessRecordValidator;
 use Filament\Actions\DeleteAction;
@@ -15,6 +16,8 @@ class EditWorkOrder extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            WorkOrdersTable::treeAction(),
+            WorkOrdersTable::budgetAction(),
             DeleteAction::make()
                 ->modalDescription('Se eliminará la orden y, si está en borrador, sus partidas, fases y asignaciones. Los capítulos de la obra se conservarán.'),
         ];

@@ -24,12 +24,12 @@ class EditProject extends EditRecord
     {
         return [
             Action::make('importBc3Budget')
-                ->label('Importar presupuesto BC3')
+                ->label('Importar mediciones BC3')
                 ->authorize(fn (): bool => ProjectResource::canEdit($this->getRecord())
                     && WorkOrderResource::canCreate()
                     && WorkOrderLineResource::canCreate()
                     && ProjectChapterResource::canCreate())
-                ->modalHeading('Importar presupuesto BC3')
+                ->modalHeading('Importar mediciones BC3')
                 ->modalDescription('Se creará una nueva orden de trabajo en borrador con los capítulos, partidas, precios unitarios y mediciones del presupuesto. Los descompuestos se conservarán como referencia dentro de cada partida. Los capítulos con el mismo código se conservarán sin cambios.')
                 ->modalSubmitActionLabel('Importar presupuesto')
                 ->schema([

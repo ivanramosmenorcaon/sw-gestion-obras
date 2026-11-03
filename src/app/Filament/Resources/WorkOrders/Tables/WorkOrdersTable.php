@@ -2,6 +2,10 @@
 
 namespace App\Filament\Resources\WorkOrders\Tables;
 
+use App\Filament\Resources\Budgets\BudgetResource;
+use App\Filament\Resources\WorkOrders\WorkOrderResource;
+use App\Models\WorkOrder;
+use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
@@ -11,6 +15,20 @@ use Illuminate\Database\Eloquent\Builder;
 
 class WorkOrdersTable
 {
+    public static function budgetAction(): Action
+    {
+        return Action::make('prepareBudget')->label('Crear presupuesto')->icon('heroicon-o-document-text')
+            ->authorize(fn (WorkOrder $record): bool => WorkOrderResource::canView($record) && BudgetResource::canCreate())
+            ->url(fn (WorkOrder $record): string => WorkOrderResource::getUrl('tree', ['record' => $record]));
+    }
+
+    public static function treeAction(): Action
+    {
+        return Action::make('chapterTree')->label('Árbol y presupuesto')->icon('heroicon-o-folder-open')
+            ->authorize(fn (WorkOrder $record): bool => WorkOrderResource::canView($record))
+            ->url(fn (WorkOrder $record): string => WorkOrderResource::getUrl('tree', ['record' => $record]));
+    }
+
     public static function configure(Table $table): Table
     {
         return $table
@@ -32,6 +50,7 @@ class WorkOrdersTable
                 SelectFilter::make('status')->label(__('business.fields.status'))->options(['draft' => __('business.options.draft'), 'planned' => __('business.options.planned'), 'in_progress' => __('business.options.in_progress'), 'on_hold' => __('business.options.on_hold'), 'completed' => __('business.options.completed'), 'cancelled' => __('business.options.cancelled')]),
                 SelectFilter::make('priority')->label(__('business.fields.priority'))->options(['low' => __('business.options.low'), 'normal' => __('business.options.normal'), 'high' => __('business.options.high'), 'urgent' => __('business.options.urgent')]),
             ])->recordActions([
+                self::treeAction(),
                 EditAction::make(),
                 DeleteAction::make()
                     ->modalDescription('Se eliminará la orden y, si está en borrador, sus partidas, fases y asignaciones. Los capítulos de la obra se conservarán.'),

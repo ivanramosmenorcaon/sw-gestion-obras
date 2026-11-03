@@ -63,6 +63,11 @@ class Project extends Model
         return $this->hasMany(ProjectChapter::class, 'project_id');
     }
 
+    public function budgets(): HasMany
+    {
+        return $this->hasMany(Budget::class);
+    }
+
     public function workOrders(): HasMany
     {
         return $this->hasMany(WorkOrder::class, 'project_id');

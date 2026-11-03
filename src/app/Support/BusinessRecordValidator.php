@@ -81,6 +81,10 @@ final class BusinessRecordValidator
                 $fail('work_order_id', 'wrong_scope');
             }
 
+            if ($table === 'budgets' && ! empty($data['source_work_order_id']) && WorkOrder::query()->find($data['source_work_order_id'])->project_id !== (int) $data['project_id']) {
+                $fail('source_work_order_id', 'wrong_scope');
+            }
+
             foreach (['project_chapter_id' => ['project_id', ProjectChapter::class], 'work_order_phase_id' => ['work_order_id', WorkOrderPhase::class]] as $field => [$scope, $model]) {
                 if (! empty($data[$field]) && ! $model::query()->whereKey($data[$field])->where($scope, $data[$scope] ?? null)->exists()) {
                     $fail($field, 'wrong_scope');

@@ -5,6 +5,7 @@ namespace App\Filament\Resources\WorkOrders;
 use App\Filament\Resources\WorkOrders\Pages\CreateWorkOrder;
 use App\Filament\Resources\WorkOrders\Pages\EditWorkOrder;
 use App\Filament\Resources\WorkOrders\Pages\ListWorkOrders;
+use App\Filament\Resources\WorkOrders\Pages\ViewWorkOrderTree;
 use App\Filament\Resources\WorkOrders\Schemas\WorkOrderForm;
 use App\Filament\Resources\WorkOrders\Tables\WorkOrdersTable;
 use App\Models\WorkOrder;
@@ -69,6 +70,7 @@ class WorkOrderResource extends Resource
         return [
             'index' => ListWorkOrders::route('/'),
             'create' => CreateWorkOrder::route('/create'),
+            'tree' => ViewWorkOrderTree::route('/{record}/arbol'),
             'edit' => EditWorkOrder::route('/{record}/edit'),
         ];
     }

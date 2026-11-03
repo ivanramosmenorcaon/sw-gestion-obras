@@ -5,6 +5,14 @@ namespace App\Support;
 final class BusinessRecordRules
 {
     public const FIELDS = [
+        'budgets' => [
+            'project_id' => ['required', 'integer', 'exists:projects,id'],
+            'source_work_order_id' => ['nullable', 'integer', 'exists:work_orders,id'],
+            'reference' => ['required', 'string', 'max:80'],
+            'name' => ['required', 'string', 'max:255'],
+            'currency_code' => ['required', 'string', 'size:3'],
+            'items' => ['required', 'json'],
+        ],
         'projects' => [
             'reference' => ['required', 'string', 'max:80'],
             'name' => ['required', 'string', 'max:255'],
@@ -256,6 +264,7 @@ final class BusinessRecordRules
     ];
 
     public const UNIQUE = [
+        'budgets' => [['reference']],
         'projects' => [['reference']],
         'project_chapters' => [['project_id', 'code']],
         'employees' => [['code'], ['user_id']],
@@ -284,7 +293,7 @@ final class BusinessRecordRules
     ];
 
     public const CHILDREN = [
-        'projects' => ['projectChapters', 'workOrders', 'workOrderLines'],
+        'projects' => ['projectChapters', 'workOrders', 'workOrderLines', 'budgets'],
         'project_chapters' => ['children', 'workOrderLines'],
         'employees' => ['workOrders', 'workOrderEmployeeAssignments'],
         'work_orders' => ['workOrderPhases', 'workOrderLines', 'workOrderEmployeeAssignments', 'workOrderContractorAssignments'],

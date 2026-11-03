@@ -39,6 +39,7 @@ class WorkOrdersRelationManager extends RelationManager
                 CreateAction::make()->using(fn (array $data): Model => BusinessRecordValidator::inForm(fn (): Model => $this->getRelationship()->create($data), $this->getMountedActionSchema()?->getStatePath() ?? '')),
             ])
             ->recordActions([
+                WorkOrdersTable::treeAction(),
                 EditAction::make()->using(function (Model $record, array $data): Model {
                     return BusinessRecordValidator::inForm(function () use ($record, $data): Model {
                         $record->update($data);
