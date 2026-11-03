@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'create_related' => 'Crear :label',
     'groups' => [
         'works' => 'Obras',
         'contacts' => 'Contactos',

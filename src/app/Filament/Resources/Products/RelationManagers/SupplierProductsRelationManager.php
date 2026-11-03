@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Products\RelationManagers;
 use App\Filament\Resources\SupplierProducts\Schemas\SupplierProductForm;
 use App\Filament\Resources\SupplierProducts\Tables\SupplierProductsTable;
 use App\Support\BusinessRecordValidator;
+use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -15,6 +16,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class SupplierProductsRelationManager extends RelationManager
 {
+    use HasResizableColumn;
+
     protected static string $relationship = 'supplierProducts';
 
     public static function getTitle(Model $ownerRecord, string $pageClass): string

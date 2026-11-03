@@ -5,6 +5,7 @@ namespace App\Filament\Resources\PriceLists\RelationManagers;
 use App\Filament\Resources\PriceListItems\Schemas\PriceListItemForm;
 use App\Filament\Resources\PriceListItems\Tables\PriceListItemsTable;
 use App\Support\BusinessRecordValidator;
+use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -15,6 +16,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class PriceListItemsRelationManager extends RelationManager
 {
+    use HasResizableColumn;
+
     protected static string $relationship = 'priceListItems';
 
     public static function getTitle(Model $ownerRecord, string $pageClass): string

@@ -5,6 +5,7 @@ namespace App\Filament\Resources\WorkOrders\RelationManagers;
 use App\Filament\Resources\WorkOrderPhases\Schemas\WorkOrderPhaseForm;
 use App\Filament\Resources\WorkOrderPhases\Tables\WorkOrderPhasesTable;
 use App\Support\BusinessRecordValidator;
+use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -15,6 +16,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class WorkOrderPhasesRelationManager extends RelationManager
 {
+    use HasResizableColumn;
+
     protected static string $relationship = 'workOrderPhases';
 
     public static function getTitle(Model $ownerRecord, string $pageClass): string

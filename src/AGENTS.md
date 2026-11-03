@@ -155,3 +155,12 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 - Run `vendor/bin/phpunit` to call the test runner directly. It accepts the same file path and `--filter=testName` arguments.
 
 </laravel-boost-guidelines>
+
+## Project convention: creating related records from selects
+
+- Every form Select for an Eloquent business relationship with a registered Filament resource must offer inline record creation. Use createOptionForm() with the related resource's existing form and createOptionUsing() that returns the new primary key and saves the form relationships.
+- AppServiceProvider binds Filament\Forms\Components\Select to App\Filament\Forms\Components\RecordSelect. Keep using Select::make()->relationship(); the binding applies this convention to current forms, relation managers and future generated resources. Do not bypass it with direct construction.
+- Preserve the related resource's canCreate() authorization, transactional creation, Spanish labels, validation errors and automatic selection of the created option. Creation must not rely only on the parent resource's permissions.
+- Filtered relationships must create eligible records: customer/supplier/contractor selectors assign the corresponding party role; phase/chapter/order/presentation selectors preserve the selected owner; tax rate selectors preserve the required tax family. Extend RecordSelect context handling when adding a newly scoped relationship.
+- Fixed enums and official country/tax-code catalogs are selections, not creatable business records. Relationships without an administration resource, including existing user-account selectors, do not automatically expose account creation.
+- Add meaningful regression coverage for new creation contexts, including nested modals, ownership and authorization. Keep PROYECTO.md updated with decisions and exceptions.

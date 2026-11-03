@@ -195,6 +195,7 @@ Corrección: phpunit.xml fuerza DB_CONNECTION=sqlite, DB_DATABASE=:memory: y DB_
 - 2026-11-03: segundo bloque aplicado tras copia privada previa: ocho tablas de proyectos y ejecución, 25 tablas de negocio acumuladas. Verificadas 18 pruebas y 77 aserciones en memoria, formato PHP y esquema resultante en MySQL. Siguiente bloque propuesto: presupuestos versionados de venta y presupuestos recibidos.
 - 2026-11-03: a petición del usuario se adelantan modelos y Filament para los dos bloques existentes: 25 modelos/factories, 23 resources, 18 gestores de relaciones, cinco grupos de navegación y traducciones españolas. Sin migraciones nuevas ni carga de datos en MySQL.
 - 2026-11-03: ampliada la parametrización fiscal tras contrastar AEAT y BOE: países e identificación, situación fiscal, tipos con vigencia, perfiles y retenciones independientes de compra/venta. Dos migraciones nuevas aplicadas como lote 3, copia previa y carga inicial sin asignación automática a datos existentes.
+- 2026-11-03: alta de fichas desde todos los selectores de relaciones gestionadas por resources. Se centraliza en RecordSelect y se registra como convención permanente en AGENTS.md.
 
 ## 11. Segundo bloque: proyectos y ejecución
 
@@ -564,6 +565,62 @@ Ambas migraciones se han aplicado en MySQL como lote 3 y se ha ejecutado FiscalC
 Pruebas fiscales en FiscalConfigurationTest: ramas de identificación, país/tipo, datos incompletos, catálogos repetibles, incompatibilidades, IGIC, asignación de IRPF, independencia de compra/venta, estados sí/no/desconocido y pantallas.
 Se conserva la comprobación previa de SQLite en memoria en todas las pruebas que refrescan la base.
 Resultado final: 29 pruebas fiscales específicas correctas; suite completa correcta con 153 pruebas y 814 aserciones. Formato PHP verificado con Pint sobre las rutas modificadas (--dirty no está disponible porque no hay repositorio Git). Comprobado con Artisan el esquema MySQL de tax_profiles y sus claves foráneas. No se ha ejecutado migrate:fresh ni rollback sobre MySQL.
+
+## 14. Creación de fichas desde los selectores de relaciones
+
+### Requisito permanente
+
+El usuario solicita que todos los selectores de fichas gestionables permitan crear el registro relacionado sin abandonar el formulario, tanto ahora como en adelante. La convención se incorpora a AGENTS.md.
+
+### Implementación
+
+AppServiceProvider vincula la clase estándar Filament\\Forms\\Components\\Select con App\\Filament\\Forms\\Components\\RecordSelect en el contenedor de Laravel.
+Los formularios siguen utilizando Select::make()->relationship(). Esto aplica automáticamente el comportamiento a los formularios existentes, los compartidos con relation managers y los futuros resources generados con Artisan.
+
+RecordSelect:
+- Localiza el resource registrado para el modelo relacionado.
+- Configura createOptionForm() reutilizando Resource::form(), con operación de alta.
+- Configura createOptionUsing() para crear la ficha con Eloquent, guardar las relaciones del formulario y devolver su clave primaria.
+- Deja a Filament seleccionar la nueva opción, actualizar su etiqueta y ejecutar los eventos de cambio del selector.
+- Admite modales anidados, como Orden → nuevo Proyecto → nuevo Cliente.
+- Mantiene la traducción española del título y las acciones.
+- Realiza cada alta en una transacción y sitúa los errores de validación en el formulario modal correspondiente.
+- Comprueba canCreate() del resource relacionado en la acción y de nuevo antes de persistir. Al crear un tercero con rol contextual también comprueba la autorización del resource de roles.
+
+### Contextos de creación
+
+| Selector | Tratamiento |
+| --- | --- |
+| Cliente | Crea el tercero y su rol customer. |
+| Proveedor | Crea el tercero y su rol supplier. |
+| Contratista | Crea el tercero y su rol subcontractor. |
+| Orden o capítulo | Mantiene el proyecto seleccionado, si existe. |
+| Fase | Mantiene la orden seleccionada, si existe. |
+| Presentación de producto | Mantiene el producto seleccionado, si existe. |
+| Retención | Crea un tipo de familia withholding. |
+| Recargo | Crea un tipo de familia surcharge. |
+| Tipo indirecto de un perfil | Mantiene la familia del impuesto seleccionado. |
+
+Los campos de contexto aparecen fijados en el modal. Sus valores se vuelven a imponer en el servidor al crear la ficha; no se confía en que un campo deshabilitado impida por sí solo modificar la petición.
+Si se crea una orden, capítulo, fase o presentación con un propietario todavía no seleccionado en el formulario exterior, se sincronizan los campos de propietario que existan en ese formulario.
+La creación de productos conserva el alta automática de la presentación base a través de los eventos del modelo.
+Las comprobaciones de coherencia y pertenencia de los modelos siguen vigentes.
+
+### Alcance y mantenimiento
+
+Los enums, países oficiales, códigos de régimen y otras opciones fijas no representan fichas que se deban crear libremente.
+Los selectores de usuarios existentes no tienen un resource de administración de cuentas y no se convierten en un mecanismo de registro de usuarios.
+Para nuevos modelos de negocio basta con registrar su resource y usar el selector estándar de relación. Si una relación nueva tiene filtros o contexto adicionales, deberá ampliarse su tratamiento en RecordSelect y sus pruebas.
+No se duplican los formularios de los resources ni se crea un esquema reducido distinto para los modales.
+Se reutilizan los formularios y las reglas de los modelos; los futuros efectos de negocio reutilizables deberán residir en modelos/servicios o configurarse expresamente en la creación de opciones, no únicamente en hooks de una página de alta.
+
+### Comprobación
+
+RelatedRecordSelectTest comprueba la cobertura de selectores en los 25 resources y flujos reales de creación, selección, modales anidados, roles, contexto de orden/producto/familia fiscal, errores y autorización.
+Pruebas con SQLite en memoria y comprobación previa de conexión.
+No se han creado migraciones ni modificado registros de la base MySQL en esta etapa.
+Resultado final: pendiente de completar.
+
 
 
 

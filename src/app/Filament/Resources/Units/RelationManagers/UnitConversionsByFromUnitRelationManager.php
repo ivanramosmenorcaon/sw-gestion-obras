@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Units\RelationManagers;
 use App\Filament\Resources\UnitConversions\Schemas\UnitConversionForm;
 use App\Filament\Resources\UnitConversions\Tables\UnitConversionsTable;
 use App\Support\BusinessRecordValidator;
+use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -15,6 +16,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class UnitConversionsByFromUnitRelationManager extends RelationManager
 {
+    use HasResizableColumn;
+
     protected static string $relationship = 'unitConversionsByFromUnit';
 
     public static function getTitle(Model $ownerRecord, string $pageClass): string

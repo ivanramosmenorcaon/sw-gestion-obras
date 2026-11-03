@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Parties\RelationManagers;
 use App\Filament\Resources\PartyRoles\Schemas\PartyRoleForm;
 use App\Filament\Resources\PartyRoles\Tables\PartyRolesTable;
 use App\Support\BusinessRecordValidator;
+use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -15,6 +16,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class PartyRolesRelationManager extends RelationManager
 {
+    use HasResizableColumn;
+
     protected static string $relationship = 'partyRoles';
 
     public static function getTitle(Model $ownerRecord, string $pageClass): string

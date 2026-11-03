@@ -5,6 +5,7 @@ namespace App\Filament\Resources\PaymentTerms\RelationManagers;
 use App\Filament\Resources\PaymentTermInstallments\Schemas\PaymentTermInstallmentForm;
 use App\Filament\Resources\PaymentTermInstallments\Tables\PaymentTermInstallmentsTable;
 use App\Support\BusinessRecordValidator;
+use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -15,6 +16,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class PaymentTermInstallmentsRelationManager extends RelationManager
 {
+    use HasResizableColumn;
+
     protected static string $relationship = 'paymentTermInstallments';
 
     public static function getTitle(Model $ownerRecord, string $pageClass): string

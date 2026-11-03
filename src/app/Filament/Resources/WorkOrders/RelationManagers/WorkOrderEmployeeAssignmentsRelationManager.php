@@ -5,6 +5,7 @@ namespace App\Filament\Resources\WorkOrders\RelationManagers;
 use App\Filament\Resources\WorkOrderEmployeeAssignments\Schemas\WorkOrderEmployeeAssignmentForm;
 use App\Filament\Resources\WorkOrderEmployeeAssignments\Tables\WorkOrderEmployeeAssignmentsTable;
 use App\Support\BusinessRecordValidator;
+use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -15,6 +16,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class WorkOrderEmployeeAssignmentsRelationManager extends RelationManager
 {
+    use HasResizableColumn;
+
     protected static string $relationship = 'workOrderEmployeeAssignments';
 
     public static function getTitle(Model $ownerRecord, string $pageClass): string

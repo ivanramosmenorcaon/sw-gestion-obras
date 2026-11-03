@@ -107,7 +107,17 @@ class FilamentResourcesTest extends TestCase
 
         Livewire::test($pages['create']->getPage())->assertSuccessful();
         $record = $model::factory()->create();
-        Livewire::test($pages['index']->getPage())->assertSuccessful()->assertCanSeeTableRecords([$record]);
+        $list = Livewire::test($pages['index']->getPage())
+            ->assertSuccessful()
+            ->assertCanSeeTableRecords([$record]);
+
+        foreach ($list->instance()->getTable()->getColumns() as $column) {
+            $attributes = $column->getExtraHeaderAttributes();
+            $this->assertSame($column->getName(), $attributes['data-column-name']);
+            $this->assertSame('true', $attributes['data-resized-reorderable']);
+            $this->assertSame('true', $attributes['data-stickable']);
+        }
+
         Livewire::test($pages['edit']->getPage(), ['record' => $record->getKey()])->assertSuccessful();
     }
 
@@ -161,10 +171,17 @@ class FilamentResourcesTest extends TestCase
         $this->actingAs(User::factory()->create());
         $owner = $model::factory()->create();
 
-        Livewire::test($manager, ['ownerRecord' => $owner, 'pageClass' => $page])
+        $relationManager = Livewire::test($manager, ['ownerRecord' => $owner, 'pageClass' => $page])
             ->assertSuccessful()
             ->mountAction(TestAction::make('create')->table())
             ->assertHasNoFormErrors();
+
+        foreach ($relationManager->instance()->getTable()->getColumns() as $column) {
+            $attributes = $column->getExtraHeaderAttributes();
+            $this->assertSame($column->getName(), $attributes['data-column-name']);
+            $this->assertSame('true', $attributes['data-resized-reorderable']);
+            $this->assertSame('true', $attributes['data-stickable']);
+        }
     }
 
     /** @return array<string, array{class-string, class-string, class-string}> */

@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Filament\Forms\Components\RecordSelect;
+use Filament\Forms\Components\Select;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -11,7 +13,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(Select::class, RecordSelect::class);
     }
 
     /**

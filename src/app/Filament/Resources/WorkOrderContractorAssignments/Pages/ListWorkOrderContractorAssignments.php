@@ -3,11 +3,14 @@
 namespace App\Filament\Resources\WorkOrderContractorAssignments\Pages;
 
 use App\Filament\Resources\WorkOrderContractorAssignments\WorkOrderContractorAssignmentResource;
+use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 
 class ListWorkOrderContractorAssignments extends ListRecords
 {
+    use HasResizableColumn;
+
     protected static string $resource = WorkOrderContractorAssignmentResource::class;
 
     protected function getHeaderActions(): array

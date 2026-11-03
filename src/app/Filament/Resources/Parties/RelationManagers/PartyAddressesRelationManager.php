@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Parties\RelationManagers;
 use App\Filament\Resources\PartyAddresses\Schemas\PartyAddressForm;
 use App\Filament\Resources\PartyAddresses\Tables\PartyAddressesTable;
 use App\Support\BusinessRecordValidator;
+use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -15,6 +16,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class PartyAddressesRelationManager extends RelationManager
 {
+    use HasResizableColumn;
+
     protected static string $relationship = 'partyAddresses';
 
     public static function getTitle(Model $ownerRecord, string $pageClass): string
