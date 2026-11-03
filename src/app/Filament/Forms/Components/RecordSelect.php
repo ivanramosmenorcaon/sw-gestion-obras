@@ -137,7 +137,10 @@ class RecordSelect extends Select
             $invoice = $this->getModelInstance();
             $context['kind'] = $invoice->rectifies_invoice_id || $this->getName() === 'rectifying_series_id' ? 'rectifying' : 'standard';
             $context['environment'] = $invoice->environment ?? 'test';
-            $context['fiscal_year'] = today('Europe/Madrid')->year;
+            $date = $get('issue_date');
+            $context['fiscal_year'] = $this->getName() !== 'rectifying_series_id' && is_string($date) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)
+                ? (int) substr($date, 0, 4)
+                : today('Europe/Madrid')->year;
         }
 
         if ($related instanceof TaxRate) {

@@ -482,6 +482,37 @@ class SalesBillingTest extends TestCase
         $page->callAction(TestAction::make('create')->table(), ['position' => 3, 'description' => 'Cantidad negativa', 'quantity' => '-1', 'unit_price' => '30', 'discount_percentage' => '0', 'tax_profile_id' => $invoice->lines()->first()->tax_profile_id])->assertHasFormErrors(['quantity']);
         $this->assertDatabaseCount('sales_invoice_lines', 2);
     }
+
+    public function test_inline_series_creation_preserves_ordinary_and_rectifying_context(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $page = Livewire::test(CreateSalesInvoice::class);
+        $page->callAction(TestAction::make('createOption')->schemaComponent('invoice_series_id'), ['code' => 'NORMAL', 'name' => 'Ordinaria', 'fiscal_year' => 2027, 'kind' => 'rectifying'])->assertHasNoFormErrors();
+        $this->assertDatabaseHas('invoice_series', ['code' => 'NORMAL', 'kind' => 'standard', 'fiscal_year' => 2026, 'environment' => 'test']);
+        $invoice = app(SalesBilling::class)->issue($this->invoice());
+        $view = Livewire::test(ViewSalesInvoice::class, ['record' => $invoice->id])->mountAction('credit');
+        $view->callAction(TestAction::make('createOption')->schemaComponent('rectifying_series_id'), ['code' => 'ABONO', 'name' => 'Rectificativas', 'kind' => 'standard', 'fiscal_year' => 2026])->assertHasNoFormErrors();
+        $series = InvoiceSeries::where('code', 'ABONO')->firstOrFail();
+        $this->assertSame('rectifying', $series->kind);
+    }
+
+    public function test_rectification_action_creates_a_draft_linked_to_original_invoice(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $invoice = app(SalesBilling::class)->issue($this->invoice());
+        $series = InvoiceSeries::factory()->rectifying()->create();
+        Livewire::test(ViewSalesInvoice::class, ['record' => $invoice->id])->callAction('credit', ['rectifying_series_id' => $series->id, 'type' => 'R4', 'reason' => 'Devolución de trabajos'])->assertHasNoActionErrors()->assertRedirect();
+        $this->assertDatabaseHas('sales_invoices', ['rectifies_invoice_id' => $invoice->id, 'status' => 'draft', 'invoice_type' => 'R4']);
+    }
+
+    public function test_nested_phase_creation_respects_phase_resource_permission(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $order = WorkOrder::factory()->create();
+        Gate::policy(WorkOrderPhase::class, DenyBillingPhaseCreation::class);
+        Livewire::test(EditWorkOrder::class, ['record' => $order->id])->mountAction('billPhases')->assertActionHidden(TestAction::make('createOption')->schemaComponent('phase_ids'));
+        $this->assertDatabaseCount('work_order_phases', 0);
+    }
 }
 
 class DenyBillingUpdates
@@ -497,6 +528,14 @@ class DenyBillingUpdates
     }
 
     public function update(User $user, SalesInvoice $invoice): bool
+    {
+        return false;
+    }
+}
+
+class DenyBillingPhaseCreation
+{
+    public function create(User $user): bool
     {
         return false;
     }

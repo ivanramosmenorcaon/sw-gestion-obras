@@ -84,15 +84,15 @@ class LinesRelationManager extends RelationManager
 
     public function table(Table $table): Table
     {
-        return $table->recordTitleAttribute('description')->columns([
+        return $table->modelLabel(__('billing.line'))->pluralModelLabel(__('billing.lines'))->recordTitleAttribute('description')->columns([
             TextColumn::make('position')->label(__('billing.fields.position'))->sortable(),
             TextColumn::make('description')->label(__('billing.fields.description'))->wrap(),
             TextColumn::make('workOrderLine.workOrderPhase.name')->label(__('billing.fields.phase_ids')),
             TextColumn::make('quantity')->label(__('billing.fields.quantity')),
             TextColumn::make('unit_label')->label(__('billing.fields.unit_label')),
             TextColumn::make('unit_price')->label(__('billing.fields.unit_price')),
-            TextColumn::make('taxProfile.name')->label(__('billing.fields.tax_profile_id')),
-            TextColumn::make('withholdingRate.name')->label(__('billing.fields.withholding_rate_id')),
+            TextColumn::make('taxProfile.name')->state(fn (SalesInvoiceLine $record): ?string => $record->fiscal_snapshot ? $record->fiscal_snapshot['operation_class'].' · '.($record->fiscal_snapshot['tax_percentage'] ?? $record->fiscal_snapshot['exemption_code'] ?? '—') : $record->taxProfile?->name)->label(__('billing.fields.tax_profile_id')),
+            TextColumn::make('withholdingRate.name')->state(fn (SalesInvoiceLine $record): ?string => $record->fiscal_snapshot ? $record->fiscal_snapshot['withholding_percentage'] : $record->withholdingRate?->name)->label(__('billing.fields.withholding_rate_id')),
             TextColumn::make('net_amount')->label(__('billing.fields.net_amount'))->money('EUR')->visible(fn (): bool => $this->isReadOnly()),
         ])->headerActions([CreateAction::make()->using(fn (array $data): Model => BusinessRecordValidator::inForm(fn (): Model => $this->getRelationship()->create($data), $this->getMountedActionSchema()?->getStatePath() ?? ''))->authorize(fn (): bool => $this->canCreate())->label(__('billing.add_line'))->visible(fn (): bool => ! $this->isReadOnly() && ! $this->getOwnerRecord()->rectifies_invoice_id)])
             ->recordActions([EditAction::make()->using(function (Model $record, array $data): Model {

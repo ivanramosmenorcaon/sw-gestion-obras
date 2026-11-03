@@ -40,7 +40,11 @@
     <p>{{ $invoice->description }}</p>
     <table>
         <thead><tr>@foreach (['description', 'quantity', 'unit_label', 'unit_price', 'discount_percentage', 'net_amount'] as $field)<th>{{ __('billing.fields.'.$field) }}</th>@endforeach</tr></thead>
-        <tbody>@foreach ($invoice->lines as $line)<tr><td>{{ $line->description }}</td><td class="number">{{ $line->quantity }}</td><td>{{ $line->unit_label }}</td><td class="number">{{ $line->unit_price }}</td><td class="number">{{ $line->discount_percentage }} %</td><td class="number">{{ $line->net_amount }} €</td></tr>@endforeach</tbody>
+        <tbody>@foreach ($invoice->lines as $line)<tr><td>{{ $line->description }}
+            @if (in_array($line->fiscal_snapshot['operation_class'], ['exempt', 'S2', 'N1', 'N2'], true))
+                <br><small>{{ $line->fiscal_snapshot['legal_basis'] }}</small>
+            @endif
+        </td><td class="number">{{ $line->quantity }}</td><td>{{ $line->unit_label }}</td><td class="number">{{ $line->unit_price }}</td><td class="number">{{ $line->discount_percentage }} %</td><td class="number">{{ $line->net_amount }} €</td></tr>@endforeach</tbody>
     </table>
     <table>
         <thead><tr><th>{{ __('billing.fields.tax_profile_id') }}</th><th>{{ __('billing.fields.net_amount') }}</th><th>{{ __('billing.fields.tax_total') }}</th><th>{{ __('billing.fields.surcharge_total') }}</th></tr></thead>

@@ -2,7 +2,7 @@
 
 return [
     'group' => 'Facturación', 'invoice' => 'factura de venta', 'invoices' => 'Facturas de venta', 'series' => 'Series de facturación', 'series_singular' => 'serie de facturación',
-    'download_xml' => 'Descargar registro XML', 'lines' => 'Líneas de factura', 'issue' => 'Emitir en pruebas', 'cancel' => 'Cancelar borrador', 'credit' => 'Preparar rectificativa', 'print' => 'Imprimir / guardar PDF',
+    'download_xml' => 'Descargar registro XML', 'line' => 'línea de factura', 'lines' => 'Líneas de factura', 'issue' => 'Emitir en pruebas', 'cancel' => 'Cancelar borrador', 'credit' => 'Preparar rectificativa', 'print' => 'Imprimir / guardar PDF',
     'send' => 'Enviar a AEAT (pruebas)', 'from_order' => 'Facturar fases', 'test_warning' => 'PRUEBAS — SIN VALIDEZ FISCAL. No entregar como factura al cliente.',
     'issue_failed' => 'No se ha podido emitir la factura', 'issued' => 'Factura de pruebas emitida', 'prepared' => 'Borrador preparado', 'order_description' => 'Trabajos de la orden :reference',
     'summary' => 'Resumen económico', 'registry' => 'Registro VERI*FACTU', 'frozen' => 'Datos fiscales conservados al emitir', 'add_line' => 'Añadir línea',
