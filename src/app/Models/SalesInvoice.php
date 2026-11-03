@@ -15,6 +15,7 @@ class SalesInvoice extends Model
     use HasFactory;
 
     protected $fillable = ['customer_id', 'invoice_series_id', 'work_order_id', 'issue_date', 'operation_date', 'due_date', 'description', 'notes', 'fiscal_evidence'];
+
     protected $attributes = ['status' => 'draft', 'invoice_type' => 'F1', 'currency_code' => 'EUR'];
 
     protected function casts(): array
@@ -40,14 +41,38 @@ class SalesInvoice extends Model
                 $stored = $this->newQuery()->whereKey($this->id)->lockForUpdate()->firstOrFail();
                 app(SalesBilling::class)->assertDraft($stored);
             }
+
             return parent::save($options);
         });
     }
 
-    public function customer(): BelongsTo { return $this->belongsTo(Party::class, 'customer_id'); }
-    public function invoiceSeries(): BelongsTo { return $this->belongsTo(InvoiceSeries::class); }
-    public function workOrder(): BelongsTo { return $this->belongsTo(WorkOrder::class); }
-    public function rectifiesInvoice(): BelongsTo { return $this->belongsTo(self::class, 'rectifies_invoice_id'); }
-    public function lines(): HasMany { return $this->hasMany(SalesInvoiceLine::class)->orderBy('position')->orderBy('id'); }
-    public function billingRecord(): HasOne { return $this->hasOne(BillingRecord::class); }
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Party::class, 'customer_id');
+    }
+
+    public function invoiceSeries(): BelongsTo
+    {
+        return $this->belongsTo(InvoiceSeries::class);
+    }
+
+    public function workOrder(): BelongsTo
+    {
+        return $this->belongsTo(WorkOrder::class);
+    }
+
+    public function rectifiesInvoice(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'rectifies_invoice_id');
+    }
+
+    public function lines(): HasMany
+    {
+        return $this->hasMany(SalesInvoiceLine::class)->orderBy('position')->orderBy('id');
+    }
+
+    public function billingRecord(): HasOne
+    {
+        return $this->hasOne(BillingRecord::class);
+    }
 }

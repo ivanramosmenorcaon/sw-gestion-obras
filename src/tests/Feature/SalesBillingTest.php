@@ -22,11 +22,14 @@ use App\Models\User;
 use App\Models\WorkOrder;
 use App\Models\WorkOrderLine;
 use App\Models\WorkOrderPhase;
+use App\Support\BusinessRecordValidator;
 use App\Support\InvoiceCalculator;
 use App\Support\SalesBilling;
 use App\Support\VerifactuClient;
 use App\Support\VerifactuXml;
+use Carbon\Carbon;
 use Database\Seeders\BillingSeeder;
+use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Gate;
@@ -42,7 +45,7 @@ class SalesBillingTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->travelTo(\Carbon\Carbon::parse('2026-11-03 12:00:00', 'Europe/Madrid'));
+        $this->travelTo(Carbon::parse('2026-11-03 12:00:00', 'Europe/Madrid'));
         config(['billing.producer_name' => 'Productor de pruebas', 'billing.producer_nif' => 'B12345674', 'billing.installation' => 'test-installation']);
         Filament::setCurrentPanel(Filament::getPanel('admin'));
         Filament::bootCurrentPanel();
@@ -62,6 +65,7 @@ class SalesBillingTest extends TestCase
         PartyAddress::factory()->create(['party_id' => $customer->id, 'is_fiscal' => true, 'postal_code' => '07730']);
         $invoice = SalesInvoice::factory()->create(['customer_id' => $customer->id]);
         SalesInvoiceLine::factory()->create(['sales_invoice_id' => $invoice->id]);
+
         return $invoice;
     }
 
@@ -109,9 +113,12 @@ class SalesBillingTest extends TestCase
         foreach (['save', 'delete'] as $method) {
             try {
                 $line = $invoice->lines()->first();
-                $line->description = 'Cambio'; $line->$method();
+                $line->description = 'Cambio';
+                $line->$method();
                 $this->fail('La línea emitida se ha modificado.');
-            } catch (ValidationException $exception) { $this->assertArrayHasKey('status', $exception->errors()); }
+            } catch (ValidationException $exception) {
+                $this->assertArrayHasKey('status', $exception->errors());
+            }
         }
         $this->assertDatabaseHas('sales_invoice_lines', ['description' => 'Instalación']);
     }
@@ -133,8 +140,12 @@ class SalesBillingTest extends TestCase
     {
         $invoice = $this->invoice();
         $invoice->customer->partyAddresses()->update(['is_fiscal' => false]);
-        try { app(SalesBilling::class)->issue($invoice); $this->fail('Se ha emitido sin domicilio fiscal.'); }
-        catch (ValidationException $exception) { $this->assertArrayHasKey('customer_id', $exception->errors()); }
+        try {
+            app(SalesBilling::class)->issue($invoice);
+            $this->fail('Se ha emitido sin domicilio fiscal.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('customer_id', $exception->errors());
+        }
         $this->assertSame(1, $invoice->invoiceSeries->fresh()->next_number);
         $this->assertSame('draft', $invoice->fresh()->status);
         $this->assertDatabaseCount('billing_records', 0);
@@ -144,8 +155,12 @@ class SalesBillingTest extends TestCase
     {
         $invoice = $this->invoice();
         $invoice->invoiceSeries->update(['environment' => 'production']);
-        try { app(SalesBilling::class)->issue($invoice); $this->fail('Producción no debe estar habilitada.'); }
-        catch (ValidationException $exception) { $this->assertArrayHasKey('invoice_series_id', $exception->errors()); }
+        try {
+            app(SalesBilling::class)->issue($invoice);
+            $this->fail('Producción no debe estar habilitada.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('invoice_series_id', $exception->errors());
+        }
         $this->assertSame(1, $invoice->invoiceSeries->fresh()->next_number);
         $this->assertDatabaseCount('billing_records', 0);
     }
@@ -153,7 +168,8 @@ class SalesBillingTest extends TestCase
     public function test_phase_drafts_reserve_quantities_and_cancellation_releases_them(): void
     {
         $invoice = $this->invoice();
-        $company = CompanySetting::first(); $company->update(['sales_tax_profile_id' => $invoice->lines()->first()->tax_profile_id]);
+        $company = CompanySetting::first();
+        $company->update(['sales_tax_profile_id' => $invoice->lines()->first()->tax_profile_id]);
         $order = WorkOrder::factory()->create(['project_id' => Project::factory()->create(['customer_id' => $invoice->customer_id])->id]);
         $phase = WorkOrderPhase::factory()->create(['work_order_id' => $order->id]);
         $source = WorkOrderLine::factory()->create(['work_order_id' => $order->id, 'work_order_phase_id' => $phase->id, 'planned_quantity' => '10', 'estimated_unit_sale_price' => '20']);
@@ -164,17 +180,22 @@ class SalesBillingTest extends TestCase
         $this->assertSame('5.000000', $billing->remaining($source->id));
         $second = $billing->fromWorkOrder($order, $invoice->invoice_series_id, [$phase->id]);
         $this->assertSame('0.000000', $billing->remaining($source->id));
-        try { $second->lines()->first()->update(['quantity' => '6']); $this->fail('Se permite sobrefacturación.'); }
-        catch (ValidationException $exception) { $this->assertArrayHasKey('quantity', $exception->errors()); }
+        try {
+            $second->lines()->first()->update(['quantity' => '6']);
+            $this->fail('Se permite sobrefacturación.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('quantity', $exception->errors());
+        }
         $billing->cancel($draft);
         $this->assertSame('5.000000', $billing->remaining($source->id));
         $this->assertNull($draft->fresh()->number);
-        $this->assertFalse(\App\Support\BusinessRecordValidator::canDelete($order));
+        $this->assertFalse(BusinessRecordValidator::canDelete($order));
     }
 
     public function test_a_phase_from_another_order_is_rejected(): void
     {
-        $order = WorkOrder::factory()->create(); $phase = WorkOrderPhase::factory()->create();
+        $order = WorkOrder::factory()->create();
+        $phase = WorkOrderPhase::factory()->create();
         $this->expectException(ValidationException::class);
         app(SalesBilling::class)->fromWorkOrder($order, InvoiceSeries::factory()->create()->id, [$phase->id]);
     }
@@ -201,8 +222,12 @@ class SalesBillingTest extends TestCase
         $invoice = $this->invoice();
         $profile = TaxProfile::factory()->create(['operation_class' => 'S2', 'tax_rate_id' => TaxRate::factory()->create(['percentage' => '0'])->id, 'legal_basis' => 'Artículo 84.Uno.2.f LIVA', 'requires_evidence' => true]);
         $invoice->lines()->first()->update(['tax_profile_id' => $profile->id]);
-        try { app(SalesBilling::class)->issue($invoice); $this->fail('Se ha aplicado ISP sin justificación.'); }
-        catch (ValidationException $exception) { $this->assertArrayHasKey('fiscal_evidence', $exception->errors()); }
+        try {
+            app(SalesBilling::class)->issue($invoice);
+            $this->fail('Se ha aplicado ISP sin justificación.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('fiscal_evidence', $exception->errors());
+        }
         $invoice->update(['fiscal_evidence' => 'Comunicación del promotor y contrato de ejecución de obra.']);
         $issued = app(SalesBilling::class)->issue($invoice);
         $this->assertSame('100.00', $issued->gross_total);
@@ -212,7 +237,9 @@ class SalesBillingTest extends TestCase
 
     public function test_group_rounding_uses_decimal_arithmetic_and_allocates_remainders(): void
     {
-        $invoice = $this->invoice(); $line = $invoice->lines()->first(); $line->update(['unit_price' => '0.03']);
+        $invoice = $this->invoice();
+        $line = $invoice->lines()->first();
+        $line->update(['unit_price' => '0.03']);
         SalesInvoiceLine::factory()->create(['sales_invoice_id' => $invoice->id, 'tax_profile_id' => $line->tax_profile_id, 'unit_price' => '0.03']);
         $calculation = app(InvoiceCalculator::class)->calculate($invoice);
         $this->assertSame('0.06', $calculation['totals']['net_total']);
@@ -248,7 +275,9 @@ class SalesBillingTest extends TestCase
     public function test_seeders_do_not_create_live_series_or_reset_counters(): void
     {
         $this->seed(BillingSeeder::class);
-        $series = InvoiceSeries::where('kind', 'standard')->first(); $series->next_number = 27; $series->save();
+        $series = InvoiceSeries::where('kind', 'standard')->first();
+        $series->next_number = 27;
+        $series->save();
         $this->seed(BillingSeeder::class);
         $this->assertSame(27, $series->fresh()->next_number);
         $this->assertDatabaseCount('invoice_series', 2);
@@ -260,6 +289,7 @@ class SalesBillingTest extends TestCase
         $responseNs = 'https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/RespuestaSuministro.xsd';
         $number = htmlspecialchars($invoice->number, ENT_XML1);
         $date = $invoice->issue_date->format('d-m-Y');
+
         return '<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:r="'.$responseNs.'" xmlns:sf="'.VerifactuXml::INFORMATION_NS.'"><soap:Body><r:RespuestaRegFactuSistemaFacturacion><r:CSV>CSVPRUEBAS</r:CSV><r:Cabecera><sf:ObligadoEmision><sf:NombreRazon>Emisor de pruebas</sf:NombreRazon><sf:NIF>B12345674</sf:NIF></sf:ObligadoEmision></r:Cabecera><r:TiempoEsperaEnvio>60</r:TiempoEsperaEnvio><r:EstadoEnvio>'.($state === 'Incorrecto' ? 'Incorrecto' : 'Correcto').'</r:EstadoEnvio><r:RespuestaLinea><r:IDFactura><sf:IDEmisorFactura>B12345674</sf:IDEmisorFactura><sf:NumSerieFactura>'.$number.'</sf:NumSerieFactura><sf:FechaExpedicionFactura>'.$date.'</sf:FechaExpedicionFactura></r:IDFactura><r:Operacion><sf:TipoOperacion>Alta</sf:TipoOperacion></r:Operacion><r:EstadoRegistro>'.$state.'</r:EstadoRegistro>'.$error.'</r:RespuestaLinea></r:RespuestaRegFactuSistemaFacturacion></soap:Body></soap:Envelope>';
     }
 
@@ -300,15 +330,21 @@ class SalesBillingTest extends TestCase
             $this->assertStringContainsString($invoice->billingRecord->hash, $sent[1][0]->body());
             $client->send($submission);
             Http::assertSentCount(2);
-        } finally { unlink($certificate); }
+        } finally {
+            unlink($certificate);
+        }
     }
 
     public function test_missing_certificate_never_claims_or_sends_a_record(): void
     {
         $invoice = app(SalesBilling::class)->issue($this->invoice());
         config(['billing.send_enabled' => true, 'billing.certificate_path' => '/missing.pem', 'billing.private_key_path' => '/missing-key.pem']);
-        try { app(VerifactuClient::class)->send($invoice->billingRecord->submission); $this->fail('Debe exigir certificado.'); }
-        catch (ValidationException $exception) { $this->assertArrayHasKey('status', $exception->errors()); }
+        try {
+            app(VerifactuClient::class)->send($invoice->billingRecord->submission);
+            $this->fail('Debe exigir certificado.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('status', $exception->errors());
+        }
         $this->assertSame('pending', $invoice->billingRecord->submission->fresh()->status);
         Http::assertNothingSent();
     }
@@ -317,7 +353,7 @@ class SalesBillingTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
         $page = Livewire::test(CreateSalesInvoice::class);
-        $page->callAction(\Filament\Actions\Testing\TestAction::make('createOption')->schemaComponent('customer_id'), ['type' => 'organization', 'legal_name' => 'Cliente facturación'])->assertHasNoFormErrors();
+        $page->callAction(TestAction::make('createOption')->schemaComponent('customer_id'), ['type' => 'organization', 'legal_name' => 'Cliente facturación'])->assertHasNoFormErrors();
         $customer = Party::where('legal_name', 'Cliente facturación')->firstOrFail();
         $this->assertDatabaseHas('party_roles', ['party_id' => $customer->id, 'role' => 'customer']);
         $page->assertFormSet(['customer_id' => $customer->id]);
@@ -327,8 +363,8 @@ class SalesBillingTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
         $invoice = $this->invoice();
-        $page = Livewire::test(LinesRelationManager::class, ['ownerRecord' => $invoice, 'pageClass' => EditSalesInvoice::class])->mountAction(\Filament\Actions\Testing\TestAction::make('create')->table());
-        $page->callAction(\Filament\Actions\Testing\TestAction::make('createOption')->schemaComponent('withholding_rate_id'), ['code' => 'IRPF_INLINE', 'name' => 'IRPF 15', 'percentage' => '15', 'valid_from' => '2026-01-01'])->assertHasNoFormErrors();
+        $page = Livewire::test(LinesRelationManager::class, ['ownerRecord' => $invoice, 'pageClass' => EditSalesInvoice::class])->mountAction(TestAction::make('create')->table());
+        $page->callAction(TestAction::make('createOption')->schemaComponent('withholding_rate_id'), ['code' => 'IRPF_INLINE', 'name' => 'IRPF 15', 'percentage' => '15', 'valid_from' => '2026-01-01'])->assertHasNoFormErrors();
         $this->assertDatabaseHas('tax_rates', ['code' => 'IRPF_INLINE', 'kind' => 'withholding']);
     }
 
@@ -344,7 +380,7 @@ class SalesBillingTest extends TestCase
         $draft = SalesInvoice::where('work_order_id', $order->id)->firstOrFail();
         $this->assertSame('2.500000', $draft->lines()->first()->quantity);
         $page = Livewire::test(EditWorkOrder::class, ['record' => $order->id])->mountAction('billPhases');
-        $page->callAction(\Filament\Actions\Testing\TestAction::make('createOption')->schemaComponent('phase_ids'), ['code' => 'NUEVA', 'name' => 'Nueva fase', 'work_order_id' => WorkOrder::factory()->create()->id])->assertHasNoFormErrors();
+        $page->callAction(TestAction::make('createOption')->schemaComponent('phase_ids'), ['code' => 'NUEVA', 'name' => 'Nueva fase', 'work_order_id' => WorkOrder::factory()->create()->id])->assertHasNoFormErrors();
         $this->assertDatabaseHas('work_order_phases', ['code' => 'NUEVA', 'work_order_id' => $order->id]);
     }
 
@@ -354,14 +390,15 @@ class SalesBillingTest extends TestCase
         $invoice = $this->invoice();
         Gate::policy(SalesInvoice::class, DenyBillingUpdates::class);
         $page = Livewire::test(LinesRelationManager::class, ['ownerRecord' => $invoice, 'pageClass' => ViewSalesInvoice::class]);
-        $page->assertActionHidden(\Filament\Actions\Testing\TestAction::make('create')->table());
-        $page->assertActionHidden(\Filament\Actions\Testing\TestAction::make('edit')->table($invoice->lines()->first()));
+        $page->assertActionHidden(TestAction::make('create')->table());
+        $page->assertActionHidden(TestAction::make('edit')->table($invoice->lines()->first()));
         $this->assertDatabaseCount('sales_invoice_lines', 1);
     }
 
     public function test_final_fractional_credit_uses_remaining_original_cents(): void
     {
-        $invoice = $this->invoice(); $invoice->lines()->first()->update(['unit_price' => '0.03']);
+        $invoice = $this->invoice();
+        $invoice->lines()->first()->update(['unit_price' => '0.03']);
         $invoice = app(SalesBilling::class)->issue($invoice);
         $series = InvoiceSeries::factory()->rectifying()->create();
         $first = app(SalesBilling::class)->credit($invoice, $series->id, 'R4', 'Primera mitad');
@@ -374,6 +411,7 @@ class SalesBillingTest extends TestCase
         $this->assertSame('0.00', $first->tax_total);
         $this->assertSame('-0.01', $second->tax_total);
     }
+
     public function test_a_company_cannot_charge_personal_irpf_even_if_recipient_is_a_withholding_agent(): void
     {
         $invoice = $this->invoice();
@@ -416,15 +454,25 @@ class SalesBillingTest extends TestCase
         $invoice = $this->invoice();
         $project = Project::factory()->create();
         $page = Livewire::test(CreateSalesInvoice::class)->fillForm(['customer_id' => $invoice->customer_id]);
-        $page->callAction(\Filament\Actions\Testing\TestAction::make('createOption')->schemaComponent('work_order_id'), ['project_id' => $project->id, 'reference' => 'OT-OTRO', 'name' => 'Otra obra'])->assertHasFormErrors(['project_id']);
+        $page->callAction(TestAction::make('createOption')->schemaComponent('work_order_id'), ['project_id' => $project->id, 'reference' => 'OT-OTRO', 'name' => 'Otra obra'])->assertHasFormErrors(['project_id']);
         $this->assertDatabaseMissing('work_orders', ['reference' => 'OT-OTRO']);
     }
-
 }
 
 class DenyBillingUpdates
 {
-    public function viewAny(User $user): bool { return true; }
-    public function view(User $user, SalesInvoice $invoice): bool { return true; }
-    public function update(User $user, SalesInvoice $invoice): bool { return false; }
+    public function viewAny(User $user): bool
+    {
+        return true;
+    }
+
+    public function view(User $user, SalesInvoice $invoice): bool
+    {
+        return true;
+    }
+
+    public function update(User $user, SalesInvoice $invoice): bool
+    {
+        return false;
+    }
 }

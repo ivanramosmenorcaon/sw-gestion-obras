@@ -12,6 +12,7 @@ class SalesInvoiceLine extends Model
     use HasFactory;
 
     protected $fillable = ['sales_invoice_id', 'product_id', 'position', 'description', 'unit_label', 'quantity', 'unit_price', 'discount_percentage', 'tax_profile_id', 'withholding_rate_id'];
+
     protected $attributes = ['discount_percentage' => '0', 'position' => 1];
 
     protected function casts(): array
@@ -30,6 +31,7 @@ class SalesInvoiceLine extends Model
         return $this->getConnection()->transaction(function () use ($options): bool {
             $invoice = $this->invoice()->lockForUpdate()->firstOrFail();
             app(SalesBilling::class)->assertDraft($invoice);
+
             return parent::save($options);
         });
     }
@@ -38,14 +40,38 @@ class SalesInvoiceLine extends Model
     {
         return $this->getConnection()->transaction(function (): ?bool {
             app(SalesBilling::class)->assertDraft($this->invoice()->lockForUpdate()->firstOrFail());
+
             return parent::delete();
         });
     }
 
-    public function invoice(): BelongsTo { return $this->belongsTo(SalesInvoice::class, 'sales_invoice_id'); }
-    public function product(): BelongsTo { return $this->belongsTo(Product::class); }
-    public function taxProfile(): BelongsTo { return $this->belongsTo(TaxProfile::class); }
-    public function withholdingRate(): BelongsTo { return $this->belongsTo(TaxRate::class); }
-    public function workOrderLine(): BelongsTo { return $this->belongsTo(WorkOrderLine::class); }
-    public function rectifiesLine(): BelongsTo { return $this->belongsTo(self::class, 'rectifies_line_id'); }
+    public function invoice(): BelongsTo
+    {
+        return $this->belongsTo(SalesInvoice::class, 'sales_invoice_id');
+    }
+
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class);
+    }
+
+    public function taxProfile(): BelongsTo
+    {
+        return $this->belongsTo(TaxProfile::class);
+    }
+
+    public function withholdingRate(): BelongsTo
+    {
+        return $this->belongsTo(TaxRate::class);
+    }
+
+    public function workOrderLine(): BelongsTo
+    {
+        return $this->belongsTo(WorkOrderLine::class);
+    }
+
+    public function rectifiesLine(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'rectifies_line_id');
+    }
 }

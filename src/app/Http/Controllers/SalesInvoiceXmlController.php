@@ -15,6 +15,7 @@ class SalesInvoiceXmlController extends Controller
         Filament::setCurrentPanel(Filament::getPanel('admin'));
         abort_unless($request->user()?->canAccessPanel(Filament::getCurrentPanel()) && SalesInvoiceResource::canView($salesInvoice), 403);
         abort_unless($salesInvoice->status === 'issued', 404);
+
         return response($salesInvoice->billingRecord->xml, 200, ['Content-Type' => 'application/xml; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="registro-'.$salesInvoice->id.'.xml"', 'Cache-Control' => 'private, no-store']);
     }

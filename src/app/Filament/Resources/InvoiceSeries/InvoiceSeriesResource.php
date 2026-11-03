@@ -9,11 +9,11 @@ use App\Filament\Resources\InvoiceSeries\Schemas\InvoiceSeriesForm;
 use App\Filament\Resources\InvoiceSeries\Tables\InvoiceSeriesTable;
 use App\Models\InvoiceSeries;
 use BackedEnum;
-use Illuminate\Database\Eloquent\Model;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 
 class InvoiceSeriesResource extends Resource
 {
@@ -23,10 +23,25 @@ class InvoiceSeriesResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'code';
 
-    public static function getNavigationGroup(): string { return __('billing.group'); }
-    public static function getModelLabel(): string { return __('billing.series_singular'); }
-    public static function getPluralModelLabel(): string { return __('billing.series'); }
-    public static function canDelete(Model $record): bool { return false; }
+    public static function getNavigationGroup(): string
+    {
+        return __('billing.group');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('billing.series_singular');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('billing.series');
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return false;
+    }
 
     public static function form(Schema $schema): Schema
     {

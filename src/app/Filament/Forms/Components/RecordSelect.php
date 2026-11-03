@@ -2,10 +2,13 @@
 
 namespace App\Filament\Forms\Components;
 
+use App\Models\InvoiceSeries;
 use App\Models\Party;
 use App\Models\PartyRole;
 use App\Models\ProductUnit;
+use App\Models\Project;
 use App\Models\ProjectChapter;
+use App\Models\SalesInvoice;
 use App\Models\TaxRate;
 use App\Models\WorkOrder;
 use App\Models\WorkOrderPhase;
@@ -17,6 +20,7 @@ use Filament\Forms\Components\Select;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Validation\ValidationException;
 
 class RecordSelect extends Select
 {
@@ -45,10 +49,10 @@ class RecordSelect extends Select
                 return BusinessRecordValidator::inForm(function () use ($data, $schema): int|string {
                     $record = $this->getRelationship()->newModelInstance();
                     $record->fill(array_replace($data, $this->getCreationContext()));
-                    if ($record instanceof WorkOrder && $this->getModelInstance() instanceof \App\Models\SalesInvoice) {
+                    if ($record instanceof WorkOrder && $this->getModelInstance() instanceof SalesInvoice) {
                         $customerId = ($this->makeGetUtility())('customer_id');
-                        if ($customerId && \App\Models\Project::find($record->project_id)?->customer_id !== (int) $customerId) {
-                            throw \Illuminate\Validation\ValidationException::withMessages(['project_id' => __('billing.messages.owner')]);
+                        if ($customerId && Project::find($record->project_id)?->customer_id !== (int) $customerId) {
+                            throw ValidationException::withMessages(['project_id' => __('billing.messages.owner')]);
                         }
                     }
                     $record->save();
@@ -129,7 +133,7 @@ class RecordSelect extends Select
             $context[$parentField] = $value;
         }
 
-        if ($related instanceof \App\Models\InvoiceSeries && $this->getModelInstance() instanceof \App\Models\SalesInvoice) {
+        if ($related instanceof InvoiceSeries && $this->getModelInstance() instanceof SalesInvoice) {
             $invoice = $this->getModelInstance();
             $context['kind'] = $invoice->rectifies_invoice_id || $this->getName() === 'rectifying_series_id' ? 'rectifying' : 'standard';
             $context['environment'] = $invoice->environment ?? 'test';

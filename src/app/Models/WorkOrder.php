@@ -105,7 +105,8 @@ class WorkOrder extends Model
     {
         return $this->hasMany(WorkOrderContractorAssignment::class, 'work_order_id');
     }
-    public function salesInvoices(): \Illuminate\Database\Eloquent\Relations\HasMany
+
+    public function salesInvoices(): HasMany
     {
         return $this->hasMany(SalesInvoice::class, 'work_order_id');
     }

@@ -14,9 +14,8 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
+use Livewire\Component;
 
 final class BillWorkOrder
 {
@@ -35,21 +34,26 @@ final class BillWorkOrder
                     ->createOptionForm(function (Schema $schema, WorkOrder $record): Schema {
                         $schema = WorkOrderPhaseResource::form($schema->model(WorkOrderPhase::class)->operation('create'));
                         foreach ($schema->getFlatFields(withHidden: true) as $field) {
-                            if ($field->getName() === 'work_order_id') { $field->default($record->id)->disabled()->dehydrated(); }
+                            if ($field->getName() === 'work_order_id') {
+                                $field->default($record->id)->disabled()->dehydrated();
+                            }
                         }
+
                         return $schema;
                     })
                     ->createOptionUsing(function (array $data, Schema $schema, WorkOrder $record): int {
                         abort_unless(WorkOrderPhaseResource::canCreate() && WorkOrderResource::canView($record), 403);
+
                         return DB::transaction(function () use ($data, $schema, $record): int {
                             $phase = WorkOrderPhase::create(array_replace($data, ['work_order_id' => $record->id]));
                             $schema->model($phase)->saveRelationships();
+
                             return $phase->id;
                         });
                     })
                     ->createOptionAction(fn (Action $action): Action => $action->authorize(fn (): bool => WorkOrderPhaseResource::canCreate())->databaseTransaction()),
                 TextInput::make('percentage')->label(__('billing.fields.percentage'))->numeric()->minValue('0.000001')->maxValue(100)->default('100')->required(),
-            ])->action(function (WorkOrder $record, array $data, \Livewire\Component $livewire): void {
+            ])->action(function (WorkOrder $record, array $data, Component $livewire): void {
                 abort_unless(SalesInvoiceResource::canCreate() && WorkOrderResource::canView($record), 403);
                 $invoice = app(SalesBilling::class)->fromWorkOrder($record, (int) $data['invoice_series_id'], $data['phase_ids'], (string) $data['percentage']);
                 $livewire->redirect(SalesInvoiceResource::getUrl('edit', ['record' => $invoice]));
@@ -60,17 +64,22 @@ final class BillWorkOrder
     {
         $schema = InvoiceSeriesResource::form($schema->model(InvoiceSeries::class)->operation('create'));
         foreach ($schema->getFlatFields(withHidden: true) as $field) {
-            if ($field->getName() === 'kind') { $field->default('standard')->disabled()->dehydrated(); }
+            if ($field->getName() === 'kind') {
+                $field->default('standard')->disabled()->dehydrated();
+            }
         }
+
         return $schema;
     }
 
     private static function createSeries(array $data, Schema $schema): int
     {
         abort_unless(InvoiceSeriesResource::canCreate(), 403);
+
         return DB::transaction(function () use ($data, $schema): int {
             $series = InvoiceSeries::create(array_replace($data, ['kind' => 'standard']));
             $schema->model($series)->saveRelationships();
+
             return $series->id;
         });
     }

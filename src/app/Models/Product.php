@@ -102,6 +102,7 @@ class Product extends Model
     {
         return $this->belongsTo(TaxRate::class, 'purchase_withholding_rate_id');
     }
+
     public function salesInvoiceLines(): HasMany
     {
         return $this->hasMany(SalesInvoiceLine::class, 'product_id');

@@ -15,8 +15,11 @@ final class VerifactuClient
 {
     public function send(BillingSubmission $submission): void
     {
-        if (! config('billing.send_enabled')) { throw ValidationException::withMessages(['status' => __('billing.messages.sending_disabled')]); }
-        $certificate = config('billing.certificate_path'); $key = config('billing.private_key_path');
+        if (! config('billing.send_enabled')) {
+            throw ValidationException::withMessages(['status' => __('billing.messages.sending_disabled')]);
+        }
+        $certificate = config('billing.certificate_path');
+        $key = config('billing.private_key_path');
         if (! $certificate || ! is_readable($certificate) || ! $key || ! is_readable($key)) {
             throw ValidationException::withMessages(['status' => __('billing.messages.certificate')]);
         }
@@ -28,14 +31,23 @@ final class VerifactuClient
         $claimed = DB::transaction(function () use ($submission): ?BillingSubmission {
             DB::table('billing_chains')->where('environment', 'test')->lockForUpdate()->first();
             BillingSubmission::where('status', 'sending')->where('claimed_at', '<', now()->subMinutes(5))->update(['status' => 'transport_error', 'claimed_at' => null]);
-            if (BillingSubmission::where('status', 'sending')->exists() || BillingSubmission::where('retry_after', '>', now())->exists()) { return null; }
+            if (BillingSubmission::where('status', 'sending')->exists() || BillingSubmission::where('retry_after', '>', now())->exists()) {
+                return null;
+            }
             $submission = BillingSubmission::whereKey($submission->id)->lockForUpdate()->firstOrFail();
-            if (! in_array($submission->status, ['pending', 'transport_error'], true) || ($submission->retry_after && $submission->retry_after->isFuture())) { return null; }
-            if ($submission->record->invoice->environment !== 'test') { throw ValidationException::withMessages(['status' => __('billing.messages.production_blocked')]); }
+            if (! in_array($submission->status, ['pending', 'transport_error'], true) || ($submission->retry_after && $submission->retry_after->isFuture())) {
+                return null;
+            }
+            if ($submission->record->invoice->environment !== 'test') {
+                throw ValidationException::withMessages(['status' => __('billing.messages.production_blocked')]);
+            }
             $submission->update(['status' => 'sending', 'claimed_at' => now(), 'attempts' => $submission->attempts + 1]);
+
             return $submission;
         });
-        if (! $claimed) { return; }
+        if (! $claimed) {
+            return;
+        }
         $responseBody = null;
         try {
             $body = $this->envelope($claimed->record->xml);
@@ -58,10 +70,14 @@ final class VerifactuClient
     public function envelope(string $xml): string
     {
         $doc = new DOMDocument('1.0', 'UTF-8');
-        $envelope = $doc->createElementNS('http://schemas.xmlsoap.org/soap/envelope/', 'soapenv:Envelope'); $doc->appendChild($envelope);
-        $body = $doc->createElementNS('http://schemas.xmlsoap.org/soap/envelope/', 'soapenv:Body'); $envelope->appendChild($body);
-        $payload = new DOMDocument; $payload->loadXML($xml, LIBXML_NONET);
+        $envelope = $doc->createElementNS('http://schemas.xmlsoap.org/soap/envelope/', 'soapenv:Envelope');
+        $doc->appendChild($envelope);
+        $body = $doc->createElementNS('http://schemas.xmlsoap.org/soap/envelope/', 'soapenv:Body');
+        $envelope->appendChild($body);
+        $payload = new DOMDocument;
+        $payload->loadXML($xml, LIBXML_NONET);
         $body->appendChild($doc->importNode($payload->documentElement, true));
+
         return $doc->saveXML();
     }
 
@@ -71,7 +87,9 @@ final class VerifactuClient
         $old = libxml_use_internal_errors(true);
         try {
             $doc = new DOMDocument;
-            if (! $doc->loadXML($xml, LIBXML_NONET) || $doc->doctype) { throw new RuntimeException('Invalid response'); }
+            if (! $doc->loadXML($xml, LIBXML_NONET) || $doc->doctype) {
+                throw new RuntimeException('Invalid response');
+            }
             $path = new DOMXPath($doc);
             $path->registerNamespace('soap', 'http://schemas.xmlsoap.org/soap/envelope/');
             $path->registerNamespace('r', 'https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/RespuestaSuministro.xsd');
@@ -82,22 +100,36 @@ final class VerifactuClient
             $prefix = '/soap:Envelope/soap:Body/r:RespuestaRegFactuSistemaFacturacion';
             $root = $path->query($prefix)->item(0);
             $payload = new DOMDocument;
-            if (! $root) { throw new RuntimeException('Missing response'); }
+            if (! $root) {
+                throw new RuntimeException('Missing response');
+            }
             $payload->appendChild($payload->importNode($root, true));
-            if (! $payload->schemaValidate(resource_path('verifactu/RespuestaSuministro.xsd'))) { throw new RuntimeException('Invalid response schema'); }
+            if (! $payload->schemaValidate(resource_path('verifactu/RespuestaSuministro.xsd'))) {
+                throw new RuntimeException('Invalid response schema');
+            }
 
             $lines = $path->query($prefix.'/r:RespuestaLinea');
-            if ($lines->length !== 1) { throw new RuntimeException('Missing unique response'); }
+            if ($lines->length !== 1) {
+                throw new RuntimeException('Missing unique response');
+            }
             $base = $prefix.'/r:RespuestaLinea';
             $read = fn (string $query): string => $path->evaluate('string('.$query.')');
             $invoice = $submission->record->invoice;
             if ($read($base.'/r:IDFactura/sf:NumSerieFactura') !== $invoice->number || $read($base.'/r:IDFactura/sf:IDEmisorFactura') !== $invoice->issuer_snapshot['tax_identification_number'] || $read($base.'/r:IDFactura/sf:FechaExpedicionFactura') !== $invoice->issue_date->format('d-m-Y')) {
                 throw new RuntimeException('Mismatched response');
             }
-            $status = match ($read($base.'/r:EstadoRegistro')) { 'Correcto' => 'accepted', 'AceptadoConErrores' => 'accepted_with_errors', 'Incorrecto' => 'rejected', default => throw new RuntimeException('Unknown status') };
-            if ($path->query($base.'/r:RegistroDuplicado')->length > 0) { $status = 'duplicate_review'; }
+            $status = match ($read($base.'/r:EstadoRegistro')) {
+                'Correcto' => 'accepted', 'AceptadoConErrores' => 'accepted_with_errors', 'Incorrecto' => 'rejected', default => throw new RuntimeException('Unknown status')
+            };
+            if ($path->query($base.'/r:RegistroDuplicado')->length > 0) {
+                $status = 'duplicate_review';
+            }
+
             return ['status' => $status, 'csv' => $read($prefix.'/r:CSV') ?: null, 'error_code' => $read($base.'/r:CodigoErrorRegistro') ?: null,
                 'error_description' => $read($base.'/r:DescripcionErrorRegistro') ?: null, 'retry_after' => now()->addSeconds(max(60, (int) $read($prefix.'/r:TiempoEsperaEnvio')))];
-        } finally { libxml_clear_errors(); libxml_use_internal_errors($old); }
+        } finally {
+            libxml_clear_errors();
+            libxml_use_internal_errors($old);
+        }
     }
 }

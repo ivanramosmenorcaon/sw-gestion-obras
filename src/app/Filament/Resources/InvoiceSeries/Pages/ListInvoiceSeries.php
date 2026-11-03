@@ -3,8 +3,8 @@
 namespace App\Filament\Resources\InvoiceSeries\Pages;
 
 use App\Filament\Resources\InvoiceSeries\InvoiceSeriesResource;
-use Filament\Actions\CreateAction;
 use Asmit\ResizedColumn\HasResizableColumn;
+use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 
 class ListInvoiceSeries extends ListRecords

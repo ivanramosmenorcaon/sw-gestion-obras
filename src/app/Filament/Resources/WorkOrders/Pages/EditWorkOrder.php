@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\WorkOrders\Pages;
 
+use App\Filament\Actions\BillWorkOrder;
 use App\Filament\Resources\WorkOrders\Tables\WorkOrdersTable;
 use App\Filament\Resources\WorkOrders\WorkOrderResource;
 use App\Support\BusinessRecordValidator;
@@ -16,7 +17,7 @@ class EditWorkOrder extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            \App\Filament\Actions\BillWorkOrder::make(),
+            BillWorkOrder::make(),
             WorkOrdersTable::treeAction(),
             WorkOrdersTable::budgetAction(),
             DeleteAction::make()

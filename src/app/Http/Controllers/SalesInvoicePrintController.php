@@ -22,6 +22,7 @@ class SalesInvoicePrintController extends Controller
         $salesInvoice->load('lines', 'rectifiesInvoice');
         $url = VerifactuXml::qrUrl($salesInvoice);
         $qr = (new QRCode(new QROptions(['eccLevel' => EccLevel::M, 'outputBase64' => true])))->render($url);
+
         return view('billing.invoice', ['invoice' => $salesInvoice, 'qr' => $qr, 'qrUrl' => $url]);
     }
 }

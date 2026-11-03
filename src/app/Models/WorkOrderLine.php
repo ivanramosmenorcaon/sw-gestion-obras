@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Validation\ValidationException;
 
 #[Fillable(['project_id', 'work_order_id', 'project_chapter_id', 'work_order_phase_id', 'position', 'type', 'product_id', 'product_unit_id', 'description', 'unit_id', 'unit_label', 'base_unit_id', 'base_unit_factor', 'planned_quantity', 'estimated_unit_cost', 'estimated_unit_sale_price', 'notes', 'source_code', 'measurement_details', 'budget_breakdown'])]
@@ -89,7 +90,8 @@ class WorkOrderLine extends Model
     {
         return $this->belongsTo(Unit::class, 'base_unit_id');
     }
-    public function salesInvoiceLines(): \Illuminate\Database\Eloquent\Relations\HasMany
+
+    public function salesInvoiceLines(): HasMany
     {
         return $this->hasMany(SalesInvoiceLine::class, 'work_order_line_id');
     }

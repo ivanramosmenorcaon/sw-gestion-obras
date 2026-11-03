@@ -9,7 +9,10 @@ use App\Models\Party;
 use App\Models\SalesInvoice;
 use App\Models\SalesInvoiceLine;
 use App\Models\WorkOrder;
+use App\Models\WorkOrderLine;
 use Brick\Math\BigDecimal;
+use Brick\Math\RoundingMode;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
@@ -18,7 +21,9 @@ final class SalesBilling
 {
     public function assertDraft(SalesInvoice $invoice): void
     {
-        if ($invoice->status !== 'draft') { throw ValidationException::withMessages(['status' => __('billing.messages.immutable')]); }
+        if ($invoice->status !== 'draft') {
+            throw ValidationException::withMessages(['status' => __('billing.messages.immutable')]);
+        }
     }
 
     public function validateHeader(SalesInvoice $invoice): void
@@ -30,7 +35,9 @@ final class SalesBilling
             'description' => ['required', 'string', 'max:500'], 'currency_code' => ['in:EUR'],
             'status' => ['in:draft,issued,cancelled'], 'invoice_type' => ['in:F1,R1,R2,R3,R4'],
         ], [], __('billing.fields'))->validate();
-        if ($invoice->status === 'cancelled') { return; }
+        if ($invoice->status === 'cancelled') {
+            return;
+        }
         $customer = Party::findOrFail($invoice->customer_id);
         if (! $invoice->rectifies_invoice_id && (! $customer->is_active || ! $customer->partyRoles()->where('role', 'customer')->exists())) {
             throw ValidationException::withMessages(['customer_id' => __('billing.messages.customer')]);
@@ -71,15 +78,20 @@ final class SalesBilling
                 throw ValidationException::withMessages(['quantity' => __('billing.messages.owner')]);
             }
             foreach (['product_id', 'work_order_line_id', 'tax_profile_id', 'withholding_rate_id', 'unit_price', 'discount_percentage'] as $field) {
-                if ((string) $line->$field !== (string) $original->$field) { throw ValidationException::withMessages([$field => __('billing.messages.credit_fields')]); }
+                if ((string) $line->$field !== (string) $original->$field) {
+                    throw ValidationException::withMessages([$field => __('billing.messages.credit_fields')]);
+                }
             }
             $reserved = SalesInvoiceLine::where('rectifies_line_id', $original->id)->whereKeyNot($line->id ?? 0)->whereHas('invoice', fn ($q) => $q->whereIn('status', ['draft', 'issued']))->pluck('quantity')->reduce(fn (BigDecimal $sum, string $qty): BigDecimal => $sum->plus($qty), BigDecimal::of('0'));
             if (BigDecimal::of($original->quantity)->plus($reserved)->plus($line->quantity)->compareTo('0') < 0) {
                 throw ValidationException::withMessages(['quantity' => __('billing.messages.overbilled')]);
             }
+
             return;
         }
-        if ($line->rectifies_line_id) { throw ValidationException::withMessages(['quantity' => __('billing.messages.owner')]); }
+        if ($line->rectifies_line_id) {
+            throw ValidationException::withMessages(['quantity' => __('billing.messages.owner')]);
+        }
         if ($line->work_order_line_id) {
             $source = $line->workOrderLine()->firstOrFail();
             WorkOrder::whereKey($source->work_order_id)->lockForUpdate()->firstOrFail();
@@ -91,10 +103,11 @@ final class SalesBilling
 
     public function remaining(int $sourceId, ?int $excludingLine = null): string
     {
-        $source = \App\Models\WorkOrderLine::findOrFail($sourceId);
+        $source = WorkOrderLine::findOrFail($sourceId);
         $used = SalesInvoiceLine::where('work_order_line_id', $sourceId)->when($excludingLine, fn ($q) => $q->whereKeyNot($excludingLine))
             ->whereHas('invoice', fn ($q) => $q->where('status', 'issued')->orWhere(fn ($draft) => $draft->where('status', 'draft')->whereNull('rectifies_invoice_id')))
             ->pluck('quantity')->reduce(fn (BigDecimal $sum, string $qty): BigDecimal => $sum->plus($qty), BigDecimal::of('0'));
+
         return (string) BigDecimal::of($source->planned_quantity)->minus($used);
     }
 
@@ -102,9 +115,12 @@ final class SalesBilling
     public function fromWorkOrder(WorkOrder $order, int $seriesId, array $phaseIds, string $percentage = '100'): SalesInvoice
     {
         Validator::make(['percentage' => $percentage, 'phases' => $phaseIds], ['percentage' => ['required', 'numeric', 'gt:0', 'max:100'], 'phases' => ['required', 'array', 'min:1']])->validate();
+
         return DB::transaction(function () use ($order, $seriesId, $phaseIds, $percentage): SalesInvoice {
             $order = WorkOrder::whereKey($order->id)->lockForUpdate()->firstOrFail();
-            if ($order->project->currency_code !== 'EUR') { throw ValidationException::withMessages(['work_order_id' => __('billing.messages.currency')]); }
+            if ($order->project->currency_code !== 'EUR') {
+                throw ValidationException::withMessages(['work_order_id' => __('billing.messages.currency')]);
+            }
             if ($order->workOrderPhases()->whereIn('id', $phaseIds)->count() !== count(array_unique($phaseIds))) {
                 throw ValidationException::withMessages(['phase_ids' => __('billing.messages.owner')]);
             }
@@ -113,11 +129,17 @@ final class SalesBilling
             $company = CompanySetting::where('scope', 'company')->first();
             foreach ($order->workOrderLines()->whereIn('work_order_phase_id', $phaseIds)->with('product')->orderBy('position')->get() as $source) {
                 $available = BigDecimal::of($this->remaining($source->id));
-                if ($available->compareTo('0') <= 0) { continue; }
-                $quantity = $available->multipliedBy($percentage)->dividedBy('100', 6, \Brick\Math\RoundingMode::Down);
-                if ($quantity->compareTo('0') <= 0) { continue; }
+                if ($available->compareTo('0') <= 0) {
+                    continue;
+                }
+                $quantity = $available->multipliedBy($percentage)->dividedBy('100', 6, RoundingMode::Down);
+                if ($quantity->compareTo('0') <= 0) {
+                    continue;
+                }
                 $profile = $source->product?->sales_tax_profile_id ?? $invoice->customer->sales_tax_profile_id ?? $company?->sales_tax_profile_id;
-                if (! $profile) { throw ValidationException::withMessages(['tax_profile_id' => __('billing.messages.no_default')]); }
+                if (! $profile) {
+                    throw ValidationException::withMessages(['tax_profile_id' => __('billing.messages.no_default')]);
+                }
                 $line = new SalesInvoiceLine(['sales_invoice_id' => $invoice->id, 'product_id' => $source->product_id, 'position' => $source->position,
                     'description' => $source->description, 'unit_label' => $source->unit_label, 'quantity' => (string) $quantity, 'unit_price' => $source->estimated_unit_sale_price,
                     'tax_profile_id' => $profile,
@@ -125,7 +147,10 @@ final class SalesBilling
                 $line->work_order_line_id = $source->id;
                 $line->save();
             }
-            if (! $invoice->lines()->exists()) { throw ValidationException::withMessages(['phase_ids' => __('billing.messages.nothing_pending')]); }
+            if (! $invoice->lines()->exists()) {
+                throw ValidationException::withMessages(['phase_ids' => __('billing.messages.nothing_pending')]);
+            }
+
             return $invoice;
         }, 3);
     }
@@ -135,7 +160,8 @@ final class SalesBilling
         DB::transaction(function () use ($invoice): void {
             $invoice = SalesInvoice::whereKey($invoice->id)->lockForUpdate()->firstOrFail();
             $this->assertDraft($invoice);
-            $invoice->status = 'cancelled'; $invoice->save();
+            $invoice->status = 'cancelled';
+            $invoice->save();
         });
     }
 
@@ -155,9 +181,15 @@ final class SalesBilling
                 throw ValidationException::withMessages(['issue_date' => __('billing.messages.dates')]);
             }
             $lastDate = $series->invoices()->where('status', 'issued')->max('issue_date');
-            if ($lastDate && $invoice->issue_date->lt($lastDate)) { throw ValidationException::withMessages(['issue_date' => __('billing.messages.chronology')]); }
-            if (! $invoice->lines()->exists()) { throw ValidationException::withMessages(['lines' => __('billing.messages.empty')]); }
-            foreach ($invoice->lines as $line) { $this->validateLine($line); }
+            if ($lastDate && $invoice->issue_date->lt($lastDate)) {
+                throw ValidationException::withMessages(['issue_date' => __('billing.messages.chronology')]);
+            }
+            if (! $invoice->lines()->exists()) {
+                throw ValidationException::withMessages(['lines' => __('billing.messages.empty')]);
+            }
+            foreach ($invoice->lines as $line) {
+                $this->validateLine($line);
+            }
             $company = CompanySetting::where('scope', 'company')->firstOrFail();
             FiscalValidator::validate($company);
             if ($company->tax_identification_type !== 'nif' || strlen($company->tax_identification_number ?? '') !== 9 || $company->country_code !== 'ES') {
@@ -165,25 +197,46 @@ final class SalesBilling
             }
             $originalRecipient = $invoice->rectifies_invoice_id ? $invoice->rectifiesInvoice->recipient_snapshot : null;
             $address = $invoice->customer->partyAddresses()->where('is_active', true)->where('is_fiscal', true)->get();
-            if (! $originalRecipient && $address->count() !== 1) { throw ValidationException::withMessages(['customer_id' => __('billing.messages.address')]); }
+            if (! $originalRecipient && $address->count() !== 1) {
+                throw ValidationException::withMessages(['customer_id' => __('billing.messages.address')]);
+            }
             foreach (array_filter([$company, $originalRecipient ? null : $address->first()]) as $fiscalAddress) {
                 foreach (['address_line_1', 'city', 'postal_code', 'country_code'] as $field) {
-                    if (blank($fiscalAddress->$field)) { throw ValidationException::withMessages(['customer_id' => __('billing.messages.address')]); }
+                    if (blank($fiscalAddress->$field)) {
+                        throw ValidationException::withMessages(['customer_id' => __('billing.messages.address')]);
+                    }
                 }
             }
             $calculation = app(InvoiceCalculator::class)->calculate($invoice, true);
-            if (BigDecimal::of($calculation['totals']['gross_total'])->abs()->compareTo('999999999999.99') > 0) { throw ValidationException::withMessages(['lines' => __('billing.messages.amount_limit')]); }
+            if (BigDecimal::of($calculation['totals']['gross_total'])->abs()->compareTo('999999999999.99') > 0) {
+                throw ValidationException::withMessages(['lines' => __('billing.messages.amount_limit')]);
+            }
             $invoice->forceFill($calculation['totals'] + ['tax_summary' => $calculation['groups'], 'issuer_snapshot' => $company->only(['legal_name', 'tax_identification_number', 'address_line_1', 'address_line_2', 'city', 'province', 'postal_code', 'country_code']),
                 'recipient_snapshot' => $originalRecipient ?? ['identity' => FiscalIdentity::recipient($invoice->customer), 'address' => $address->first()->only(['address_line_1', 'address_line_2', 'city', 'province', 'postal_code', 'country_code'])],
                 'sequence_number' => $series->next_number, 'number' => $series->code.'/'.$series->fiscal_year.'/'.str_pad((string) $series->next_number, 6, '0', STR_PAD_LEFT), 'environment' => $series->environment]);
-            foreach ($calculation['lines'] as $id => $values) { SalesInvoiceLine::whereKey($id)->update(array_replace($values, ['fiscal_snapshot' => json_encode($values['fiscal_snapshot'], JSON_THROW_ON_ERROR)])); }
-            $series->next_number++; $series->save();
+            foreach ($calculation['lines'] as $id => $values) {
+                SalesInvoiceLine::whereKey($id)->update(array_replace($values, ['fiscal_snapshot' => json_encode($values['fiscal_snapshot'], JSON_THROW_ON_ERROR)]));
+            }
+            $series->next_number++;
+            $series->save();
             DB::table('billing_chains')->insertOrIgnore(['environment' => $series->environment, 'created_at' => now(), 'updated_at' => now()]);
             $chain = DB::table('billing_chains')->where('environment', $series->environment)->lockForUpdate()->first();
             $previous = $chain->last_record_id ? BillingRecord::findOrFail($chain->last_record_id) : null;
-            if ($previous && $previous->invoice->issuer_snapshot['tax_identification_number'] !== $company->tax_identification_number) { throw ValidationException::withMessages(['issuer_snapshot' => __('billing.messages.issuer_changed')]); }
+            if ($previous && $previous->invoice->issuer_snapshot['tax_identification_number'] !== $company->tax_identification_number) {
+                throw ValidationException::withMessages(['issuer_snapshot' => __('billing.messages.issuer_changed')]);
+            }
             $generatedAt = now('Europe/Madrid')->toIso8601String();
             $system = app(VerifactuXml::class)->system();
+            if ($previous) {
+                foreach (['NIF', 'IdSistemaInformatico', 'NumeroInstalacion'] as $field) {
+                    if ($previous->system_snapshot[$field] !== $system[$field]) {
+                        throw ValidationException::withMessages(['invoice_series_id' => __('billing.messages.system_changed')]);
+                    }
+                }
+                if (now('Europe/Madrid')->lt(Carbon::parse($previous->generated_at))) {
+                    throw ValidationException::withMessages(['issue_date' => __('billing.messages.clock')]);
+                }
+            }
             $hash = VerifactuXml::hash($invoice->issuer_snapshot['tax_identification_number'], $invoice->number, $invoice->issue_date->format('d-m-Y'), $invoice->invoice_type,
                 InvoiceCalculator::money(BigDecimal::of($invoice->tax_total)->plus($invoice->surcharge_total)), $invoice->gross_total, $previous?->hash ?? '', $generatedAt);
             $record = BillingRecord::create(['sales_invoice_id' => $invoice->id, 'billing_chain_id' => $chain->id, 'previous_record_id' => $previous?->id, 'hash' => $hash,
@@ -191,7 +244,10 @@ final class SalesBilling
                 'xml' => app(VerifactuXml::class)->build($invoice, $previous, $system, $generatedAt, $hash)]);
             $record->submission()->create(['status' => 'pending']);
             DB::table('billing_chains')->where('id', $chain->id)->update(['last_record_id' => $record->id, 'updated_at' => now()]);
-            $invoice->status = 'issued'; $invoice->issued_at = now(); $invoice->save();
+            $invoice->status = 'issued';
+            $invoice->issued_at = now();
+            $invoice->save();
+
             return $invoice;
         }, 3);
     }
@@ -199,23 +255,38 @@ final class SalesBilling
     public function credit(SalesInvoice $original, int $seriesId, string $type, string $reason): SalesInvoice
     {
         Validator::make(['type' => $type, 'reason' => $reason], ['type' => ['required', 'in:R1,R2,R3,R4'], 'reason' => ['required', 'string', 'max:500']])->validate();
+
         return DB::transaction(function () use ($original, $seriesId, $type, $reason): SalesInvoice {
             $original = SalesInvoice::whereKey($original->id)->lockForUpdate()->firstOrFail();
-            if ($original->status !== 'issued' || $original->rectifies_invoice_id) { throw ValidationException::withMessages(['status' => __('billing.messages.credit_origin')]); }
+            if ($original->status !== 'issued' || $original->rectifies_invoice_id) {
+                throw ValidationException::withMessages(['status' => __('billing.messages.credit_origin')]);
+            }
             $series = InvoiceSeries::findOrFail($seriesId);
-            if ($series->kind !== 'rectifying' || $series->environment !== $original->environment) { throw ValidationException::withMessages(['invoice_series_id' => __('billing.messages.series')]); }
+            if ($series->kind !== 'rectifying' || $series->environment !== $original->environment) {
+                throw ValidationException::withMessages(['invoice_series_id' => __('billing.messages.series')]);
+            }
             $credit = new SalesInvoice(['customer_id' => $original->customer_id, 'invoice_series_id' => $seriesId, 'work_order_id' => $original->work_order_id,
                 'issue_date' => today('Europe/Madrid')->toDateString(), 'operation_date' => $original->operation_date->toDateString(), 'description' => $reason, 'fiscal_evidence' => $original->fiscal_evidence]);
-            $credit->rectifies_invoice_id = $original->id; $credit->invoice_type = $type; $credit->save();
+            $credit->rectifies_invoice_id = $original->id;
+            $credit->invoice_type = $type;
+            $credit->save();
             foreach ($original->lines as $line) {
                 $already = SalesInvoiceLine::where('rectifies_line_id', $line->id)->whereHas('invoice', fn ($q) => $q->whereIn('status', ['draft', 'issued']))->pluck('quantity')->reduce(fn (BigDecimal $sum, string $qty): BigDecimal => $sum->plus($qty), BigDecimal::of('0'));
                 $remaining = BigDecimal::of($line->quantity)->plus($already);
-                if ($remaining->compareTo('0') <= 0) { continue; }
+                if ($remaining->compareTo('0') <= 0) {
+                    continue;
+                }
                 $new = new SalesInvoiceLine($line->only(['product_id', 'position', 'description', 'unit_label', 'unit_price', 'discount_percentage', 'tax_profile_id', 'withholding_rate_id']));
-                $new->sales_invoice_id = $credit->id; $new->quantity = (string) $remaining->negated();
-                $new->rectifies_line_id = $line->id; $new->work_order_line_id = $line->work_order_line_id; $new->save();
+                $new->sales_invoice_id = $credit->id;
+                $new->quantity = (string) $remaining->negated();
+                $new->rectifies_line_id = $line->id;
+                $new->work_order_line_id = $line->work_order_line_id;
+                $new->save();
             }
-            if (! $credit->lines()->exists()) { throw ValidationException::withMessages(['lines' => __('billing.messages.nothing_pending')]); }
+            if (! $credit->lines()->exists()) {
+                throw ValidationException::withMessages(['lines' => __('billing.messages.nothing_pending')]);
+            }
+
             return $credit;
         }, 3);
     }

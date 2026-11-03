@@ -4,7 +4,6 @@ namespace App\Filament\Resources\SalesInvoices\Pages;
 
 use App\Filament\Resources\SalesInvoices\SalesInvoiceResource;
 use App\Jobs\SubmitBillingRecord;
-use App\Models\InvoiceSeries;
 use App\Support\SalesBilling;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;

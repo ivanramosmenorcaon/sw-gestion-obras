@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\CompanySetting;
 use App\Models\SalesInvoice;
 use App\Models\SalesInvoiceLine;
 use App\Models\TaxRate;
@@ -25,7 +26,9 @@ final class InvoiceCalculator
     public function calculate(SalesInvoice $invoice, bool $issuing = false): array
     {
         $invoice->loadMissing('lines.taxProfile.taxRate', 'lines.taxProfile.surchargeRate', 'lines.withholdingRate', 'customer');
-        $lines = []; $groups = []; $members = [];
+        $lines = [];
+        $groups = [];
+        $members = [];
         foreach ($invoice->lines as $line) {
             $profile = $line->taxProfile;
             $fiscal = $line->rectifies_line_id ? $line->rectifiesLine->fiscal_snapshot : [
@@ -67,15 +70,21 @@ final class InvoiceCalculator
             $members[$key][] = $line->id;
         }
         foreach ($groups as $key => &$group) {
-            if ($invoice->rectifies_invoice_id) { continue; }
+            if ($invoice->rectifies_invoice_id) {
+                continue;
+            }
             $group['tax'] = self::percentage($group['base'], $group['tax_percentage'] ?? '0');
             $group['surcharge'] = self::percentage($group['base'], $group['surcharge_percentage'] ?? '0');
             foreach (['tax' => 'tax_amount', 'surcharge' => 'surcharge_amount'] as $groupField => $lineField) {
                 $sum = BigDecimal::of('0');
-                foreach ($members[$key] as $id) { $sum = $sum->plus($lines[$id][$lineField]); }
+                foreach ($members[$key] as $id) {
+                    $sum = $sum->plus($lines[$id][$lineField]);
+                }
                 $difference = BigDecimal::of($group[$groupField])->minus($sum);
                 foreach ($members[$key] as $id) {
-                    if ($difference->compareTo('0') === 0) { break; }
+                    if ($difference->compareTo('0') === 0) {
+                        break;
+                    }
                     $adjustment = $difference->compareTo('0') > 0 ? '0.01' : '-0.01';
                     $lines[$id][$lineField] = self::money(BigDecimal::of($lines[$id][$lineField])->plus($adjustment));
                     $difference = $difference->minus($adjustment);
@@ -83,7 +92,9 @@ final class InvoiceCalculator
             }
         }
         unset($group);
-        if (count($groups) > 12) { throw ValidationException::withMessages(['lines' => __('billing.messages.max_groups')]); }
+        if (count($groups) > 12) {
+            throw ValidationException::withMessages(['lines' => __('billing.messages.max_groups')]);
+        }
         $totals = ['net_total' => '0.00', 'tax_total' => '0.00', 'surcharge_total' => '0.00', 'withholding_total' => '0.00'];
         foreach ($lines as $line) {
             foreach (['net_total' => 'net_amount', 'tax_total' => 'tax_amount', 'surcharge_total' => 'surcharge_amount', 'withholding_total' => 'withholding_amount'] as $target => $source) {
@@ -92,12 +103,15 @@ final class InvoiceCalculator
         }
         $totals['gross_total'] = self::money(BigDecimal::of($totals['net_total'])->plus($totals['tax_total'])->plus($totals['surcharge_total']));
         $totals['payable_total'] = self::money(BigDecimal::of($totals['gross_total'])->minus($totals['withholding_total']));
+
         return ['lines' => $lines, 'groups' => array_values($groups), 'totals' => $totals];
     }
 
     private function validateFiscal(SalesInvoice $invoice, SalesInvoiceLine $line): void
     {
-        if ($line->rectifies_line_id) { return; }
+        if ($line->rectifies_line_id) {
+            return;
+        }
         $profile = $line->taxProfile;
         FiscalValidator::validate($profile);
         if (! $profile->is_active || $profile->tax_system !== '01' || ! in_array($profile->regime_code, ['01', '18'], true)) {
@@ -112,7 +126,7 @@ final class InvoiceCalculator
         if ($evidenceRequired && blank($invoice->fiscal_evidence)) {
             throw ValidationException::withMessages(['fiscal_evidence' => __('billing.messages.evidence')]);
         }
-        $issuerNif = \App\Models\CompanySetting::where('scope', 'company')->value('tax_identification_number');
+        $issuerNif = CompanySetting::where('scope', 'company')->value('tax_identification_number');
         if ($line->withholding_rate_id && ! preg_match('/^(?:[0-9]{8}[A-Z]|[XYZKLM][0-9]{7}[A-Z])$/', $issuerNif ?? '')) {
             throw ValidationException::withMessages(['withholding_rate_id' => __('billing.messages.withholding_issuer')]);
         }
