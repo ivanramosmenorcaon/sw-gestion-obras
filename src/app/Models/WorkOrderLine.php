@@ -89,4 +89,8 @@ class WorkOrderLine extends Model
     {
         return $this->belongsTo(Unit::class, 'base_unit_id');
     }
+    public function salesInvoiceLines(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(SalesInvoiceLine::class, 'work_order_line_id');
+    }
 }

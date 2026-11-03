@@ -45,6 +45,12 @@ class RecordSelect extends Select
                 return BusinessRecordValidator::inForm(function () use ($data, $schema): int|string {
                     $record = $this->getRelationship()->newModelInstance();
                     $record->fill(array_replace($data, $this->getCreationContext()));
+                    if ($record instanceof WorkOrder && $this->getModelInstance() instanceof \App\Models\SalesInvoice) {
+                        $customerId = ($this->makeGetUtility())('customer_id');
+                        if ($customerId && \App\Models\Project::find($record->project_id)?->customer_id !== (int) $customerId) {
+                            throw \Illuminate\Validation\ValidationException::withMessages(['project_id' => __('billing.messages.owner')]);
+                        }
+                    }
                     $record->save();
 
                     if ($record instanceof Party && ($role = $this->getPartyRole())) {
@@ -66,7 +72,7 @@ class RecordSelect extends Select
 
     public function hasCreateOptionActionFormSchema(): bool
     {
-        return parent::hasCreateOptionActionFormSchema() && $this->getOptionResource() !== null;
+        return parent::hasCreateOptionActionFormSchema() && (! $this->hasRelationship() || $this->getOptionResource() !== null);
     }
 
     /** @return class-string<resource> | null */
@@ -123,9 +129,16 @@ class RecordSelect extends Select
             $context[$parentField] = $value;
         }
 
+        if ($related instanceof \App\Models\InvoiceSeries && $this->getModelInstance() instanceof \App\Models\SalesInvoice) {
+            $invoice = $this->getModelInstance();
+            $context['kind'] = $invoice->rectifies_invoice_id || $this->getName() === 'rectifying_series_id' ? 'rectifying' : 'standard';
+            $context['environment'] = $invoice->environment ?? 'test';
+            $context['fiscal_year'] = today('Europe/Madrid')->year;
+        }
+
         if ($related instanceof TaxRate) {
             $kind = match ($this->getName()) {
-                'sales_withholding_rate_id', 'purchase_withholding_rate_id' => 'withholding',
+                'sales_withholding_rate_id', 'purchase_withholding_rate_id', 'withholding_rate_id' => 'withholding',
                 'surcharge_rate_id' => 'surcharge',
                 'tax_rate_id' => ['01' => 'vat', '02' => 'ipsi', '03' => 'igic', '05' => 'other'][$get('tax_system') ?? '01'],
                 default => null,

@@ -180,7 +180,7 @@ final class BusinessRecordValidator
     public static function canDelete(Model $record): bool
     {
         if ($record instanceof WorkOrder && $record->status === 'draft') {
-            return true;
+            return ! $record->salesInvoices()->exists();
         }
 
         if ($record->getTable() === 'company_settings' || ($record->getTable() === 'product_units' && $record->code === 'base')) {

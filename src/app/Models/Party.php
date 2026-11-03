@@ -108,4 +108,8 @@ class Party extends Model
     {
         return $this->belongsTo(TaxRate::class, 'purchase_withholding_rate_id');
     }
+    public function salesInvoices(): HasMany
+    {
+        return $this->hasMany(SalesInvoice::class, 'customer_id');
+    }
 }

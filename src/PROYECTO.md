@@ -625,3 +625,110 @@ Resultado final: 37 pruebas de selectores correctas; suite completa correcta con
 
 
 
+
+## 15. Facturación de venta y preparación de VERI*FACTU — 3 de noviembre de 2026
+
+### Estado y límite de esta entrega
+
+Se incorpora un módulo funcional **exclusivamente de pruebas**. La emisión de producción está bloqueada expresamente en el servicio, incluso si alguien crea una serie de producción directamente en la base de datos. No basta con cambiar una variable de entorno para habilitarla.
+
+Este módulo todavía **no es un SIF listo para facturar legalmente en producción**: faltan los flujos de subsanación de registros rechazados/aceptados con errores, anulación registral, comprobación de duplicados contra AEAT y la validación integral con el certificado real. También deben completarse y conservarse la declaración responsable del productor y las comprobaciones operativas de conservación, exportación, recuperación y envío continuado. Los estados de error se muestran para revisión; no se modifican ni sustituyen silenciosamente registros originales. No se ha firmado ni inventado una declaración responsable.
+
+La empresa utilizará **certificado digital propio**, según decisión del usuario. No se solicitará certificado ni contraseña por el chat. El código de transmisión se dirige únicamente al servicio oficial de pruebas. No se han remitido facturas ni se han habilitado envíos reales durante el desarrollo.
+
+### Uso en Filament
+
+Menú **Facturación**:
+
+- **Series de facturación**: series ordinarias y rectificativas por ejercicio. El seeder crea solamente F y R de pruebas para el ejercicio actual. No reinicia contadores ni modifica series existentes.
+- **Facturas de venta**: crear un borrador eligiendo cliente, fechas y serie; guardar; añadir las líneas en el relation manager. Se pueden incorporar productos o describir servicios libremente, con cantidad, unidad, precio, descuento, tratamiento fiscal y retención.
+- Desde la edición de una orden de trabajo, **Facturar fases** permite seleccionar varias fases y un porcentaje de las cantidades pendientes. El porcentaje se aplica al pendiente, no al presupuesto total original. Las cantidades del borrador resultante se pueden ajustar antes de emitir. Las partidas sin fase no se importan por esta acción: deben asignarse a una fase o facturarse individualmente.
+- **Emitir en pruebas** guarda primero la cabecera y después valida, numera y congela la factura en una transacción. Los errores no consumen número. Los borradores no tienen número fiscal.
+- **Cancelar borrador** conserva su historial y libera sus reservas. No anula una factura emitida ni consume números.
+- La vista de una factura emitida permite imprimir/guardar PDF mediante el navegador, descargar el XML original y preparar una rectificativa. El documento impreso muestra claramente que es una prueba sin validez fiscal.
+- **Preparar rectificativa** crea un borrador R1–R4 por diferencias (I), con cantidades negativas y referencia expresa a la factura original. Conserva precios, descuentos y tipos históricos; permite reducir cantidades o retirar líneas. No implementa rectificativas por sustitución, incrementos de precio ni rectificación de rectificativas.
+
+Los selectores de cliente, serie, orden, producto, tratamiento fiscal y retención conservan la creación de fichas desde el modal y la autorización de su resource. Los selectores auxiliares de series/fases de la acción de una orden reutilizan los formularios completos de sus resources, guardan sus relaciones y fijan el propietario/tipo en servidor. Se amplía RecordSelect para retenciones de líneas y contexto de series. Las órdenes creadas desde una factura deben pertenecer a un proyecto del cliente seleccionado; una creación incompatible se rechaza antes de guardarla.
+
+### Datos y trazabilidad
+
+La migración `create_sales_billing_tables` añade siete tablas, sin modificar datos de negocio existentes:
+
+| Tabla | Responsabilidad |
+| --- | --- |
+| invoice_series | Identificación de serie, ejercicio, tipo, entorno y próximo número. |
+| sales_invoices | Cabecera, cliente, orden opcional, rectificación, estados y totales. |
+| sales_invoice_lines | Cantidades, precios, fiscalidad y vínculo a partidas originales. |
+| billing_chains | Último registro de cada entorno; bloqueo común de encadenamiento. |
+| billing_records | XML, huella, registro anterior, fecha con huso e identificación del sistema, inmutables. |
+| billing_submissions | Estado de envío, intentos, respuesta, CSV e incidencias. |
+| billing_submission_attempts | Historial de respuestas de cada intento de comunicación. |
+
+El emisor y el destinatario se guardan como instantáneas, incluyendo NIF/IDOtro y domicilio completo. También se conservan los porcentajes, las bases, las cuotas y las referencias legales de las líneas. Cambiar las fichas de contacto, producto o impuestos no modifica una factura emitida. Las rectificativas utilizan la identidad histórica del destinatario original.
+
+La numeración se reserva bajo bloqueo de la serie y dentro de la misma transacción que crea factura definitiva y registro. La fecha respeta el orden cronológico de la serie. El encadenamiento es común para todas las series del mismo entorno, no independiente por serie, cliente o proyecto. Una cadena iniciada no permite cambiar el NIF del obligado tributario.
+
+Las claves foráneas impiden borrar órdenes, partidas, clientes o productos referenciados por facturas. La eliminación especial de órdenes en borrador también consulta si existen facturas. No se ofrecen borrados físicos de facturas ni de series.
+
+La protección de inmutabilidad y los bloqueos se aplican a las operaciones normales de modelos/servicios, incluidos formularios con estado obsoleto. El acceso administrativo directo a SQL no queda protegido por eventos de Eloquent: los permisos de base de datos, copias y controles de operación siguen siendo necesarios. No se han creado triggers que pretendan certificar el cumplimiento del sistema.
+
+### Cantidades y cálculo
+
+- Se usan decimales exactos (`brick/math`, ya instalado) y redondeo monetario a céntimos; no aritmética de coma flotante para importes.
+- Cada línea calcula su base después del descuento. Los impuestos indirectos se agrupan por su tratamiento y porcentajes; se calcula la cuota del grupo y se distribuyen diferencias de céntimos entre líneas. El límite de AEAT es de 12 **grupos de desglose**, no de 12 partidas de factura.
+- `gross_total` = base + IVA + recargo. `payable_total` = total anterior − IRPF. El total y el QR comunicados a VERI*FACTU utilizan el total anterior a retenciones; IRPF no se envía como un impuesto indirecto ni se resta del registro.
+- Una rectificación parcial reparte los importes originales; la última fracción absorbe los céntimos pendientes para no abonar más de la base/cuota original.
+- Los borradores ordinarios y las facturas emitidas reservan cantidades de las partidas de origen. Las rectificativas en borrador reservan su capacidad de rectificación, pero **no liberan cantidades para volver a facturar** hasta que se emiten.
+- Se bloquea la orden al validar reservas y se vuelve a comprobar al emitir. El origen y el cliente deben coincidir. Se evita sobrefacturar y abonar más cantidad que la factura original, teniendo en cuenta otros borradores.
+- Las cantidades de obra se facturan con el precio previsto de venta de la partida. No se altera el presupuesto, el coste ni el stock por emitir una factura. Una factura no sustituye a un movimiento de almacén ni a una imputación de horas.
+
+### Alcance fiscal soportado
+
+Esta versión admite EUR, IVA nacional (`Impuesto=01`), regímenes 01 y 18 y factura completa F1; rectificativas R1, R2, R3 y R4 por diferencias. Se bloquean IGIC, IPSI, exportaciones, criterio de caja, OSS y demás regímenes hasta disponer de sus flujos específicos. No se generan facturas simplificadas F2, facturas de compra, pagos/cobros, vencimientos fraccionados ni proformas en esta entrega.
+
+Cada línea puede tener un perfil fiscal distinto. Al seleccionar un producto se propone su configuración; en su defecto, la del cliente y después la de la empresa. Esta prioridad es una sugerencia editable, no una decisión jurídica automática: un supuesto especial del cliente debe revisarse expresamente antes de emitir. La información fiscal del cliente no cambia automáticamente todos los tipos reducidos de sus productos.
+
+Se comprueban actividad y vigencia de los tipos en la fecha de operación; los supuestos marcados como condicionados requieren justificación. Se conservan menciones de exención y de inversión del sujeto pasivo en el documento. S2 requiere destinatario empresario/profesional y cuota cero; las exenciones no envían tipo ni cuota. Las retenciones requieren emisor persona física y destinatario empresario/profesional o entidad pública con obligación de retener confirmada; escoger un porcentaje no demuestra por sí solo su aplicación. La actividad/IAE, comienzo de actividad y demás condiciones deben justificarse según el supuesto. El recargo exige cliente sujeto al régimen y producto material. La comprobación local de identificadores no equivale a consultar el censo AEAT/VIES ni garantiza la aplicación jurídica del tratamiento elegido.
+
+### Certificado propio y configuración privada
+
+Variables documentadas también en `.env.example` y leídas exclusivamente desde `config/billing.php`:
+
+```dotenv
+BILLING_PRODUCER_NAME="Nombre real del productor del software"
+BILLING_PRODUCER_NIF="NIF real del productor"
+BILLING_SYSTEM_NAME="Gestion de obras"
+BILLING_SYSTEM_ID=01
+BILLING_SYSTEM_VERSION=0.1.0
+BILLING_INSTALLATION_ID="Identificador estable de esta instalación"
+BILLING_RESPONSIBLE_DECLARATION_PATH="Ruta privada a la declaración cuando exista"
+VERIFACTU_SEND_ENABLED=false
+VERIFACTU_CERTIFICATE_PATH="Ruta privada al certificado PEM de la empresa"
+VERIFACTU_CERTIFICATE_PASSWORD=
+VERIFACTU_PRIVATE_KEY_PATH="Ruta privada a la clave PEM"
+VERIFACTU_PRIVATE_KEY_PASSWORD=
+```
+
+No usar nombres o NIF inventados para el productor. La identificación del productor puede coincidir con la empresa solamente cuando esta sea realmente quien desarrolla el sistema. La instalación no debe regenerarse al desplegar o al reiniciar. Las instantáneas del sistema quedan guardadas junto al XML; cambiar configuración no reescribe registros previos.
+
+El conector utiliza certificado PEM y clave PEM separada, con soporte de clave cifrada mediante contraseña. Si el certificado entregado es P12/PFX, debe convertirse localmente en un entorno seguro; no se cargan secretos desde formularios web. Las rutas bajo `public/` se rechazan. La verificación TLS del servidor permanece activada; no se usa `verify=false`.
+
+Activar envíos solo después de configurar identificación y certificado. `php artisan billing:send-pending --no-interaction` remite el siguiente registro pendiente a **prewww1.aeat.es**, respetando los tiempos de espera. La tarea se programa cada minuto mediante el scheduler de Laravel; el servidor debe tener activo `schedule:run` o `schedule:work`. No se ha cambiado el cron del servidor. Existe además una acción manual de envío de pruebas, mediante la cola; si la conexión de cola no es `sync`, debe estar ejecutándose el worker.
+
+Los reintentos técnicos reutilizan exactamente el mismo XML y huella. Se serializan los envíos y se guarda el historial de respuestas. Una reclamación de envío obsoleta se recupera después de cinco minutos. Se comprueba el esquema y que la respuesta corresponda al NIF/número/fecha enviados. Un duplicado exige revisión; no se marca como aceptado automáticamente. No se reintentan automáticamente los rechazos fiscales como si fueran fallos de red.
+
+### Fuentes contrastadas y artefactos oficiales
+
+Consulta del 3 de noviembre de 2026:
+
+- [Reglamento de facturación, RD 1619/2012, texto consolidado con actualización publicada el 31/03/2026](https://www.boe.es/buscar/act.php?id=BOE-A-2012-14696): contenido, numeración y rectificación.
+- [AEAT: información técnica de VERI*FACTU](https://sede.agenciatributaria.gob.es/Sede/iva/sistemas-informaticos-facturacion-verifactu/informacion-tecnica.html).
+- [AEAT: SuministroInformacion.xsd](https://prewww2.aeat.es/static_files/common/internet/dep/aplicaciones/es/aeat/tikeV1.0/cont/ws/SuministroInformacion.xsd).
+- [AEAT: diseño de registros y listas](https://www.agenciatributaria.es/static_files/AEAT_Desarrolladores/EEDD/IVA/VERI-FACTU/DsRegistroVeriFactu.xlsx), utilizado también en la parametrización fiscal anterior.
+- [AEAT: validaciones y errores, versión 1.2.2](https://www.agenciatributaria.es/static_files/AEAT_Desarrolladores/EEDD/IVA/VERI-FACTU/Validaciones_Errores_Veri-Factu.pdf).
+- [AEAT: especificación de la huella, versión 0.1.2](https://www.agenciatributaria.es/static_files/AEAT_Desarrolladores/EEDD/IVA/VERI-FACTU/Veri-Factu_especificaciones_huella_hash_registros.pdf): concatenación y SHA-256, contrastado con su primer ejemplo publicado.
+- [AEAT: QR, versión 0.5.0](https://www.agenciatributaria.es/static_files/AEAT_Desarrolladores/EEDD/IVA/VERI-FACTU/DetalleEspecificacTecnCodigoQRfactura.pdf): URL y parámetros, QR de 35 mm en la impresión.
+- [AEAT: retenciones en los registros de alta, FAQ actualizadas a 21/10/2026](https://sede.agenciatributaria.gob.es/Sede/iva/sistemas-informaticos-facturacion-verifactu/preguntas-frecuentes/registros-facturacion-alta.html).
+- [AEAT: cuadro de retenciones y condiciones](https://sede.agenciatributaria.gob.es/Sede/ayuda/manuales-videos-folletos/manuales-practicos/folleto-actividades-economicas/7-otras-obligaciones-fiscales-retenciones/7_1-cuadro-relacion-tipos-retencion-porcentaje.html). La página consultada sigue rotulada como tipos aplicables de **2025**: no se presenta como certificado de vigencia de cualquier porcentaje para 2026.
+
+En `resources/verifactu` se conservan los XSD de suministro, información común y respuesta, el WSDL oficial y el esquema XMLDSIG del W3C para validación sin red. En el XSD común se ha localizado únicamente el import de XMLDSIG a su copia local; no se han relajado las restricciones de la AEAT. La validación XSD es necesaria pero no sustituye las comprobaciones semánticas ni una prueba real de integración.

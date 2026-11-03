@@ -16,6 +16,7 @@ class EditWorkOrder extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            \App\Filament\Actions\BillWorkOrder::make(),
             WorkOrdersTable::treeAction(),
             WorkOrdersTable::budgetAction(),
             DeleteAction::make()

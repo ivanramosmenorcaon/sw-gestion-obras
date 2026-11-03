@@ -36,6 +36,7 @@ final class PdfBudgetImporter
         $item = null;
         $summaryNet = null;
         $taxNotes = [];
+        $hasCompactMeasurements = false;
         foreach ($pages as $page) {
             $header = null;
             foreach ($page['rows'] as $row) {
@@ -55,9 +56,11 @@ final class PdfBudgetImporter
                         $taxNotes[] = $row['text'];
                     }
                 }
+
                 continue;
             }
             $explicit = str_contains(Str::ascii(mb_strtolower($header['text'])), 'descripcion');
+            $hasCompactMeasurements = $hasCompactMeasurements || ! $explicit;
             $columns = $explicit ? $this->columns($header['spans']) : [];
             $codeLimit = $explicit ? $columns['unit'] - 8 : 30;
             $baseFont = $header['spans'][0]['font'];
@@ -81,10 +84,12 @@ final class PdfBudgetImporter
                     }
                     $chapterTotals[$code] = $this->number($amount[1]);
                     $chapterOpen = false;
+
                     continue;
                 }
                 if (preg_match('/^TOTAL\.+\s*('.self::NUMBER.')$/', $ascii, $match)) {
                     $summaryNet = $this->number($match[1]);
+
                     continue;
                 }
                 $newChapter = null;
@@ -106,9 +111,11 @@ final class PdfBudgetImporter
                     $chapters[$code] ??= ['code' => $code, 'name' => $name];
                     $chapterCode = $code;
                     $chapterOpen = true;
+
                     continue;
                 }
-                if ($first['x'] < $codeLimit && preg_match('/^(\S+)\s+(\S+)\s+(.+)$/u', $text, $match)) {
+                if ($first['x'] < $codeLimit && preg_match('/^([A-Za-z0-9_.#-]*\d[A-Za-z0-9_.#-]*)\s+(\S+)\s+(.+)$/u', $text, $match)
+                    && (strlen($match[1]) >= 4 || ProjectMeasurementImporter::supportsUnit($match[2]))) {
                     if ($item !== null || $chapterCode === null || ! $chapterOpen || isset($items[$match[1]]) || ! ProjectMeasurementImporter::supportsUnit($match[2])) {
                         $this->fail('Página '.$page['page'].': código, unidad o estructura no reconocidos en «'.$text.'».');
                     }
@@ -118,6 +125,7 @@ final class PdfBudgetImporter
                         'amount' => null, 'source_row' => $rowIndex + 1,
                         'notes' => 'Presupuesto PDF. Página de origen: '.$page['page'].'.',
                     ];
+
                     continue;
                 }
                 $totalRow = $explicit ? str_starts_with($ascii, 'TOTAL PARTIDA') : ($first['x'] > 300 && preg_match('/^'.self::NUMBER.'\s+'.self::NUMBER.'\s+'.self::NUMBER.'$/', $text));
@@ -144,6 +152,7 @@ final class PdfBudgetImporter
                     $items[$item['code']] = $item;
                     $chapterSums[$chapterCode] = ($chapterSums[$chapterCode] ?? BigDecimal::of(0))->plus($amount);
                     $item = null;
+
                     continue;
                 }
                 if ($item !== null) {
@@ -168,8 +177,6 @@ final class PdfBudgetImporter
                                 asort($distances);
                                 $detail[array_key_first($distances)] = (float) $this->number($span['text']);
                             }
-                        } elseif (preg_match('/('.self::NUMBER.')\s*$/', $text, $match)) {
-                            $detail['subtotal'] = (float) $this->number($match[1]);
                         }
                         $item['details'][] = $detail;
                     } else {
@@ -200,6 +207,9 @@ final class PdfBudgetImporter
         if ($taxNotes !== []) {
             $instructions .= "\nResumen original: ".implode(' · ', array_unique($taxNotes));
         }
+        if ($hasCompactMeasurements) {
+            $instructions .= "\nLas líneas de medición del diseño compacto se conservan como texto original. No se deducen dimensiones ni parciales cuando el PDF no separa esas columnas. Las cantidades totales de las partidas se importan de sus filas de precio e importe.";
+        }
 
         return [
             'chapters' => array_values($chapters), 'items' => array_values($items),
@@ -209,7 +219,7 @@ final class PdfBudgetImporter
     }
 
     /**
-     * @param list<array{x: float, text: string, font: float}> $spans
+     * @param  list<array{x: float, text: string, font: float}>  $spans
      * @return array<string, float>
      */
     private function columns(array $spans): array

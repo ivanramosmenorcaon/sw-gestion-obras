@@ -34,6 +34,7 @@ class AdminPanelProvider extends PanelProvider
             ->databaseTransactions()
             ->navigationGroups([
                 NavigationGroup::make()->label(fn (): string => __('business.groups.works')),
+                NavigationGroup::make()->label(fn (): string => __('billing.group')),
                 NavigationGroup::make()->label(fn (): string => __('business.groups.contacts')),
                 NavigationGroup::make()->label(fn (): string => __('business.groups.catalog')),
                 NavigationGroup::make()->label(fn (): string => __('business.groups.team')),
