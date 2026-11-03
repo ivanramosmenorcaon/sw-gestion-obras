@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\WorkOrders\Tables;
 
+use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -30,6 +31,10 @@ class WorkOrdersTable
             ])->filters([
                 SelectFilter::make('status')->label(__('business.fields.status'))->options(['draft' => __('business.options.draft'), 'planned' => __('business.options.planned'), 'in_progress' => __('business.options.in_progress'), 'on_hold' => __('business.options.on_hold'), 'completed' => __('business.options.completed'), 'cancelled' => __('business.options.cancelled')]),
                 SelectFilter::make('priority')->label(__('business.fields.priority'))->options(['low' => __('business.options.low'), 'normal' => __('business.options.normal'), 'high' => __('business.options.high'), 'urgent' => __('business.options.urgent')]),
-            ])->recordActions([EditAction::make()])->defaultSort('id', 'desc');
+            ])->recordActions([
+                EditAction::make(),
+                DeleteAction::make()
+                    ->modalDescription('Se eliminará la orden y, si está en borrador, sus partidas, fases y asignaciones. Los capítulos de la obra se conservarán.'),
+            ])->defaultSort('id', 'desc');
     }
 }

@@ -39,6 +39,7 @@ class WorkOrderLinesRelationManager extends RelationManager
                 CreateAction::make()->using(fn (array $data): Model => BusinessRecordValidator::inForm(fn (): Model => $this->getRelationship()->create($data), $this->getMountedActionSchema()?->getStatePath() ?? '')),
             ])
             ->recordActions([
+                WorkOrderLinesTable::breakdownAction(),
                 EditAction::make()->using(function (Model $record, array $data): Model {
                     return BusinessRecordValidator::inForm(function () use ($record, $data): Model {
                         $record->update($data);

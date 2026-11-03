@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\WorkOrderLines\Pages;
 
+use App\Filament\Resources\WorkOrderLines\Tables\WorkOrderLinesTable;
 use App\Filament\Resources\WorkOrderLines\WorkOrderLineResource;
 use App\Support\BusinessRecordValidator;
 use Filament\Resources\Pages\EditRecord;
@@ -13,7 +14,7 @@ class EditWorkOrderLine extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        return [];
+        return [WorkOrderLinesTable::breakdownAction()];
     }
 
     protected function handleRecordUpdate(Model $record, array $data): Model

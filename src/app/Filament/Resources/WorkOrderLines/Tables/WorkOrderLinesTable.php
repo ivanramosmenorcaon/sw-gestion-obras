@@ -2,18 +2,34 @@
 
 namespace App\Filament\Resources\WorkOrderLines\Tables;
 
+use App\Filament\Resources\WorkOrderLines\WorkOrderLineResource;
+use App\Models\WorkOrderLine;
+use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Enums\RecordActionsPosition;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
 class WorkOrderLinesTable
 {
+    public static function breakdownAction(): Action
+    {
+        return Action::make('viewBreakdown')
+            ->label('Ver desglose')
+            ->button()
+            ->outlined()
+            ->icon('heroicon-o-share')
+            ->authorize(fn (WorkOrderLine $record): bool => WorkOrderLineResource::canView($record))
+            ->url(fn (WorkOrderLine $record): string => WorkOrderLineResource::getUrl('view', ['record' => $record]));
+    }
+
     public static function configure(Table $table): Table
     {
         return $table
             ->dragReorderableColumns()
             ->stickableColumns()
+            ->recordActionsPosition(RecordActionsPosition::BeforeColumns)
             ->columns([
                 TextColumn::make('source_code')->label('Código de partida')->searchable()->sortable()->toggleable(),
                 TextColumn::make('description')->label(__('business.fields.description'))->limit(60)->searchable(),
@@ -35,6 +51,6 @@ class WorkOrderLinesTable
                 TextColumn::make('updated_at')->label(__('business.fields.updated_at'))->dateTime('d/m/Y H:i')->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])->filters([
                 SelectFilter::make('type')->label(__('business.fields.type'))->options(['material' => __('business.options.material'), 'service' => __('business.options.service'), 'labor' => __('business.options.labor'), 'rental' => __('business.options.rental')]),
-            ])->recordActions([EditAction::make()])->defaultSort('id', 'desc');
+            ])->recordActions([self::breakdownAction(), EditAction::make()])->defaultSort('id', 'desc');
     }
 }

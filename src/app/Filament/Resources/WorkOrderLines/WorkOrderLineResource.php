@@ -5,6 +5,7 @@ namespace App\Filament\Resources\WorkOrderLines;
 use App\Filament\Resources\WorkOrderLines\Pages\CreateWorkOrderLine;
 use App\Filament\Resources\WorkOrderLines\Pages\EditWorkOrderLine;
 use App\Filament\Resources\WorkOrderLines\Pages\ListWorkOrderLines;
+use App\Filament\Resources\WorkOrderLines\Pages\ViewWorkOrderLine;
 use App\Filament\Resources\WorkOrderLines\Schemas\WorkOrderLineForm;
 use App\Filament\Resources\WorkOrderLines\Tables\WorkOrderLinesTable;
 use App\Models\WorkOrderLine;
@@ -63,6 +64,7 @@ class WorkOrderLineResource extends Resource
         return [
             'index' => ListWorkOrderLines::route('/'),
             'create' => CreateWorkOrderLine::route('/create'),
+            'view' => ViewWorkOrderLine::route('/{record}'),
             'edit' => EditWorkOrderLine::route('/{record}/edit'),
         ];
     }

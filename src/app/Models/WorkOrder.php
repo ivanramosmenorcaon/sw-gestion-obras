@@ -36,6 +36,35 @@ class WorkOrder extends Model
         });
     }
 
+    public function delete(): ?bool
+    {
+        if (! $this->exists) {
+            return parent::delete();
+        }
+
+        return $this->getConnection()->transaction(function (): ?bool {
+            $persisted = $this->newQuery()->whereKey($this->getKey())->lockForUpdate()->first();
+            if ($persisted === null) {
+                return false;
+            }
+            $this->setRawAttributes($persisted->getAttributes(), sync: true);
+
+            return parent::delete();
+        });
+    }
+
+    protected function performDeleteOnModel(): void
+    {
+        if ($this->status === 'draft') {
+            $this->workOrderLines()->delete();
+            $this->workOrderEmployeeAssignments()->delete();
+            $this->workOrderContractorAssignments()->delete();
+            $this->workOrderPhases()->delete();
+        }
+
+        parent::performDeleteOnModel();
+    }
+
     /** @return array<string, string> */
     protected function casts(): array
     {

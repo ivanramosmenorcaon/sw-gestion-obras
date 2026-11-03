@@ -29,6 +29,7 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
+            ->viteTheme('resources/css/filament/admin/theme.css')
             ->login()
             ->databaseTransactions()
             ->navigationGroups([
@@ -71,9 +72,9 @@ class AdminPanelProvider extends PanelProvider
                 Authenticate::class,
             ])
             ->plugins([
-            ResizedColumnPlugin::make()
-                ->preserveOnDB(), // optional — database persistence
-        ]);
+                ResizedColumnPlugin::make()
+                    ->preserveOnDB(), // optional — database persistence
+            ]);
 
     }
 }
