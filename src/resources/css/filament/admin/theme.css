@@ -2,3 +2,13 @@
 
 @source '../../../../app/Filament/**/*';
 @source '../../../../resources/views/filament/**/*';
+
+/* Tema "thin": interfaz compacta con menos padding y fuentes más pequeñas. */
+html.fi-thin {
+    font-size: 14px;
+    --spacing: 0.1875rem;
+}
+
+html.fi-thin .fi-ta-cell {
+    line-height: 1.25;
+}
