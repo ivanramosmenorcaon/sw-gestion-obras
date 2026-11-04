@@ -7,13 +7,16 @@ use App\Models\CompanySetting;
 use App\Models\Product;
 use App\Models\SalesInvoiceLine;
 use App\Support\BusinessRecordValidator;
+use App\Support\SalesPrice;
 use Asmit\ResizedColumn\HasResizableColumn;
+use Brick\Math\BigDecimal;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
@@ -58,7 +61,7 @@ class LinesRelationManager extends RelationManager
             TextInput::make('position')->label(__('billing.fields.position'))->integer()->minValue(1)->default(1)->required(),
             Select::make('product_id')->label(__('billing.fields.product_id'))->relationship('product', 'name', fn (Builder $query) => $query->where('is_active', true))->searchable()->preload()->live()
                 ->disabled(fn (?SalesInvoiceLine $record): bool => (bool) $record?->rectifies_line_id)
-                ->afterStateUpdated(function (?string $state, Set $set): void {
+                ->afterStateUpdated(function (?string $state, Set $set, Get $get): void {
                     $product = Product::find($state);
                     $customer = $this->getOwnerRecord()->customer;
                     $company = CompanySetting::where('scope', 'company')->first();
@@ -66,12 +69,24 @@ class LinesRelationManager extends RelationManager
                         $set('description', $product->name);
                         $set('unit_label', $product->baseUnit?->symbol);
                     }
+                    $set('unit_price', $product ? app(SalesPrice::class)->resolve($this->getOwnerRecord(), $product->id, filled($get('quantity')) ? (string) $get('quantity') : null) : null);
                     $set('tax_profile_id', $product?->sales_tax_profile_id ?? $customer->sales_tax_profile_id ?? $company?->sales_tax_profile_id);
                     $set('withholding_rate_id', $product?->sales_withholding_rate_id ?? $customer->sales_withholding_rate_id ?? $company?->sales_withholding_rate_id);
                 }),
             TextInput::make('description')->label(__('billing.fields.description'))->required()->maxLength(500)->columnSpanFull(),
             TextInput::make('unit_label')->label(__('billing.fields.unit_label'))->maxLength(30),
-            TextInput::make('quantity')->label(__('billing.fields.quantity'))->numeric()->required()->step('0.000001'),
+            TextInput::make('quantity')->label(__('billing.fields.quantity'))->numeric()->required()->step('0.000001')->live(onBlur: true)
+                ->afterStateUpdated(function (mixed $state, mixed $old, Get $get, Set $set, ?SalesInvoiceLine $record): void {
+                    if (! $get('product_id') || $record?->rectifies_line_id || $record?->work_order_line_id) {
+                        return;
+                    }
+                    $price = $get('unit_price');
+                    $previous = app(SalesPrice::class)->resolve($this->getOwnerRecord(), (int) $get('product_id'), filled($old) ? (string) $old : null);
+                    if (filled($price) && ($previous === null || ! is_numeric($price) || BigDecimal::of((string) $price)->compareTo($previous) !== 0)) {
+                        return;
+                    }
+                    $set('unit_price', app(SalesPrice::class)->resolve($this->getOwnerRecord(), (int) $get('product_id'), filled($state) ? (string) $state : null));
+                }),
             TextInput::make('unit_price')->label(__('billing.fields.unit_price'))->numeric()->minValue(0)->required()->step('0.000001')->disabled(fn (?SalesInvoiceLine $record): bool => (bool) $record?->rectifies_line_id),
             TextInput::make('discount_percentage')->label(__('billing.fields.discount_percentage'))->numeric()->minValue(0)->maxValue(100)->default(0)->required()->disabled(fn (?SalesInvoiceLine $record): bool => (bool) $record?->rectifies_line_id),
             Select::make('tax_profile_id')->label(__('billing.fields.tax_profile_id'))->relationship('taxProfile', 'name', fn (Builder $query) => $query->where('is_active', true))->searchable()->preload()->required()

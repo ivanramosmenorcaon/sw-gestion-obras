@@ -742,3 +742,44 @@ Las pruebas se ejecutan con SQLite `:memory:` y comprobación explícita de cone
 Pint se ha aplicado a los archivos PHP modificados. Se intentó `--dirty` conforme a AGENTS.md; al no existir repositorio Git, se pasó la lista explícita de archivos. No se han instalado dependencias ni ha sido necesario compilar assets frontend.
 
 Resultado final: **317 pruebas correctas y 3.189 aserciones** en la suite completa, incluidas **32 pruebas específicas de facturación**. La migración figura aplicada y las rutas de Filament, impresión y exportación XML están registradas. El comando de envío confirma que los envíos están desactivados.
+
+### Primera prueba con el certificado aportado — 4 de noviembre de 2026
+
+El usuario ha aportado `B57479677_.p12` en la raíz del proyecto, protegido por contraseña. Se ha comprobado su presencia, sin abrir su clave privada ni solicitar la contraseña por chat. El nombre del archivo no acredita por sí solo el titular, la vigencia ni que sea un certificado de representación válido.
+
+Diagnóstico de la configuración efectiva en esta revisión: falta la ficha de empresa; están sin configurar el productor, su NIF, la instalación y las rutas/contraseñas del certificado. Los envíos están desactivados. Existen dos series activas de pruebas del ejercicio 2026. La cola configurada es `database`.
+
+El conector actual utiliza PEM y clave privada PEM separados. Para este primer ensayo se conserva esa implementación: convertir localmente el P12, sin poner contraseñas como argumentos de comandos, sin exportar una clave sin cifrar y sin subir archivos a `public/`.
+
+Desde `/var/www/html`, con los permisos adecuados:
+
+```bash
+mkdir -p storage/app/private/verifactu
+chmod 700 storage/app/private/verifactu
+chmod 600 B57479677_.p12
+openssl pkcs12 -in B57479677_.p12 -clcerts -nokeys -out storage/app/private/verifactu/certificado.pem
+openssl pkcs12 -in B57479677_.p12 -nocerts -out storage/app/private/verifactu/clave.pem
+chmod 600 storage/app/private/verifactu/certificado.pem storage/app/private/verifactu/clave.pem
+chown -R www-data:www-data storage/app/private/verifactu
+openssl x509 -in storage/app/private/verifactu/certificado.pem -noout -subject -issuer -dates
+```
+
+OpenSSL solicita interactivamente la contraseña de importación del P12. Al exportar la clave solicita además una contraseña para cifrar la clave PEM: esta última es `VERIFACTU_PRIVATE_KEY_PASSWORD`. El certificado PEM público no necesita contraseña. Revisar titular/representación y caducidad antes del ensayo; no deducir el titular únicamente del nombre del archivo.
+
+Completar la ficha de empresa emisora y un cliente con identificación y domicilio fiscal completos. Completar también la identidad real del productor del software y un identificador estable de instalación en `.env`. El productor no se sustituye automáticamente por el titular del certificado. Usar las rutas absolutas a los dos PEM en `VERIFACTU_CERTIFICATE_PATH` y `VERIFACTU_PRIVATE_KEY_PATH`, y guardar la contraseña PEM solo en la configuración privada.
+
+Mantener inicialmente `VERIFACTU_SEND_ENABLED=false`, ejecutar `php artisan config:clear --no-interaction` y preparar una factura F1 con una serie de pruebas del ejercicio correcto; por ejemplo, una línea de 10 EUR y tratamiento IVA general 21 %, sin retención. Emitirla en pruebas crea el registro local y permite revisar el XML. Después, activar envíos de pruebas conscientemente y volver a limpiar la caché de configuración.
+
+`php artisan billing:send-pending --no-interaction` envía directamente el registro pendiente más antiguo; no necesita worker. No selecciona por sí solo la factura que se tenga abierta en pantalla. El scheduler, si está activo en el servidor, también podrá enviar pendientes al habilitar la variable. El botón de envío de una factura concreta sí utiliza la cola `database`; para procesarlo debe ejecutarse `php artisan queue:work` y reiniciarse el worker cuando cambie la configuración (`php artisan queue:restart --no-interaction`).
+
+Comprobar en la vista de factura el estado, CSV e incidencias. `accepted` confirma aceptación en el entorno de pruebas; `accepted_with_errors` requiere revisión y `rejected` no equivale a aceptación. La emisión de producción sigue bloqueada. No se han cambiado variables privadas, convertido certificados ni enviado registros durante esta revisión.
+
+### Carga del precio unitario en líneas de factura — 4 de noviembre de 2026
+
+Se corrige una omisión del formulario: al seleccionar un producto se proponían descripción, unidad e impuestos, pero no se consultaban los precios ya registrados. Ahora `SalesPrice` propone el precio de la presentación base a partir de la tarifa asignada al cliente, en la moneda de la factura y vigente en su fecha de operación. Se comprueba tanto la vigencia y actividad de la tarifa como las fechas del precio, y se elige el tramo de mayor cantidad mínima que cumpla la cantidad de la línea. Cuando aún no se ha indicado cantidad, se consulta para una unidad.
+
+Si el cliente no tiene tarifa asignada, se utiliza el precio solo cuando hay una única tarifa aplicable al producto; si hay varias, no se elige una arbitrariamente. Si la tarifa asignada no tiene precio aplicable, se deja el campo vacío para su introducción manual. No se utilizan precios de compra ni precios de paquetes como si fueran precios de la unidad base.
+
+Al cambiar la cantidad se actualiza el precio propuesto si conserva el valor automático anterior, respetando los precios modificados manualmente. No se aplica esta actualización por cantidad a rectificativas ni a líneas procedentes de órdenes, cuyos precios originales/pactados se conservan. Cambiar de producto limpia el precio anterior cuando el nuevo producto no tiene precio aplicable. Abrir o guardar una factura no recalcula sus precios automáticamente.
+
+Se añaden pruebas de selección y guardado desde el relation manager, tramos por cantidad, precios manuales, vigencias, monedas, presentación, tarifas ambiguas y cambio de producto. Sin migraciones ni cambios en los datos de negocio.
