@@ -12,6 +12,7 @@ use App\Filament\Resources\PurchaseDeliveryNotes\Schemas\PurchaseDeliveryNoteInf
 use App\Filament\Resources\PurchaseDeliveryNotes\Tables\PurchaseDeliveryNotesTable;
 use App\Models\PurchaseDeliveryNote;
 use BackedEnum;
+use Daljo25\FilamentTablerIcons\Enums\TablerIcon;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -22,7 +23,7 @@ class PurchaseDeliveryNoteResource extends Resource
 {
     protected static ?string $model = PurchaseDeliveryNote::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = TablerIcon::FileInvoiceFilled;
 
     protected static ?string $recordTitleAttribute = 'reference';
 

@@ -11,6 +11,7 @@ use App\Filament\Resources\LaborCostRates\Schemas\LaborCostRateInfolist;
 use App\Filament\Resources\LaborCostRates\Tables\LaborCostRatesTable;
 use App\Models\LaborCostRate;
 use BackedEnum;
+use Daljo25\FilamentTablerIcons\Enums\TablerIcon;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -21,7 +22,7 @@ class LaborCostRateResource extends Resource
 {
     protected static ?string $model = LaborCostRate::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = TablerIcon::FileEuro;
 
     protected static ?string $recordTitleAttribute = 'id';
 

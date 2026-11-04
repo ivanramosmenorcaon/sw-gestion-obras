@@ -8,6 +8,7 @@
     "require": {
         "php": "^8.3",
         "asmit/resized-column": "^4.0",
+        "daljo25/filament-tabler-icons": "^3.50",
         "filament/filament": "^5.0",
         "laravel/framework": "^13.17",
         "laravel/tinker": "^3.0",

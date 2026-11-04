@@ -13,6 +13,7 @@ use App\Support\BusinessRecordValidator;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
+use Daljo25\FilamentTablerIcons\Enums\TablerIcon;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
@@ -21,7 +22,7 @@ class WorkOrderResource extends Resource
 {
     protected static ?string $model = WorkOrder::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBuildingOffice2;
+    protected static string|BackedEnum|null $navigationIcon = TablerIcon::ListCheck;
 
     protected static ?string $recordTitleAttribute = 'name';
 

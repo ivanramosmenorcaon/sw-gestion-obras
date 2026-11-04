@@ -12,6 +12,7 @@ use App\Filament\Resources\MaterialConsumptions\Tables\MaterialConsumptionsTable
 use App\Filament\Resources\WorkOrderPhases\WorkOrderPhaseResource;
 use App\Models\MaterialConsumption;
 use BackedEnum;
+use Daljo25\FilamentTablerIcons\Enums\TablerIcon;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -22,7 +23,7 @@ class MaterialConsumptionResource extends Resource
 {
     protected static ?string $model = MaterialConsumption::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = TablerIcon::BasketMinus;
 
     protected static ?string $recordTitleAttribute = 'id';
 
@@ -38,7 +39,7 @@ class MaterialConsumptionResource extends Resource
 
     public static function getNavigationGroup(): string
     {
-        return __('business.groups.works');
+        return __('costing.group');
     }
 
     public static function canEdit(Model $record): bool
