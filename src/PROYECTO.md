@@ -783,3 +783,38 @@ Si el cliente no tiene tarifa asignada, se utiliza el precio solo cuando hay una
 Al cambiar la cantidad se actualiza el precio propuesto si conserva el valor automático anterior, respetando los precios modificados manualmente. No se aplica esta actualización por cantidad a rectificativas ni a líneas procedentes de órdenes, cuyos precios originales/pactados se conservan. Cambiar de producto limpia el precio anterior cuando el nuevo producto no tiene precio aplicable. Abrir o guardar una factura no recalcula sus precios automáticamente.
 
 Se añaden pruebas de selección y guardado desde el relation manager, tramos por cantidad, precios manuales, vigencias, monedas, presentación, tarifas ambiguas y cambio de producto. Sin migraciones ni cambios en los datos de negocio.
+
+### Selección explícita del destino VERI*FACTU — 4 de noviembre de 2026
+
+Se incorpora `VERIFACTU_PRODUCTION` en `.env` y `.env.example`, inicialmente vacío. Solo el valor exacto `production` selecciona el destino real. Ausencia, cadena vacía, `true`, `1`, mayúsculas u otros valores mantienen el destino de pruebas. La lectura se hace en `config/billing.php`, compatible con la caché de configuración de Laravel; el resto del código utiliza `billing.environment`.
+
+```dotenv
+# Pruebas: valor vacío o variable ausente
+VERIFACTU_PRODUCTION=
+
+# Producción: activación explícita del destino
+# VERIFACTU_PRODUCTION=production
+```
+
+`VERIFACTU_SEND_ENABLED` sigue controlando si se permiten envíos. El nuevo flag solo elige su entorno:
+
+- Pruebas: `https://prewww1.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP`.
+- Producción: `https://www1.agenciatributaria.gob.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP`.
+
+El entorno conservado en cada factura debe coincidir con el configurado antes de enviarla. Cambiar el flag no convierte documentos, XML, series ni cadenas de pruebas en documentos de producción. Un envío directo incompatible se rechaza sin incrementar intentos; el comando y el scheduler solo seleccionan pendientes del entorno configurado. La serialización, recuperación de envíos y tiempos de espera también quedan separados por entorno. El botón de envío muestra el destino correspondiente y solo aparece en facturas compatibles con el entorno activo.
+
+Esta modificación prepara la selección del destino del transporte. **Permanece el bloqueo independiente de emisión de facturas de producción** mientras no se completen los trabajos de subsanación/anulación, declaración responsable y validación integral descritos en esta sección. El flag no declara que el módulo esté listo para producción ni elimina ese bloqueo.
+
+Después de cambiar el flag, ejecutar `php artisan config:clear --no-interaction` (o reconstruir la caché según el despliegue) y `php artisan queue:restart --no-interaction` si existen workers persistentes. En esta entrega se deja el flag vacío y no se remiten registros a ningún entorno. No hay migraciones ni conversiones de datos.
+
+Las pruebas comprueban ocho valores/ausencia del flag, selección de los dos endpoints con HTTP simulado y bloqueo de documentos de pruebas al seleccionar producción, tanto en envío directo como en el comando de pendientes.
+
+### Domicilio fiscal visible desde la factura — 4 de noviembre de 2026
+
+Elegir un cliente vincula su ficha; los domicilios se gestionan en su relación Direcciones, no como campos de la cabecera de factura. Para evitar un bloqueo de emisión sin acceso visible a la información que falta, el formulario de factura ahora muestra el domicilio fiscal del cliente seleccionado o un aviso concreto: ninguna/varias direcciones fiscales activas, o campos obligatorios incompletos.
+
+Se añade el botón «Gestionar domicilio fiscal del cliente», que abre la ficha del contacto en otra pestaña para gestionar Direcciones sin perder los datos de la factura. Sigue disponible cuando el selector de cliente está bloqueado por existir líneas. Tanto la información del domicilio como el acceso a edición respetan los permisos del resource de contactos. El domicilio debe tener dirección, localidad, código postal y país; exactamente una dirección debe estar marcada como fiscal y activa. No se duplican domicilios en la cabecera ni se crean direcciones automáticamente al seleccionar un cliente.
+
+También se corrige un mensaje ambiguo de emisión: un domicilio incompleto de la empresa emisora se identifica ahora como un problema de la configuración de empresa, en lugar de pedir que se modifique el cliente. Las instantáneas de las facturas emitidas conservan su comportamiento anterior.
+
+Se añaden pruebas de formulario para ausencia, duplicidad, campos incompletos, domicilio completo y permisos, junto con una comprobación del error específico del emisor. Sin migraciones ni modificaciones de los domicilios existentes.

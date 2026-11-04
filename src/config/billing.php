@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'environment' => env('VERIFACTU_PRODUCTION') === 'production' ? 'production' : 'test',
     'producer_name' => env('BILLING_PRODUCER_NAME'),
     'producer_nif' => env('BILLING_PRODUCER_NIF'),
     'system_name' => env('BILLING_SYSTEM_NAME', 'Gestion de obras'),

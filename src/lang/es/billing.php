@@ -1,9 +1,14 @@
 <?php
 
 return [
+    'customer_fiscal_address' => 'Domicilio fiscal del cliente',
+    'customer_address_help' => 'El domicilio se guarda en la ficha del cliente, en Direcciones. Debe existir exactamente una dirección con Fiscal y Activa marcados, y domicilio, localidad, código postal y país completos.',
+    'manage_customer_address' => 'Gestionar domicilio fiscal del cliente',
+    'customer_address_count' => 'Este cliente tiene :count domicilios fiscales activos. Debe tener exactamente uno. Revisa Direcciones en su ficha.',
+    'customer_address_incomplete' => 'El domicilio fiscal está incompleto. Faltan: :fields. Complétalo en Direcciones de la ficha del cliente.',
     'group' => 'Facturación', 'invoice' => 'factura de venta', 'invoices' => 'Facturas de venta', 'series' => 'Series de facturación', 'series_singular' => 'serie de facturación',
     'download_xml' => 'Descargar registro XML', 'line' => 'línea de factura', 'lines' => 'Líneas de factura', 'issue' => 'Emitir en pruebas', 'cancel' => 'Cancelar borrador', 'credit' => 'Preparar rectificativa', 'print' => 'Imprimir / guardar PDF',
-    'send' => 'Enviar a AEAT (pruebas)', 'from_order' => 'Facturar fases', 'test_warning' => 'PRUEBAS — SIN VALIDEZ FISCAL. No entregar como factura al cliente.',
+    'send_production' => 'Enviar a AEAT (producción)', 'send' => 'Enviar a AEAT (pruebas)', 'from_order' => 'Facturar fases', 'test_warning' => 'PRUEBAS — SIN VALIDEZ FISCAL. No entregar como factura al cliente.',
     'issue_failed' => 'No se ha podido emitir la factura', 'issued' => 'Factura de pruebas emitida', 'prepared' => 'Borrador preparado', 'order_description' => 'Trabajos de la orden :reference',
     'summary' => 'Resumen económico', 'registry' => 'Registro VERI*FACTU', 'frozen' => 'Datos fiscales conservados al emitir', 'add_line' => 'Añadir línea',
     'fields' => [
@@ -36,10 +41,12 @@ return [
         'overbilled' => 'La cantidad supera la cantidad pendiente de facturar o rectificar, incluyendo otros borradores.', 'credit_fields' => 'La rectificación conserva precios e impuestos originales; modifica únicamente las cantidades negativas.',
         'no_default' => 'Configura el tratamiento fiscal de venta en los productos, el cliente o la empresa antes de importar fases.',
         'nothing_pending' => 'No quedan cantidades pendientes en la selección.', 'series' => 'La serie debe estar activa y corresponder al ejercicio, entorno y tipo del documento.',
+        'environment_mismatch' => 'El entorno de la factura no coincide con el configurado para los envíos VERI*FACTU. No se ha enviado el registro.',
         'production_blocked' => 'La emisión real está bloqueada: faltan los flujos de subsanación/anulación, la declaración responsable y las pruebas de integración con el certificado de la empresa.',
         'dates' => 'La fecha de expedición no puede ser futura ni anterior a la operación en este flujo.', 'chronology' => 'La fecha debe respetar el orden cronológico de la serie.',
         'empty' => 'Añade al menos una línea antes de emitir.', 'issuer' => 'Completa la identificación de la empresa emisora española.',
-        'address' => 'Completa el domicilio fiscal, localidad, código postal y país. El cliente debe tener exactamente un domicilio fiscal activo.',
+        'issuer_address' => 'Completa el domicilio fiscal, localidad, código postal y país de tu empresa emisora en la configuración de empresa.',
+        'address' => 'En la ficha del cliente, abre Direcciones y completa domicilio, localidad, código postal y país. Debe existir exactamente una dirección con Fiscal y Activa marcados.',
         'amount_limit' => 'El importe supera el límite de los esquemas de VERI*FACTU.', 'issuer_changed' => 'No se puede cambiar el obligado tributario de una cadena ya iniciada.',
         'credit_origin' => 'Solo se pueden rectificar facturas ordinarias emitidas desde este flujo.', 'system_changed' => 'No se puede cambiar el productor, sistema o instalación de una cadena iniciada sin un procedimiento de transición.',
         'clock' => 'El reloj del sistema es anterior al último registro. Revisa la sincronización horaria.',

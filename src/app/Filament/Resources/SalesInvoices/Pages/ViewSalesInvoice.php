@@ -32,8 +32,8 @@ class ViewSalesInvoice extends ViewRecord
                     $credit = app(SalesBilling::class)->credit($this->getRecord(), (int) $data['rectifying_series_id'], $data['type'], $data['reason']);
                     $this->redirect(SalesInvoiceResource::getUrl('edit', ['record' => $credit]));
                 }),
-            Action::make('sendTest')->label(__('billing.send'))->requiresConfirmation()
-                ->visible(fn (): bool => $this->getRecord()->status === 'issued' && SalesInvoiceResource::canCreate() && config('billing.send_enabled') && in_array($this->getRecord()->billingRecord?->submission?->status, ['pending', 'transport_error'], true))
+            Action::make('sendTest')->label(fn (): string => $this->getRecord()->environment === 'production' ? __('billing.send_production') : __('billing.send'))->requiresConfirmation()
+                ->visible(fn (): bool => $this->getRecord()->status === 'issued' && $this->getRecord()->environment === config('billing.environment', 'test') && SalesInvoiceResource::canCreate() && config('billing.send_enabled') && in_array($this->getRecord()->billingRecord?->submission?->status, ['pending', 'transport_error'], true))
                 ->action(function (): void {
                     abort_unless(SalesInvoiceResource::canCreate() && SalesInvoiceResource::canView($this->getRecord()), 403);
                     SubmitBillingRecord::dispatch($this->getRecord()->billingRecord->submission->id);

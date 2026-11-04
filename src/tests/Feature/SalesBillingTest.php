@@ -32,6 +32,7 @@ use Database\Seeders\BillingSeeder;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
@@ -46,7 +47,7 @@ class SalesBillingTest extends TestCase
     {
         parent::setUp();
         $this->travelTo(Carbon::parse('2026-11-03 12:00:00', 'Europe/Madrid'));
-        config(['billing.producer_name' => 'Productor de pruebas', 'billing.producer_nif' => 'B12345674', 'billing.installation' => 'test-installation']);
+        config(['billing.environment' => 'test', 'billing.producer_name' => 'Productor de pruebas', 'billing.producer_nif' => 'B12345674', 'billing.installation' => 'test-installation']);
         Filament::setCurrentPanel(Filament::getPanel('admin'));
         Filament::bootCurrentPanel();
         Http::preventStrayRequests();
@@ -330,6 +331,7 @@ class SalesBillingTest extends TestCase
             $this->assertStringContainsString($invoice->billingRecord->hash, $sent[1][0]->body());
             $client->send($submission);
             Http::assertSentCount(2);
+            Http::assertSent(fn ($request): bool => $request->url() === 'https://prewww1.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP');
         } finally {
             unlink($certificate);
         }
@@ -513,6 +515,86 @@ class SalesBillingTest extends TestCase
         Livewire::test(EditWorkOrder::class, ['record' => $order->id])->mountAction('billPhases')->assertActionHidden(TestAction::make('createOption')->schemaComponent('phase_ids'));
         $this->assertDatabaseCount('work_order_phases', 0);
     }
+
+    public function test_production_transport_uses_the_official_production_endpoint(): void
+    {
+        $invoice = app(SalesBilling::class)->issue($this->invoice());
+        DB::table('sales_invoices')->where('id', $invoice->id)->update(['environment' => 'production']);
+        DB::table('billing_chains')->update(['environment' => 'production']);
+        $invoice->refresh();
+        $certificate = tempnam(sys_get_temp_dir(), 'billing-cert-');
+        config(['billing.environment' => 'production', 'billing.send_enabled' => true, 'billing.certificate_path' => $certificate, 'billing.private_key_path' => $certificate]);
+        try {
+            Http::fake(['https://www1.agenciatributaria.gob.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP' => Http::response($this->responseXml($invoice))]);
+            app(VerifactuClient::class)->send($invoice->billingRecord->submission);
+            Http::assertSentCount(1);
+            Http::assertSent(fn ($request): bool => $request->url() === 'https://www1.agenciatributaria.gob.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP');
+            $this->assertSame('accepted', $invoice->billingRecord->submission->fresh()->status);
+        } finally {
+            unlink($certificate);
+        }
+    }
+
+    public function test_switching_to_production_does_not_send_test_invoices_directly_or_through_outbox(): void
+    {
+        $invoice = app(SalesBilling::class)->issue($this->invoice());
+        $certificate = tempnam(sys_get_temp_dir(), 'billing-cert-');
+        config(['billing.environment' => 'production', 'billing.send_enabled' => true, 'billing.certificate_path' => $certificate, 'billing.private_key_path' => $certificate]);
+        try {
+            try {
+                app(VerifactuClient::class)->send($invoice->billingRecord->submission);
+                $this->fail('Se ha permitido mezclar entornos.');
+            } catch (ValidationException $exception) {
+                $this->assertSame([__('billing.messages.environment_mismatch')], $exception->errors()['status']);
+            }
+            $this->artisan('billing:send-pending')->assertSuccessful();
+            $this->assertSame('pending', $invoice->billingRecord->submission->fresh()->status);
+            $this->assertSame(0, $invoice->billingRecord->submission->fresh()->attempts);
+            Http::assertNothingSent();
+        } finally {
+            unlink($certificate);
+        }
+    }
+
+    public function test_invoice_form_explains_missing_or_incomplete_customer_address_and_shows_complete_address(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $invoice = $this->invoice();
+        $address = $invoice->customer->partyAddresses()->first();
+        $address->update(['is_fiscal' => false]);
+        Livewire::test(CreateSalesInvoice::class)->fillForm(['customer_id' => $invoice->customer_id])
+            ->assertSee(__('billing.customer_address_count', ['count' => 0]))->assertSee(__('billing.manage_customer_address'));
+        $address->update(['is_fiscal' => true, 'postal_code' => null]);
+        Livewire::test(EditSalesInvoice::class, ['record' => $invoice->id])->assertSee(__('billing.customer_address_incomplete', ['fields' => __('business.fields.postal_code')]));
+        $address->update(['postal_code' => '07730', 'address_line_1' => 'Calle de prueba fiscal 123']);
+        Livewire::test(EditSalesInvoice::class, ['record' => $invoice->id])->assertSee('Calle de prueba fiscal 123')->assertSee('07730');
+        $duplicate = PartyAddress::factory()->create(['party_id' => $invoice->customer_id, 'label' => 'Dirección alternativa', 'is_fiscal' => false]);
+        DB::table('party_addresses')->where('id', $duplicate->id)->update(['is_fiscal' => true]);
+        Livewire::test(EditSalesInvoice::class, ['record' => $invoice->id])->assertSee(__('billing.customer_address_count', ['count' => 2]));
+    }
+
+    public function test_missing_issuer_address_is_reported_as_company_configuration_instead_of_customer_address(): void
+    {
+        $invoice = $this->invoice();
+        CompanySetting::first()->update(['postal_code' => null]);
+        try {
+            app(SalesBilling::class)->issue($invoice);
+            $this->fail('No se debe emitir sin domicilio completo del emisor.');
+        } catch (ValidationException $exception) {
+            $this->assertSame([__('billing.messages.issuer_address')], $exception->errors()['issuer_snapshot']);
+            $this->assertArrayNotHasKey('customer_id', $exception->errors());
+        }
+        $this->assertSame('draft', $invoice->fresh()->status);
+    }
+
+    public function test_customer_address_preview_and_edit_link_respect_customer_resource_permissions(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $invoice = $this->invoice();
+        $invoice->customer->partyAddresses()->first()->update(['address_line_1' => 'DOMICILIO RESTRINGIDO 123']);
+        Gate::policy(Party::class, DenyFiscalAddressAccess::class);
+        Livewire::test(CreateSalesInvoice::class)->fillForm(['customer_id' => $invoice->customer_id])->assertDontSee('DOMICILIO RESTRINGIDO 123')->assertDontSee(__('billing.manage_customer_address'));
+    }
 }
 
 class DenyBillingUpdates
@@ -536,6 +618,19 @@ class DenyBillingUpdates
 class DenyBillingPhaseCreation
 {
     public function create(User $user): bool
+    {
+        return false;
+    }
+}
+
+class DenyFiscalAddressAccess
+{
+    public function view(User $user, Party $party): bool
+    {
+        return false;
+    }
+
+    public function update(User $user, Party $party): bool
     {
         return false;
     }

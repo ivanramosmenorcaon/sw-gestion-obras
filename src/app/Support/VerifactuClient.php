@@ -28,18 +28,19 @@ final class VerifactuClient
                 throw ValidationException::withMessages(['status' => __('billing.messages.certificate')]);
             }
         }
-        $claimed = DB::transaction(function () use ($submission): ?BillingSubmission {
-            DB::table('billing_chains')->where('environment', 'test')->lockForUpdate()->first();
-            BillingSubmission::where('status', 'sending')->where('claimed_at', '<', now()->subMinutes(5))->update(['status' => 'transport_error', 'claimed_at' => null]);
-            if (BillingSubmission::where('status', 'sending')->exists() || BillingSubmission::where('retry_after', '>', now())->exists()) {
+        $environment = config('billing.environment', 'test');
+        $claimed = DB::transaction(function () use ($submission, $environment): ?BillingSubmission {
+            DB::table('billing_chains')->where('environment', $environment)->lockForUpdate()->first();
+            BillingSubmission::inEnvironment($environment)->where('status', 'sending')->where('claimed_at', '<', now()->subMinutes(5))->update(['status' => 'transport_error', 'claimed_at' => null]);
+            if (BillingSubmission::inEnvironment($environment)->where('status', 'sending')->exists() || BillingSubmission::inEnvironment($environment)->where('retry_after', '>', now())->exists()) {
                 return null;
             }
             $submission = BillingSubmission::whereKey($submission->id)->lockForUpdate()->firstOrFail();
             if (! in_array($submission->status, ['pending', 'transport_error'], true) || ($submission->retry_after && $submission->retry_after->isFuture())) {
                 return null;
             }
-            if ($submission->record->invoice->environment !== 'test') {
-                throw ValidationException::withMessages(['status' => __('billing.messages.production_blocked')]);
+            if ($submission->record->invoice->environment !== $environment) {
+                throw ValidationException::withMessages(['status' => __('billing.messages.environment_mismatch')]);
             }
             $submission->update(['status' => 'sending', 'claimed_at' => now(), 'attempts' => $submission->attempts + 1]);
 
@@ -53,7 +54,9 @@ final class VerifactuClient
             $body = $this->envelope($claimed->record->xml);
             $response = Http::connectTimeout(10)->timeout(45)->withOptions(['cert' => [$certificate, config('billing.certificate_password') ?? ''], 'ssl_key' => [$key, config('billing.private_key_password') ?? '']])
                 ->withHeaders(['SOAPAction' => ''])->withBody($body, 'text/xml; charset=UTF-8')
-                ->post('https://prewww1.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP');
+                ->post($environment === 'production'
+                    ? 'https://www1.agenciatributaria.gob.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP'
+                    : 'https://prewww1.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP');
             $responseBody = $response->body();
             $response->throw();
             $values = $this->parse($responseBody, $claimed);

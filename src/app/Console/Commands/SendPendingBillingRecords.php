@@ -11,7 +11,7 @@ class SendPendingBillingRecords extends Command
 {
     protected $signature = 'billing:send-pending';
 
-    protected $description = 'Remite el siguiente registro VERI*FACTU pendiente al entorno de pruebas con certificado propio';
+    protected $description = 'Remite el siguiente registro VERI*FACTU pendiente al entorno configurado con certificado propio';
 
     public function handle(VerifactuClient $client): int
     {
@@ -20,16 +20,17 @@ class SendPendingBillingRecords extends Command
 
             return self::SUCCESS;
         }
-        $lock = Cache::lock('billing:send-pending', 120);
+        $environment = config('billing.environment', 'test');
+        $lock = Cache::lock('billing:send-pending:'.$environment, 120);
         if (! $lock->get()) {
             return self::SUCCESS;
         }
         try {
-            if (BillingSubmission::where('retry_after', '>', now())->exists()) {
+            if (BillingSubmission::inEnvironment($environment)->where('retry_after', '>', now())->exists()) {
                 return self::SUCCESS;
             }
-            BillingSubmission::where('status', 'sending')->where('claimed_at', '<', now()->subMinutes(5))->update(['status' => 'transport_error', 'claimed_at' => null]);
-            $submission = BillingSubmission::whereIn('status', ['pending', 'transport_error'])->orderBy('id')->first();
+            BillingSubmission::inEnvironment($environment)->where('status', 'sending')->where('claimed_at', '<', now()->subMinutes(5))->update(['status' => 'transport_error', 'claimed_at' => null]);
+            $submission = BillingSubmission::inEnvironment($environment)->whereIn('status', ['pending', 'transport_error'])->orderBy('id')->first();
             if ($submission) {
                 $client->send($submission);
                 $this->components->info(__('billing.options.'.$submission->fresh()->status));

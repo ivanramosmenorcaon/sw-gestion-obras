@@ -203,7 +203,8 @@ final class SalesBilling
             foreach (array_filter([$company, $originalRecipient ? null : $address->first()]) as $fiscalAddress) {
                 foreach (['address_line_1', 'city', 'postal_code', 'country_code'] as $field) {
                     if (blank($fiscalAddress->$field)) {
-                        throw ValidationException::withMessages(['customer_id' => __('billing.messages.address')]);
+                        $isIssuer = $fiscalAddress instanceof CompanySetting;
+                        throw ValidationException::withMessages([$isIssuer ? 'issuer_snapshot' : 'customer_id' => __($isIssuer ? 'billing.messages.issuer_address' : 'billing.messages.address')]);
                     }
                 }
             }
