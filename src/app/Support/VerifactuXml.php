@@ -58,7 +58,7 @@ final class VerifactuXml
             $this->append($alta, ['TipoRectificativa' => 'I', 'FacturasRectificadas' => ['IDFacturaRectificada' => $this->identity($invoice->rectifiesInvoice)]]);
         }
         $this->append($alta, ['FechaOperacion' => $invoice->operation_date->format('d-m-Y'), 'DescripcionOperacion' => $invoice->description,
-            'Destinatarios' => ['IDDestinatario' => $invoice->recipient_snapshot['identity']]]);
+            'Destinatarios' => ['IDDestinatario' => $this->recipientIdentity($invoice)]]);
         $breakdown = $doc->createElementNS(self::INFORMATION_NS, 'sf:Desglose');
         $alta->appendChild($breakdown);
         foreach ($invoice->tax_summary as $group) {
@@ -84,6 +84,20 @@ final class VerifactuXml
         $this->validate($xml);
 
         return $xml;
+    }
+
+    /** @return array{NombreRazon: string, NIF?: string, IDOtro?: array{CodigoPais?: string, IDType: string, ID: string}} */
+    private function recipientIdentity(SalesInvoice $invoice): array
+    {
+        $identity = $invoice->recipient_snapshot['identity'];
+        $result = ['NombreRazon' => $identity['NombreRazon']];
+        if (isset($identity['NIF'])) {
+            return $result + ['NIF' => $identity['NIF']];
+        }
+        $other = $identity['IDOtro'];
+        $ordered = isset($other['CodigoPais']) ? ['CodigoPais' => $other['CodigoPais']] : [];
+
+        return $result + ['IDOtro' => $ordered + ['IDType' => $other['IDType'], 'ID' => $other['ID']]];
     }
 
     /** @return array<string, string> */

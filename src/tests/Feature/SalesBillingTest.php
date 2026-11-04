@@ -37,6 +37,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class SalesBillingTest extends TestCase
@@ -594,6 +595,40 @@ class SalesBillingTest extends TestCase
         $invoice->customer->partyAddresses()->first()->update(['address_line_1' => 'DOMICILIO RESTRINGIDO 123']);
         Gate::policy(Party::class, DenyFiscalAddressAccess::class);
         Livewire::test(CreateSalesInvoice::class)->fillForm(['customer_id' => $invoice->customer_id])->assertDontSee('DOMICILIO RESTRINGIDO 123')->assertDontSee(__('billing.manage_customer_address'));
+    }
+
+    #[DataProvider('persistedRecipientTypes')]
+    public function test_credit_xml_preserves_schema_order_after_database_json_key_reordering(string $identityType, string $number): void
+    {
+        $draft = $this->invoice();
+        $draft->customer->update(['tax_identification_type' => $identityType, 'tax_identification_number' => $number]);
+        $original = app(SalesBilling::class)->issue($draft);
+        $snapshot = $original->recipient_snapshot;
+        $identity = $snapshot['identity'];
+        if (isset($identity['NIF'])) {
+            $snapshot['identity'] = ['NIF' => $identity['NIF'], 'NombreRazon' => $identity['NombreRazon']];
+        } else {
+            $other = $identity['IDOtro'];
+            $snapshot['identity'] = ['IDOtro' => ['ID' => $other['ID'], 'IDType' => $other['IDType'], 'CodigoPais' => $other['CodigoPais']], 'NombreRazon' => $identity['NombreRazon']];
+        }
+        DB::table('sales_invoices')->where('id', $original->id)->update(['recipient_snapshot' => json_encode($snapshot, JSON_THROW_ON_ERROR)]);
+        $original->refresh();
+        $credit = app(SalesBilling::class)->credit($original, InvoiceSeries::factory()->rectifying()->create()->id, 'R4', 'Rectificación tras recuperar la factura de la base de datos');
+        $issued = app(SalesBilling::class)->issue($credit);
+        $doc = new \DOMDocument;
+        $doc->loadXML($issued->billingRecord->xml);
+        $path = new \DOMXPath($doc);
+        $path->registerNamespace('sf', VerifactuXml::INFORMATION_NS);
+        $recipient = $path->query('//sf:IDDestinatario')->item(0);
+        $this->assertSame('NombreRazon', $recipient->firstChild->localName);
+        $this->assertSame($identity['NombreRazon'], $recipient->firstChild->textContent);
+        $this->assertSame($number, $path->evaluate('string(//sf:IDDestinatario/sf:NIF | //sf:IDDestinatario/sf:IDOtro/sf:ID)'));
+        $this->assertSame($original->recipient_snapshot, $original->fresh()->recipient_snapshot);
+    }
+
+    public static function persistedRecipientTypes(): array
+    {
+        return ['NIF' => ['nif', '12345678Z'], 'IDOtro' => ['03', 'PASAPORTE123']];
     }
 }
 

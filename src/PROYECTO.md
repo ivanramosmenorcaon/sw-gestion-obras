@@ -818,3 +818,11 @@ Se añade el botón «Gestionar domicilio fiscal del cliente», que abre la fich
 También se corrige un mensaje ambiguo de emisión: un domicilio incompleto de la empresa emisora se identifica ahora como un problema de la configuración de empresa, en lugar de pedir que se modifique el cliente. Las instantáneas de las facturas emitidas conservan su comportamiento anterior.
 
 Se añaden pruebas de formulario para ausencia, duplicidad, campos incompletos, domicilio completo y permisos, junto con una comprobación del error específico del emisor. Sin migraciones ni modificaciones de los domicilios existentes.
+
+### Orden de elementos XML en rectificativas — 4 de noviembre de 2026
+
+Se corrige la emisión de rectificativas tras recuperar de MySQL la identidad histórica del destinatario. Las columnas JSON de MySQL pueden devolver las claves en un orden diferente al de inserción; el generador copiaba directamente ese orden al XML. Esto producía `NIF` antes de `NombreRazon`, incumpliendo la secuencia del XSD de AEAT. En SQLite las pruebas iniciales conservaban el orden y no detectaban esta diferencia de almacenamiento.
+
+El generador reconstruye ahora explícitamente la identidad del destinatario en el orden del esquema: `NombreRazon`, seguido de `NIF` o `IDOtro`; dentro de `IDOtro`, `CodigoPais` cuando exista, `IDType` e `ID`. Utiliza exclusivamente los valores de la instantánea histórica, sin consultar de nuevo la identidad actual del cliente. La corrección no modifica facturas emitidas, XML previamente guardados, huellas ni datos maestros; se aplica al generar nuevos registros.
+
+Se añaden dos regresiones que simulan el reordenamiento de claves JSON tras la persistencia, con NIF y con IDOtro, y emiten una rectificativa validada contra el XSD oficial. Ambas reproducían el fallo antes de la corrección y pasan después. No se ha emitido ni enviado una rectificativa real durante la reparación.
