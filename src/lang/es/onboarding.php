@@ -1,0 +1,153 @@
+<?php
+
+return [
+    'title' => 'Guía de uso: de la primera obra al cierre',
+    'intro' => 'Sigue este recorrido para preparar una obra, presupuestarla, registrar su ejecución y facturarla. Abre cada paso para ver el menú y las opciones que necesitas.',
+    'flow' => ['Preparar', 'Presupuestar', 'Ejecutar', 'Facturar', 'Cerrar'],
+    'open_phase' => 'Abrir fase', 'quick_links' => 'Accesos rápidos', 'open' => 'Abrir :label', 'steps_label' => 'Pasos para gestionar una obra', 'tip' => 'A tener en cuenta',
+    'expand' => 'Desplegar todos', 'collapse' => 'Plegar todos',
+    'footer' => 'En los selectores con el botón + puedes crear la ficha relacionada y continuar. Guarda primero la cabecera para acceder a sus pestañas de relaciones; algunas pestañas solo aparecen al editar el registro.',
+    'steps' => [
+        [
+            'title' => 'Prepara la empresa, los contactos y los productos',
+            'path' => 'Configuración → Empresa · Contactos → Clientes, proveedores y contratistas · Catálogo → Productos y servicios',
+            'instructions' => [
+                'En Empresa completa razón social, NIF y domicilio: dirección, municipio, código postal y país. Revisa la moneda y el incremento sobre compra; el valor inicial es 15 % (coste 100 € → venta propuesta 115 € sin impuestos).',
+                'Crea el cliente en Contactos, guarda su ficha y añade el rol Cliente en Roles. Para proveedores y contratistas utiliza los roles Proveedor y Subcontratista.',
+                'En la ficha del cliente abre Direcciones y guarda exactamente un domicilio con Dirección fiscal y Activo marcados. Completa también municipio, código postal y país.',
+                'En Productos y servicios configura referencia, descripción, tipo y unidad base. Para entradas de material activa Controlar stock; usa Presentaciones para cajas, sacos u otros formatos de compra.',
+                'Revisa la Configuración fiscal predeterminada del producto, cliente y empresa. Los códigos y porcentajes se administran en Fiscalidad → Perfiles fiscales y Tipos impositivos y retenciones.',
+            ],
+            'tip' => 'El domicilio se guarda en Direcciones del cliente, no al seleccionarlo en la factura. El porcentaje sobre compra propone precios; revisa los importes acordados antes de presupuestar o facturar.',
+            'links' => ['company', 'contacts', 'products'],
+        ],
+        [
+            'title' => 'Abre el proyecto de la obra',
+            'path' => 'Obras → Proyectos → Crear proyecto',
+            'instructions' => [
+                'Selecciona el cliente y completa la referencia, nombre de la obra y dirección donde se realizarán los trabajos.',
+                'Añade responsable, fechas previstas y observaciones. Empieza con el estado Borrador y guarda el proyecto.',
+                'Abre su edición para acceder a Capítulos y Órdenes de trabajo. Un proyecto reúne el presupuesto y la ejecución de una misma obra.',
+            ],
+            'links' => ['projects'],
+        ],
+        [
+            'title' => 'Organiza los capítulos del presupuesto',
+            'path' => 'Obras → Proyectos → Editar proyecto → Capítulos → Crear capítulo',
+            'instructions' => [
+                'Crea capítulos con código, nombre y posición: por ejemplo, 01 Preparación, 02 Instalaciones y 03 Acabados.',
+                'Si necesitas subcapítulos, selecciona su capítulo padre. Todos deben pertenecer al mismo proyecto.',
+                'Utiliza los capítulos para ordenar económicamente las partidas. Las fases, que crearás después en cada orden, organizan la ejecución del trabajo.',
+            ],
+            'tip' => 'Capítulo = organización del presupuesto. Fase = etapa de ejecución. Una partida puede pertenecer a un capítulo y a una fase a la vez.',
+            'links' => ['projects'],
+        ],
+        [
+            'title' => 'Crea la orden, sus fases y las partidas',
+            'path' => 'Proyecto → Órdenes de trabajo → Crear orden de trabajo · Orden → Fases / Partidas',
+            'instructions' => [
+                'Dentro del proyecto crea una orden con referencia, nombre, supervisor, prioridad y fechas. Guarda inicialmente en Borrador.',
+                'Desde Obras → Órdenes de trabajo abre la edición de la orden y entra en Fases. Crea al menos una con código, nombre, posición y fechas previstas; por ejemplo, Montaje y Revisión.',
+                'En Partidas añade materiales, servicios o mano de obra: descripción, producto si corresponde, unidad, cantidad prevista, coste y precio de venta. Selecciona el capítulo y la fase de cada partida.',
+                'También puedes partir de un archivo desde la edición del proyecto: Importar presupuesto PDF, Importar mediciones BC3 o Importar mediciones. Revisa el resultado y asigna las partidas importadas a sus fases.',
+            ],
+            'tip' => 'Una orden necesita al menos una fase no cancelada antes de planificarse o ponerse en ejecución. Las partidas sin fase no se incorporan mediante Facturar fases.',
+            'links' => ['orders', 'projects'],
+        ],
+        [
+            'title' => 'Prepara y revisa el presupuesto del cliente',
+            'path' => 'Orden de trabajo → Crear presupuesto / Árbol y presupuesto · Obras → Presupuestos',
+            'instructions' => [
+                'En la orden pulsa Crear presupuesto o Árbol y presupuesto para abrir el árbol de capítulos y partidas.',
+                'Selecciona los capítulos y partidas incluidos, revisa unidades, cantidades y precios e indica el nombre del presupuesto.',
+                'Pulsa Crear presupuesto. Después podrás consultarlo y modificar su selección desde Obras → Presupuestos, utilizando Guardar presupuesto.',
+                'Cuando el cliente acepte las condiciones, actualiza el proyecto a Aprobado y la orden a Planificado. Revisa las fechas y las partidas acordadas antes de iniciar los trabajos.',
+            ],
+            'tip' => 'El presupuesto es una copia independiente: cambiar sus cantidades o precios no cambia las partidas de la orden. La factura por fases utiliza esas partidas; comprueba que reflejan lo acordado con el cliente. La aceptación se registra cambiando el estado del proyecto; no existe un botón de aceptación automática del presupuesto.',
+            'links' => ['orders', 'budgets'],
+        ],
+        [
+            'title' => 'Asigna el personal y configura sus costes horarios',
+            'path' => 'Equipo → Empleados / Costes por hora · Orden → Personal asignado / Contratistas asignados',
+            'instructions' => [
+                'Da de alta a los operarios en Equipo → Empleados. Los contratistas se crean en Contactos con el rol Subcontratista.',
+                'En Equipo → Costes por hora crea una tarifa para un operario o un contratista, eligiendo solo uno. Indica coste por hora y fechas de vigencia.',
+                'En la orden abre Personal asignado o Contratistas asignados y vincula la persona. Selecciona la fase si la asignación se limita a una etapa; sin fase se aplica a toda la orden.',
+                'Al comenzar, cambia la orden y las fases correspondientes a En ejecución y registra sus fechas reales cuando proceda.',
+            ],
+            'tip' => 'Las vigencias son inclusivas y no se pueden solapar. Para cambiar un coste horario, cierra la vigencia anterior y crea otra tarifa. No se inventa un coste cuando falta tarifa.',
+            'links' => ['employees', 'rates', 'orders'],
+        ],
+        [
+            'title' => 'Recibe los materiales por albarán',
+            'path' => 'Compras y almacén → Albaranes de compra → Crear albarán de compra',
+            'instructions' => [
+                'Selecciona el proveedor, almacén, referencia del albarán y fecha de recepción. Guarda la cabecera.',
+                'En Líneas y existencias añade los productos, su presentación de compra, cantidad, precio neto y descuento. El producto debe ser Material y tener Controlar stock activado.',
+                'Revisa el albarán y pulsa Confirmar recepción. Las cantidades se convierten a la unidad base y quedan disponibles en el almacén.',
+            ],
+            'tip' => 'Un albarán en borrador todavía no genera existencias. La recepción confirmada conserva su coste histórico. El precio de venta propuesto de nuevas operaciones usa la última compra recibida y el porcentaje configurado.',
+            'links' => ['receipts', 'warehouses', 'products'],
+        ],
+        [
+            'title' => 'Imputa los materiales utilizados en cada fase',
+            'path' => 'Orden → Fases → Abrir fase → Consumos de materiales · Obras → Consumos de materiales',
+            'instructions' => [
+                'En Fases pulsa Abrir fase y crea un consumo seleccionando el lote del albarán recibido, la fecha y la cantidad en unidad base.',
+                'Guarda el borrador: la cantidad queda reservada. Revisa el origen y pulsa Confirmar imputación para descontar existencias físicas y registrar el coste real.',
+                'Cancela los borradores que no vayas a utilizar para liberar sus reservas. Si debes reponer un consumo confirmado, abre su vista y utiliza Devolver al almacén.',
+            ],
+            'tip' => 'La devolución disponible es íntegra por consumo. Registrar un consumo no crea otra partida de venta: si el material es un extra que debe cobrarse, añádelo a las partidas de la orden antes de facturarlo.',
+            'links' => ['consumptions', 'orders'],
+        ],
+        [
+            'title' => 'Registra los partes de trabajo y revisa los costes',
+            'path' => 'Obras → Partes de trabajo · Orden → Fases → Abrir fase → Partes de trabajo',
+            'instructions' => [
+                'Crea el parte indicando orden, fase, operario o contratista, inicio, fin, pausas y descripción del trabajo realizado.',
+                'Revisa la asignación y la tarifa vigente. Si el trabajo atraviesa un cambio de tarifa, divídelo en dos partes en ese límite.',
+                'Pulsa Confirmar imputación. Se calculan las horas efectivas y su coste; los partes confirmados del mismo recurso no pueden solaparse.',
+                'Consulta Costes reales confirmados en la ficha de la fase o de la orden para ver materiales, mano de obra y total.',
+            ],
+            'tip' => 'Revisa bien inicio, fin y pausas antes de confirmar: los partes confirmados quedan bloqueados y el flujo de corrección posterior todavía no está disponible. Los borradores no se incluyen en los costes reales.',
+            'links' => ['times', 'rates', 'orders'],
+        ],
+        [
+            'title' => 'Factura las fases o crea una factura individual',
+            'path' => 'Orden → Facturar fases · Facturación → Facturas de venta',
+            'instructions' => [
+                'En la edición de la orden pulsa Facturar fases. Selecciona una serie, las fases y el porcentaje de las cantidades pendientes que deseas facturar.',
+                'Revisa el borrador generado: cliente, fechas, descripción, cantidades, precios, perfiles fiscales y retenciones de cada línea. Las cantidades reservadas por otros borradores ya se descuentan del pendiente.',
+                'Para una factura individual, entra en Facturación → Facturas de venta, crea la cabecera eligiendo cliente y serie y añade después sus líneas.',
+                'En Series de facturación usa una serie Ordinaria para facturas y una Rectificativa para abonos; el ejercicio debe coincidir con la fecha de expedición.',
+                'Si falta el domicilio, utiliza Gestionar domicilio fiscal del cliente. Revisa también el domicilio completo de la empresa emisora y las series en Facturación → Series de facturación.',
+                'Pulsa Emitir en pruebas, revisa el documento y el XML y consulta su estado de envío. Si está habilitado, Enviar a AEAT (pruebas) solicita el envío; Pendiente no equivale a Aceptado por AEAT.',
+            ],
+            'tip' => 'El flujo de emisión habilitado actualmente es de pruebas: sus documentos no tienen validez fiscal. La emisión real continúa bloqueada hasta completar los trabajos pendientes. Emitir fija número y datos históricos; ya no se puede editar la factura. Un consumo o parte no se factura automáticamente: revisa las partidas de venta de la orden.',
+            'links' => ['invoices', 'series', 'orders'],
+        ],
+        [
+            'title' => 'Resuelve borradores pendientes y rectificaciones',
+            'path' => 'Facturación → Facturas de venta → Editar / Ver factura',
+            'instructions' => [
+                'Si un borrador no se va a utilizar, pulsa Cancelar borrador. Así se liberan las cantidades reservadas de sus partidas.',
+                'Si una factura ya emitida necesita un abono, abre su vista y pulsa Preparar rectificativa. Elige serie rectificativa, tipo y motivo.',
+                'Revisa las cantidades negativas y las referencias originales, emite la rectificativa en pruebas y comprueba su estado de envío. Se conservan los precios e impuestos históricos.',
+                'Consulta las incidencias de AEAT antes de considerar resuelto un envío. Un rechazo o una aceptación con errores requiere revisión; no modifica automáticamente el documento original.',
+            ],
+            'links' => ['invoices'],
+        ],
+        [
+            'title' => 'Revisa y cierra la obra',
+            'path' => 'Orden → Fases / Costes reales confirmados · Obras → Proyectos',
+            'instructions' => [
+                'Revisa que estén registrados y confirmados todos los consumos y partes. Devuelve el material que corresponda y cancela los borradores que hayan quedado sin utilizar.',
+                'En Facturas de venta busca la referencia de la orden para revisar sus facturas y rectificativas. Compara sus líneas con las cantidades previstas en Partidas y revisa los estados de envío y las incidencias abiertas.',
+                'En cada fase anota las fechas reales de inicio y fin y cambia su estado a Finalizado. Actualiza después las fechas reales y el estado de cada orden a Finalizado.',
+                'En el proyecto completa la fecha real de finalización y cambia el estado a Finalizado. Conserva presupuestos, albaranes, partes y facturas para consultar el histórico.',
+            ],
+            'tip' => 'El cierre se hace manualmente: no cierra los registros hijos ni confirma cobros automáticamente. El seguimiento de cobros y la conciliación de facturas de compra todavía no forman parte de este módulo. No confundas la finalización del trabajo con el cierre económico o fiscal completo.',
+            'links' => ['projects', 'orders', 'invoices'],
+        ],
+    ],
+];

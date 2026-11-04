@@ -4,8 +4,10 @@ namespace App\Filament\Resources\WorkOrders\RelationManagers;
 
 use App\Filament\Resources\WorkOrderPhases\Schemas\WorkOrderPhaseForm;
 use App\Filament\Resources\WorkOrderPhases\Tables\WorkOrderPhasesTable;
+use App\Filament\Resources\WorkOrderPhases\WorkOrderPhaseResource;
 use App\Support\BusinessRecordValidator;
 use Asmit\ResizedColumn\HasResizableColumn;
+use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -39,6 +41,9 @@ class WorkOrderPhasesRelationManager extends RelationManager
                 CreateAction::make()->using(fn (array $data): Model => BusinessRecordValidator::inForm(fn (): Model => $this->getRelationship()->create($data), $this->getMountedActionSchema()?->getStatePath() ?? '')),
             ])
             ->recordActions([
+                Action::make('openPhase')->label(__('onboarding.open_phase'))
+                    ->authorize(fn (Model $record): bool => WorkOrderPhaseResource::canEdit($record))
+                    ->url(fn (Model $record): string => WorkOrderPhaseResource::getUrl('edit', ['record' => $record])),
                 EditAction::make()->using(function (Model $record, array $data): Model {
                     return BusinessRecordValidator::inForm(function () use ($record, $data): Model {
                         $record->update($data);

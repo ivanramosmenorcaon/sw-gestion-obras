@@ -927,3 +927,17 @@ Las pruebas nuevas cubren conversión de presentaciones, descuento y 15 %, exist
 Se ha aplicado Pint a los archivos modificados; `--dirty` no está disponible porque el directorio no es un repositorio Git, por lo que se han utilizado rutas explícitas. No se han instalado dependencias ni se han iniciado envíos de documentos a servicios externos como parte de esta implementación.
 
 Resultado final de esta entrega: **362 pruebas correctas y 3.433 aserciones** en la suite completa, incluidas **25 pruebas específicas de costes y sus interfaces**. La migración está aplicada como lote 9 y el almacén principal está disponible. Las rutas de albaranes, almacenes, consumos, tarifas y partes se han registrado en el panel.
+
+## 17. Guía operativa en el dashboard — 4 de noviembre de 2026
+
+Se incorpora el widget `GettingStartedGuide` al dashboard existente mediante el descubrimiento de widgets del panel. Ocupa todo el ancho y presenta una guía en español de doce pasos desplegables, con un resumen del recorrido y accesos rápidos. Permite desplegar o plegar todos los pasos y se adapta al modo oscuro y a pantallas pequeñas. El contenido se mantiene en `lang/es/onboarding.php`, separado de la vista y de los enlaces a resources.
+
+El recorrido documentado es: configuración inicial de empresa/contactos/productos; proyecto; capítulos; órdenes, fases y partidas; presupuesto y aceptación manual del proyecto; personal y tarifas; recepción de albaranes; consumos; partes y costes; facturación; borradores/rectificaciones; revisión y cierre manual de fases, órdenes y proyecto. Cada paso indica los menús, pestañas y botones existentes. Los enlaces se generan mediante `Resource::getUrl()` y solo se muestran si el usuario tiene acceso al listado correspondiente.
+
+Se explican las diferencias entre capítulos, fases y partidas, la independencia del presupuesto respecto a las partidas facturables de la orden, el domicilio fiscal del cliente, las reservas de stock/cantidades, los costes confirmados y el significado del cierre. La guía refleja el alcance real: emisión fiscal actualmente de pruebas, cierre de estados manual y ausencia de seguimiento de cobros/conciliación de compras. No promete botones de aceptación, cierre automático o funciones contables que no existen.
+
+Para que el recorrido hacia los consumos y partes de una fase sea navegable, se añade **Abrir fase** en la relación Fases de la orden. Abre la página completa ya existente de la fase; conserva la edición rápida en modal y respeta la autorización de edición del resource. Para llegar a las relaciones de una orden creada desde el proyecto, la guía indica abrir su edición completa desde Obras → Órdenes de trabajo.
+
+No se modifican datos de negocio, migraciones, estados ni cálculos. Se comprueban la presencia de la guía en el dashboard autenticado, los enlaces según permisos y el acceso autorizado a la ficha completa de fase. Se compilan los assets con `npm run build` para incluir los estilos del widget.
+
+Verificación: **21 pruebas afectadas correctas y 197 aserciones**, incluyendo dashboard, permisos, relaciones de fases y regresión de órdenes; compilación Vite correcta. Pint aplicado a los PHP modificados con rutas explícitas al no existir Git.
