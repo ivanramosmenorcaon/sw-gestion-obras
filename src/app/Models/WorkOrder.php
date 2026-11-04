@@ -36,6 +36,17 @@ class WorkOrder extends Model
         });
     }
 
+    public function save(array $options = []): bool
+    {
+        return $this->getConnection()->transaction(function () use ($options): bool {
+            if ($this->exists) {
+                $this->newQuery()->whereKey($this->id)->lockForUpdate()->firstOrFail();
+            }
+
+            return parent::save($options);
+        });
+    }
+
     public function delete(): ?bool
     {
         if (! $this->exists) {
@@ -109,5 +120,15 @@ class WorkOrder extends Model
     public function salesInvoices(): HasMany
     {
         return $this->hasMany(SalesInvoice::class, 'work_order_id');
+    }
+
+    public function materialConsumptions(): HasMany
+    {
+        return $this->hasMany(MaterialConsumption::class, 'work_order_id');
+    }
+
+    public function workTimeEntries(): HasMany
+    {
+        return $this->hasMany(WorkTimeEntry::class, 'work_order_id');
     }
 }

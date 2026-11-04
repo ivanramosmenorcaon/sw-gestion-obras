@@ -59,4 +59,14 @@ class Employee extends Model
     {
         return $this->hasMany(WorkOrderEmployeeAssignment::class, 'employee_id');
     }
+
+    public function laborCostRates(): HasMany
+    {
+        return $this->hasMany(LaborCostRate::class, 'employee_id');
+    }
+
+    public function workTimeEntries(): HasMany
+    {
+        return $this->hasMany(WorkTimeEntry::class, 'employee_id');
+    }
 }

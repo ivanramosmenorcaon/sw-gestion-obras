@@ -16,6 +16,7 @@ class ProductForm
     public static function configure(Schema $schema, array $context = []): Schema
     {
         return $schema->columns(2)->components([
+            TextInput::make('sales_markup_percentage')->label(__('costing.fields.sales_markup_percentage'))->numeric()->minValue(0)->maxValue(10000)->step('0.0001')->helperText(__('costing.product_markup_help')),
             FiscalDefaults::make(false),
             TextInput::make('reference')->label(__('business.fields.reference'))->required()->maxLength(80)->unique(ignoreRecord: true),
             TextInput::make('name')->label(__('business.fields.name'))->required()->maxLength(255),

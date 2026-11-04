@@ -826,3 +826,104 @@ Se corrige la emisión de rectificativas tras recuperar de MySQL la identidad hi
 El generador reconstruye ahora explícitamente la identidad del destinatario en el orden del esquema: `NombreRazon`, seguido de `NIF` o `IDOtro`; dentro de `IDOtro`, `CodigoPais` cuando exista, `IDType` e `ID`. Utiliza exclusivamente los valores de la instantánea histórica, sin consultar de nuevo la identidad actual del cliente. La corrección no modifica facturas emitidas, XML previamente guardados, huellas ni datos maestros; se aplica al generar nuevos registros.
 
 Se añaden dos regresiones que simulan el reordenamiento de claves JSON tras la persistencia, con NIF y con IDOtro, y emiten una rectificativa validada contra el XSD oficial. Ambas reproducían el fallo antes de la corrección y pasan después. No se ha emitido ni enviado una rectificativa real durante la reparación.
+
+## 16. Albaranes de compra, almacén y costes por fase — 4 de noviembre de 2026
+
+### Decisiones confirmadas
+
+El usuario fija un incremento inicial del **15 % sobre el precio de compra**. La fórmula es `venta sin impuestos = coste neto de compra × (1 + porcentaje / 100)`: una compra de 100 € propone una venta de 115 €. Se denomina incremento o recargo sobre coste para distinguirlo del margen sobre la venta (15 € sobre 115 € no representa un 15 % de margen sobre venta).
+
+Se configura en la ficha de empresa, con una excepción opcional por producto. Un valor vacío en el producto hereda el porcentaje de empresa; 0 % es un valor explícito válido. La migración inicializa el porcentaje de empresa a 15 %, según la respuesta del usuario, sin cambiar precios de facturas ni presupuestos ya guardados.
+
+Las fases y asignaciones de operarios/contratistas ya existían. Se conservan y se amplían con costes materiales y partes horarios. No se crean fases ficticias ni se asigna automáticamente personal a una obra. Una orden puede prepararse en borrador sin fases; para pasar a planificación, ejecución, pausa o finalización debe tener al menos una fase no cancelada. No se puede borrar, cancelar o trasladar su última fase mientras la orden esté activa. Se bloquean las filas de las órdenes al cambiar estados o retirar fases. No se han modificado los estados de órdenes anteriores mediante una actualización masiva.
+
+### Esquema añadido
+
+La migración `2026_11_04_171829_create_purchasing_and_phase_cost_tables` añade:
+
+| Tabla | Función |
+| --- | --- |
+| warehouses | Almacenes, con código único y activación. |
+| purchase_delivery_notes | Albarán del proveedor, almacén receptor, fecha y estado. Referencia única por proveedor. |
+| purchase_delivery_lines | Producto, presentación, cantidad, precio neto, descuento y fotografía del coste recibido. Cada línea recibida identifica un lote de existencias. |
+| material_consumptions | Imputación de una cantidad de un lote a una fase concreta, con coste y valor de venta histórico; también devoluciones referenciadas al consumo original. |
+| labor_cost_rates | Coste horario de un operario o un contratista, con vigencia inclusiva desde/hasta. |
+| work_time_entries | Partes por fase, persona, inicio, fin y pausas; horas y coste confirmado conservados. |
+
+Se añaden `sales_markup_percentage` a empresa (15 % inicial) y producto (opcional). Se utilizan claves foráneas restrictivas; el vínculo compuesto orden/fase impide atribuir un coste a una fase de otra orden. El modelo exige exactamente uno de `employee_id` o `contractor_id` en tarifas y partes. Los importes se tratan con decimales exactos; no se utilizan floats para calcular importes.
+
+### Entrada de productos por albarán
+
+Menú **Compras y almacén** → **Albaranes de compra**:
+
+1. Crear cabecera con proveedor, referencia del albarán, almacén y fecha.
+2. Añadir líneas: producto, presentación opcional, cantidad, precio de compra sin impuestos y descuento.
+3. Pulsar **Confirmar recepción**. Hasta entonces el albarán es un borrador y no genera existencias ni precios de compra utilizables.
+
+El producto debe ser de tipo Material y tener **Controlar stock** activado. Los servicios y la mano de obra se imputan por su flujo correspondiente, no como existencias físicas. La creación de productos desde este selector fija tipo Material, control de stock y activación en servidor; la creación de presentaciones mantiene el producto y habilita su compra. Los proveedores creados desde el selector reciben su rol de proveedor.
+
+Al recibir se convierte la cantidad de la presentación a la unidad base mediante su factor. El coste neto de línea incluye el descuento, sin impuestos, y se reparte entre la cantidad base. Por ejemplo, dos cajas de 12 unidades a 120 € por caja y descuento del 10 % producen 24 unidades, coste neto de 216 €, coste base de 9 € y venta propuesta de 10,35 € por unidad al 15 %.
+
+Se conservan descripción de producto/unidad, factor de conversión, cantidad base, coste unitario, importe, porcentaje y propuesta de venta. Después de confirmar no se puede modificar ni borrar el albarán o sus líneas, incluso desde un formulario abierto antes de confirmarlo. No se permite cambiar tipo ni unidad base de un producto que ya tenga recepciones confirmadas. Cambiar la presentación comercial posteriormente no altera factores de documentos recibidos.
+
+Cada albarán recibe en un único almacén. Se crea un **Almacén principal** mediante un seeder idempotente, que no cambia su configuración si ya existe. Las líneas del albarán muestran cantidades físicas y cantidades disponibles después de las reservas.
+
+### Materiales asignados a órdenes y fases
+
+En **Obras → Fases de órdenes de trabajo**, abrir la fase y su relación **Consumos de materiales**; también existe el listado global de consumos:
+
+1. Elegir el lote o línea de un albarán ya recibido. El selector identifica almacén, proveedor, referencia, lote, producto y cantidad disponible en unidad base.
+2. Indicar fecha y cantidad consumida en unidad base.
+3. Guardar el borrador y confirmar la imputación.
+
+Los borradores reservan cantidades. Las existencias físicas disminuyen al confirmar; la disponibilidad ya descuenta otros borradores. Las reservas, confirmaciones y devoluciones bloquean la línea de recepción de origen para evitar stock negativo o doble asignación concurrente. La fecha del consumo no puede preceder a la recepción; las confirmaciones no pueden ser futuras.
+
+La valoración utiliza **el coste real del lote elegido**, no un coste medio inventado ni una asignación FIFO automática. La última imputación que agota el lote absorbe los céntimos residuales para cuadrar el coste total con el albarán. El porcentaje y precio de venta previsto de la imputación se toman de la fotografía de esa recepción.
+
+**Cancelar borrador** libera la reserva. **Devolver al almacén** crea y confirma una imputación negativa nueva, referenciada a la original, y revierte exactamente sus cantidades e importes. Esta entrega admite una devolución íntegra por consumo; las devoluciones parciales se rechazan para evitar abonar todo el importe a cambio de solo parte del material. Para devoluciones independientes se pueden registrar consumos separados. Se conserva la imputación original y no se admiten devoluciones duplicadas. La devolución repone el almacén de origen.
+
+El selector de lotes recibidos no ofrece «crear opción»: identifica entradas de stock ya confirmadas, sin resource de alta independiente. Para disponer de un lote nuevo se debe crear y recibir un albarán; no se confirma una recepción implícitamente desde un consumo. Esta excepción mantiene la separación entre entrada física e imputación a obra.
+
+### Operarios, contratistas, tarifas y partes
+
+En **Equipo → Costes por hora**, seleccionar exclusivamente un operario o un contratista, el coste horario y su período de vigencia. El contratista debe tener ese rol en Contactos. Las tarifas son costes internos netos, introducidos por el usuario; no se han inventado salarios, tarifas reales ni reglas automáticas de nómina/cotización.
+
+Las fechas de vigencia son inclusivas y no pueden solaparse para la misma persona/recurso. Para un cambio de coste se cierra el período anterior y se abre otro. Una tarifa utilizada no permite cambiar persona, coste, moneda o inicio; su fecha final sí puede cerrarse siempre que siga cubriendo todos los partes ya confirmados.
+
+Asignar el operario/contratista a la fase o a la orden mediante las asignaciones existentes. En **Partes de trabajo**, o desde la relación de la fase, introducir inicio, fin, pausa no imputable y descripción. La pantalla utiliza **Europe/Madrid** y guarda los instantes en UTC. El máximo es de 24 horas por parte. Al confirmar:
+
+- Debe existir asignación a esa fase o a toda la orden.
+- Se comprueban persona activa y ausencia de otros partes confirmados solapados del mismo recurso.
+- Debe existir una única tarifa que cubra todo el intervalo. Si el trabajo cruza un cambio de tarifa, debe dividirse en partes separados en ese límite.
+- Se calculan las horas descontando pausas. Para el coste se utilizan los segundos efectivos multiplicados por la tarifa, redondeando a céntimos al final; no se multiplica una aproximación previa de las horas.
+- Se guardan tarifa utilizada, horas, coste por hora e importe. Cambios de tarifas posteriores no revaloran trabajos históricos.
+
+Los contratistas se modelan como recursos identificados por su contacto: la tarifa y el control de solapamiento corresponden a ese recurso. La gestión detallada de varios trabajadores de una misma empresa contratista no introduce automáticamente personas nuevas a partir de un único contacto empresarial.
+
+Los partes confirmados se conservan inmutables. Esta entrega permite corregir/cancelar sus borradores; no incluye todavía un flujo de ajuste de partes ya confirmados. Deben revisarse antes de confirmarlos.
+
+### Precios propuestos y separación entre presupuesto y ejecución
+
+Para nuevas propuestas de precio de productos con compras recibidas, se utiliza el coste de la **última recepción según fecha**, no futura respecto a la operación, aplicando el porcentaje actual del producto o la empresa. Esa regla tiene prioridad sobre las tarifas comerciales fijas. El incremento se aplica antes de redondear el precio unitario. Si todavía no existe ninguna recepción de ese producto, se conserva el sistema de tarifas anterior para permitir el uso de los productos ya configurados.
+
+Al seleccionar un producto o presentación en una partida de orden se proponen coste y venta conforme a esa regla. En las facturas se reutiliza el mismo cálculo. No se recalculan de oficio precios ya guardados al abrir o guardar un documento; siguen existiendo las modificaciones comerciales explícitas de borradores y las condiciones acordadas en partidas de órdenes. Cambiar porcentajes no reescribe facturas emitidas ni presupuestos históricos.
+
+Los **consumos y partes son costes de ejecución**, separados de las cantidades previstas y facturables de las partidas de órdenes. Registrar un consumo no añade otra partida de venta ni factura dos veces un material presupuestado. La facturación por fases continúa utilizando las partidas de venta de la orden; un trabajo/material adicional que deba cobrarse se debe añadir a esas partidas antes de facturarlo. Emitir una factura tampoco descuenta stock por segunda vez.
+
+### Consulta, permisos y alcance
+
+Las fichas de fase y de orden muestran materiales confirmados, mano de obra confirmada y suma de costes reales. No incluyen borradores ni costes supuestos por faltar una tarifa. Las devoluciones confirmadas restan del coste material.
+
+Se incorporan cinco resources y tres relation managers, con etiquetas españolas y columnas redimensionables, reordenables y fijables. Los selectores de fichas reutilizan formularios completos y las autorizaciones de los resources. Se impone el propietario en servidor al crear costes desde la relación de una fase. El alta global y la confirmación de costes también comprueban la autorización de edición de la fase; no permiten eludirla utilizando otro formulario.
+
+Los nuevos flujos operan en EUR. No se incluyen en esta entrega conciliación con factura de compra, transferencias entre almacenes, inventario inicial por ajustes, devoluciones a proveedor ni reparto de portes/gastos adicionales. Una futura conciliación deberá conservar las recepciones y registrar ajustes de valoración, en lugar de modificar costes históricos ya confirmados. El 15 % se aplica a productos; no se inventa automáticamente una tarifa de venta para el trabajo de cada operario.
+
+### Aplicación y verificación
+
+La migración se ha aplicado a MySQL después de crear la copia privada `storage/app/private/backups/pre-project-costing-20261104-173413.sql`. Se ha ejecutado únicamente el seeder de almacén para crear Principal si faltaba. Los operarios, contratistas, productos y albaranes de las pruebas se crean exclusivamente en SQLite `:memory:`, con comprobación de conexión antes de refrescar la base de pruebas.
+
+Las pruebas nuevas cubren conversión de presentaciones, descuento y 15 %, existencias y reservas, cancelación y devolución, inmutabilidad frente a formularios obsoletos, pertenencia a fases, tarifas por vigencia, personal asignado, solapamientos, pausas, cambio de tarifa en mitad del trabajo, precisión de segundos y costes pequeños, límites de importes, fases obligatorias, formularios y confirmaciones Filament, creación contextual de productos y permisos de fase desde formularios anidados y globales.
+
+Se ha aplicado Pint a los archivos modificados; `--dirty` no está disponible porque el directorio no es un repositorio Git, por lo que se han utilizado rutas explícitas. No se han instalado dependencias ni se han iniciado envíos de documentos a servicios externos como parte de esta implementación.
+
+Resultado final de esta entrega: **362 pruebas correctas y 3.433 aserciones** en la suite completa, incluidas **25 pruebas específicas de costes y sus interfaces**. La migración está aplicada como lote 9 y el almacén principal está disponible. Las rutas de albaranes, almacenes, consumos, tarifas y partes se han registrado en el panel.

@@ -2,16 +2,23 @@
 
 namespace App\Filament\Forms\Components;
 
+use App\Models\Employee;
 use App\Models\InvoiceSeries;
+use App\Models\LaborCostRate;
 use App\Models\Party;
 use App\Models\PartyRole;
+use App\Models\Product;
 use App\Models\ProductUnit;
 use App\Models\Project;
 use App\Models\ProjectChapter;
+use App\Models\PurchaseDeliveryLine;
+use App\Models\PurchaseDeliveryNote;
 use App\Models\SalesInvoice;
 use App\Models\TaxRate;
+use App\Models\Warehouse;
 use App\Models\WorkOrder;
 use App\Models\WorkOrderPhase;
+use App\Models\WorkTimeEntry;
 use App\Support\BusinessRecordValidator;
 use Closure;
 use Filament\Actions\Action;
@@ -141,6 +148,19 @@ class RecordSelect extends Select
             $context['fiscal_year'] = $this->getName() !== 'rectifying_series_id' && is_string($date) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)
                 ? (int) substr($date, 0, 4)
                 : today('Europe/Madrid')->year;
+        }
+
+        if ($related instanceof Product && $this->getModelInstance() instanceof PurchaseDeliveryLine) {
+            $context = array_replace($context, ['type' => 'material', 'tracks_stock' => true, 'is_active' => true]);
+        }
+        if ($this->getModelInstance() instanceof PurchaseDeliveryLine && $related instanceof ProductUnit) {
+            $context = array_replace($context, ['available_for_purchase' => true, 'is_active' => true]);
+        }
+        if (($this->getModelInstance() instanceof PurchaseDeliveryNote || $this->getModelInstance() instanceof LaborCostRate || $this->getModelInstance() instanceof WorkTimeEntry) && ($related instanceof Party || $related instanceof Employee)) {
+            $context['is_active'] = true;
+        }
+        if ($related instanceof Warehouse) {
+            $context['is_active'] = true;
         }
 
         if ($related instanceof TaxRate) {

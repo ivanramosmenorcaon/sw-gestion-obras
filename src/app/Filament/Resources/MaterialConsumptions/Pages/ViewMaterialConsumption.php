@@ -1,0 +1,29 @@
+<?php
+
+namespace App\Filament\Resources\MaterialConsumptions\Pages;
+
+use App\Filament\Resources\MaterialConsumptions\MaterialConsumptionResource;
+use App\Filament\Resources\WorkOrderPhases\WorkOrderPhaseResource;
+use App\Support\ProjectCosting;
+use Filament\Actions\Action;
+use Filament\Actions\EditAction;
+use Filament\Resources\Pages\ViewRecord;
+
+class ViewMaterialConsumption extends ViewRecord
+{
+    protected static string $resource = MaterialConsumptionResource::class;
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            EditAction::make(),
+            Action::make('returnMaterial')->label(__('costing.return'))->requiresConfirmation()
+                ->visible(fn (): bool => $this->getRecord()->status === 'posted' && ! $this->getRecord()->reverses_id && MaterialConsumptionResource::canCreate())
+                ->action(function (): void {
+                    abort_unless(MaterialConsumptionResource::canCreate() && MaterialConsumptionResource::canView($this->getRecord()) && WorkOrderPhaseResource::canEdit($this->getRecord()->workOrderPhase), 403);
+                    $returned = app(ProjectCosting::class)->returnMaterial($this->getRecord());
+                    $this->redirect(MaterialConsumptionResource::getUrl('view', ['record' => $returned]));
+                }),
+        ];
+    }
+}

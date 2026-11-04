@@ -5,6 +5,8 @@ namespace App\Filament\Resources\WorkOrderPhases;
 use App\Filament\Resources\WorkOrderPhases\Pages\CreateWorkOrderPhase;
 use App\Filament\Resources\WorkOrderPhases\Pages\EditWorkOrderPhase;
 use App\Filament\Resources\WorkOrderPhases\Pages\ListWorkOrderPhases;
+use App\Filament\Resources\WorkOrderPhases\RelationManagers\MaterialConsumptionsRelationManager;
+use App\Filament\Resources\WorkOrderPhases\RelationManagers\WorkTimeEntriesRelationManager;
 use App\Filament\Resources\WorkOrderPhases\Schemas\WorkOrderPhaseForm;
 use App\Filament\Resources\WorkOrderPhases\Tables\WorkOrderPhasesTable;
 use App\Models\WorkOrderPhase;
@@ -53,9 +55,7 @@ class WorkOrderPhaseResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-
-        ];
+        return [MaterialConsumptionsRelationManager::class, WorkTimeEntriesRelationManager::class];
     }
 
     public static function getPages(): array

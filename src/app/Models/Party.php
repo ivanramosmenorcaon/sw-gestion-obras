@@ -113,4 +113,19 @@ class Party extends Model
     {
         return $this->hasMany(SalesInvoice::class, 'customer_id');
     }
+
+    public function laborCostRates(): HasMany
+    {
+        return $this->hasMany(LaborCostRate::class, 'contractor_id');
+    }
+
+    public function workTimeEntries(): HasMany
+    {
+        return $this->hasMany(WorkTimeEntry::class, 'contractor_id');
+    }
+
+    public function purchaseDeliveryNotes(): HasMany
+    {
+        return $this->hasMany(PurchaseDeliveryNote::class, 'supplier_id');
+    }
 }

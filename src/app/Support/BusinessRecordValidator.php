@@ -81,6 +81,20 @@ final class BusinessRecordValidator
                 $fail('work_order_id', 'wrong_scope');
             }
 
+            if ($table === 'work_orders' && ! in_array($record->status, ['draft', 'cancelled'], true) && (! $record->exists || $record->isDirty('status')) && ! $record->workOrderPhases()->where('status', '!=', 'cancelled')->exists()) {
+                $validator->errors()->add('status', __('costing.messages.phase_required'));
+            }
+            if ($table === 'work_order_phases' && $record->exists && ($record->isDirty('work_order_id') || $record->isDirty('status') && $record->status === 'cancelled')) {
+                $owner = WorkOrder::find($record->getRawOriginal('work_order_id'));
+                if ($owner && ! in_array($owner->status, ['draft', 'cancelled'], true) && ! $owner->workOrderPhases()->whereKeyNot($record->id)->where('status', '!=', 'cancelled')->exists()) {
+                    $validator->errors()->add('work_order_id', __('costing.messages.phase_required'));
+                }
+            }
+
+            if ($table === 'products' && $record->exists && $record->isDirty(['base_unit_id', 'type']) && $record->purchaseDeliveryLines()->whereHas('deliveryNote', fn (Builder $query) => $query->where('status', 'received'))->exists()) {
+                $validator->errors()->add('base_unit_id', __('costing.messages.product_history'));
+            }
+
             if ($table === 'budgets' && ! empty($data['source_work_order_id']) && WorkOrder::query()->find($data['source_work_order_id'])->project_id !== (int) $data['project_id']) {
                 $fail('source_work_order_id', 'wrong_scope');
             }
@@ -180,7 +194,11 @@ final class BusinessRecordValidator
     public static function canDelete(Model $record): bool
     {
         if ($record instanceof WorkOrder && $record->status === 'draft') {
-            return ! $record->salesInvoices()->exists();
+            return ! $record->salesInvoices()->exists() && ! $record->materialConsumptions()->exists() && ! $record->workTimeEntries()->exists();
+        }
+
+        if ($record instanceof WorkOrderPhase && ! in_array($record->workOrder->status, ['draft', 'cancelled'], true) && ! $record->workOrder->workOrderPhases()->whereKeyNot($record->id)->where('status', '!=', 'cancelled')->exists()) {
+            return false;
         }
 
         if ($record->getTable() === 'company_settings' || ($record->getTable() === 'product_units' && $record->code === 'base')) {

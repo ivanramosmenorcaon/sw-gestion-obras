@@ -36,6 +36,29 @@ class WorkOrderPhase extends Model
         });
     }
 
+    public function save(array $options = []): bool
+    {
+        return $this->getConnection()->transaction(function () use ($options): bool {
+            $owners = array_filter([$this->work_order_id, $this->getRawOriginal('work_order_id')]);
+            WorkOrder::whereKey(array_unique($owners))->orderBy('id')->lockForUpdate()->get();
+
+            $this->unsetRelation('workOrder');
+
+            return parent::save($options);
+        });
+    }
+
+    public function delete(): ?bool
+    {
+        return $this->getConnection()->transaction(function (): ?bool {
+            WorkOrder::whereKey($this->work_order_id)->lockForUpdate()->firstOrFail();
+
+            $this->unsetRelation('workOrder');
+
+            return parent::delete();
+        });
+    }
+
     /** @return array<string, string> */
     protected function casts(): array
     {
@@ -65,5 +88,15 @@ class WorkOrderPhase extends Model
     public function workOrderContractorAssignments(): HasMany
     {
         return $this->hasMany(WorkOrderContractorAssignment::class, 'work_order_phase_id');
+    }
+
+    public function materialConsumptions(): HasMany
+    {
+        return $this->hasMany(MaterialConsumption::class, 'work_order_phase_id');
+    }
+
+    public function workTimeEntries(): HasMany
+    {
+        return $this->hasMany(WorkTimeEntry::class, 'work_order_phase_id');
     }
 }

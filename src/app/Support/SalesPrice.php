@@ -15,6 +15,10 @@ final class SalesPrice
             return null;
         }
         $date = $invoice->operation_date->toDateString();
+        $quote = app(ProjectCosting::class)->productQuote($productId, $date);
+        if ($quote) {
+            return $quote['sale'];
+        }
         $listId = $invoice->customer->customerSettings?->price_list_id;
         $items = PriceListItem::query()->where('product_id', $productId)->where('minimum_quantity', '<=', $quantity ?? '1')
             ->where(fn (Builder $query) => $query->whereNull('valid_from')->orWhereDate('valid_from', '<=', $date))

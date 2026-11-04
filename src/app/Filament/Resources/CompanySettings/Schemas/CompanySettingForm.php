@@ -14,6 +14,7 @@ class CompanySettingForm
     public static function configure(Schema $schema, array $context = []): Schema
     {
         return $schema->columns(2)->components([
+            TextInput::make('sales_markup_percentage')->label(__('costing.fields.sales_markup_percentage'))->numeric()->minValue(0)->maxValue(10000)->step('0.0001')->helperText(__('costing.markup_help'))->default(15)->required(),
             FiscalDefaults::make(true),
             TextInput::make('legal_name')->label(__('business.fields.legal_name'))->required()->maxLength(120),
             TextInput::make('trade_name')->label(__('business.fields.trade_name'))->maxLength(255),

@@ -2,11 +2,14 @@
 
 namespace App\Filament\Resources\WorkOrders\Schemas;
 
+use App\Models\WorkOrder;
+use App\Support\ProjectCosting;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
@@ -17,6 +20,10 @@ class WorkOrderForm
     public static function configure(Schema $schema, array $context = []): Schema
     {
         return $schema->columns(2)->components([
+            TextEntry::make('actual_cost_summary')->label(__('costing.costs'))->columnSpanFull()->visible(fn (?WorkOrder $record): bool => (bool) $record?->exists)
+                ->state(function (WorkOrder $record): string {
+                    return __('costing.cost_summary', app(ProjectCosting::class)->totals($record));
+                }),
             (array_key_exists('project_id', $context) ? Hidden::make('project_id')->default($context['project_id']) : Select::make('project_id')->relationship('project', 'name')->searchable()->preload()->live()->afterStateUpdated(function (Set $set): void {
                 $set('work_order_id', null);
                 $set('project_chapter_id', null);

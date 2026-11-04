@@ -2,11 +2,14 @@
 
 namespace App\Filament\Resources\WorkOrderPhases\Schemas;
 
+use App\Models\WorkOrderPhase;
+use App\Support\ProjectCosting;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
@@ -17,6 +20,10 @@ class WorkOrderPhaseForm
     public static function configure(Schema $schema, array $context = []): Schema
     {
         return $schema->columns(2)->components([
+            TextEntry::make('actual_cost_summary')->label(__('costing.costs'))->columnSpanFull()->visible(fn (?WorkOrderPhase $record): bool => (bool) $record?->exists)
+                ->state(function (WorkOrderPhase $record): string {
+                    return __('costing.cost_summary', app(ProjectCosting::class)->totals($record));
+                }),
             (array_key_exists('work_order_id', $context) ? Hidden::make('work_order_id')->default($context['work_order_id']) : Select::make('work_order_id')->relationship('workOrder', 'name')->searchable()->preload()->live()->afterStateUpdated(function (Set $set): void {
                 $set('work_order_phase_id', null);
             }))->label(__('business.fields.work_order_id'))->required(),

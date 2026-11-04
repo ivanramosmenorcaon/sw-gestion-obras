@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Validation\ValidationException;
 
-#[Fillable(['reference', 'name', 'description', 'product_category_id', 'type', 'base_unit_id', 'tracks_stock', 'is_active', 'sales_tax_profile_id', 'purchase_tax_profile_id', 'sales_withholding_rate_id', 'purchase_withholding_rate_id', 'fiscal_notes'])]
+#[Fillable(['sales_markup_percentage', 'reference', 'name', 'description', 'product_category_id', 'type', 'base_unit_id', 'tracks_stock', 'is_active', 'sales_tax_profile_id', 'purchase_tax_profile_id', 'sales_withholding_rate_id', 'purchase_withholding_rate_id', 'fiscal_notes'])]
 class Product extends Model
 {
     /** @use HasFactory<ProductFactory> */
@@ -48,6 +48,7 @@ class Product extends Model
     protected function casts(): array
     {
         return [
+            'sales_markup_percentage' => 'decimal:4',
             'tracks_stock' => 'boolean',
             'is_active' => 'boolean',
         ];
@@ -106,5 +107,10 @@ class Product extends Model
     public function salesInvoiceLines(): HasMany
     {
         return $this->hasMany(SalesInvoiceLine::class, 'product_id');
+    }
+
+    public function purchaseDeliveryLines(): HasMany
+    {
+        return $this->hasMany(PurchaseDeliveryLine::class, 'product_id');
     }
 }
