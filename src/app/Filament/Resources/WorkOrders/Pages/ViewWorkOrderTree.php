@@ -45,6 +45,7 @@ class ViewWorkOrderTree extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            \Filament\Actions\Action::make('print')->label('Imprimir')->url(fn (): string => route('documents.print', ['type' => 'order', 'id' => $this->getRecord()->id]))->openUrlInNewTab(),
             Action::make('createBudget')->label('Crear presupuesto')
                 ->authorize(fn (): bool => BudgetResource::canCreate())
                 ->action(function (): void {

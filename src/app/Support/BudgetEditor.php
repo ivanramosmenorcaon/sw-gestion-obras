@@ -17,10 +17,10 @@ final class BudgetEditor
      * @param  array<int, array{included: bool, quantity: string, price: string, unit?: string}>  $selection
      * @return list<array<string, mixed>>
      */
-    public function selected(array $items, array $selection): array
+    public function selected(array $items, array $selection, bool $allowEmpty = false): array
     {
         Validator::make(['selection' => $selection], [
-            'selection' => ['required', 'array'],
+            'selection' => [$allowEmpty ? 'present' : 'required', 'array'],
             'selection.*' => ['array:included,quantity,price,unit'],
             'selection.*.unit' => ['sometimes', 'required', 'string', 'max:100'],
             'selection.*.included' => ['required', 'boolean'],
@@ -44,7 +44,7 @@ final class BudgetEditor
             $item['price'] = (string) BigDecimal::of($choice['price'])->toScale(6);
             $selected[] = $item;
         }
-        if ($selected === []) {
+        if ($selected === [] && ! $allowEmpty) {
             throw ValidationException::withMessages(['selection' => 'Incluya al menos una partida en el presupuesto.']);
         }
 
@@ -74,7 +74,33 @@ final class BudgetEditor
         Validator::make(['name' => $name], ['name' => ['required', 'string', 'max:255']])->validate();
         $budget->getConnection()->transaction(function () use ($budget, $name, $selection): void {
             $current = Budget::query()->whereKey($budget->id)->lockForUpdate()->firstOrFail();
-            $current->update(['name' => $name, 'items' => $this->selected($current->items, $selection)]);
+            $current->update(['name' => $name, 'items' => $current->items === [] && $selection === [] ? [] : $this->selected($current->items, $selection, allowEmpty: true)]);
+        });
+    }
+
+    /** @param list<array<string, mixed>> $lines */
+    public function saveManualLines(Budget $budget, array $lines): void
+    {
+        Validator::make(['lines' => $lines], [
+            'lines' => ['present', 'array'],
+            'lines.*.description' => ['required', 'string', 'max:5000'],
+            'lines.*.unit' => ['required', 'string', 'max:100'],
+            'lines.*.quantity' => ['required', 'numeric', 'decimal:0,6', 'min:0', 'max:99999999999999.999999'],
+            'lines.*.price' => ['required', 'numeric', 'decimal:0,6', 'min:0', 'max:99999999999999.999999'],
+        ])->validate();
+        $budget->getConnection()->transaction(function () use ($budget, $lines): void {
+            $current = Budget::query()->whereKey($budget->id)->lockForUpdate()->firstOrFail();
+            $items = array_values(array_filter($current->items, fn (array $item): bool => ! ($item['manual'] ?? false)));
+            foreach ($lines as $index => $line) {
+                $items[] = [
+                    'source_line_id' => -($index + 1), 'source_code' => null, 'manual' => true,
+                    'description' => $line['description'], 'unit' => $line['unit'],
+                    'quantity' => (string) BigDecimal::of($line['quantity'])->toScale(6),
+                    'price' => (string) BigDecimal::of($line['price'])->toScale(6),
+                    'chapter_path' => [], 'measurement_details' => [], 'budget_breakdown' => [],
+                ];
+            }
+            $current->update(['items' => $items]);
         });
     }
 

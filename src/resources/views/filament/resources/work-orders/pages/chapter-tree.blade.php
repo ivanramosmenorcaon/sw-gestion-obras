@@ -29,6 +29,31 @@
                 @error('name') <span class="text-sm text-red-600">{{ $message }}</span> @enderror
             </label>
         @endif
+        @if ($editingBudget)
+            <x-filament::section heading="Líneas manuales">
+                <p>Descripción, unidad, cantidad y precio. Tab al final añade otra línea. Puede quitar filas con «Eliminar línea»; confirme los cambios con «Guardar líneas manuales».</p>
+                @foreach ($this->manualLines as $index => $line)
+                    <div class="grid gap-3 md:grid-cols-4" wire:key="manual-{{ $index }}">
+                        @foreach (['description' => 'Descripción y detalles', 'unit' => 'Unidad', 'quantity' => 'Cantidad', 'price' => 'Precio'] as $field => $label)
+                            <label>{{ $label }}
+                                <input class="w-full rounded border p-2 dark:bg-gray-900" wire:model="manualLines.{{ $index }}.{{ $field }}"
+                                    @if ($field === 'price' && $loop->parent->last)
+                                        x-on:keydown.tab="if (!$event.shiftKey) { $event.preventDefault(); await $wire.addManualLine(); $nextTick(() => document.querySelectorAll('[data-manual-description]')[{{ $index + 1 }}]?.focus()); }"
+                                    @endif
+                                    @if ($field === 'description') data-manual-description @endif
+                                />
+                                @error("lines.$index.$field") <span role="alert">{{ $message }}</span> @enderror
+                            </label>
+                        @endforeach
+                        <x-filament::button type="button" color="danger" size="sm" wire:click="removeManualLine({{ $index }})">
+                            Eliminar línea
+                        </x-filament::button>
+                    </div>
+                @endforeach
+                <x-filament::button wire:click="addManualLine">Añadir línea</x-filament::button>
+                <x-filament::button wire:click="mountAction('saveManual')">Guardar líneas manuales</x-filament::button>
+            </x-filament::section>
+        @endif
         @error('selection') <p role="alert" class="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">{{ $message }}</p> @enderror
         <div class="flex flex-wrap gap-2">
             <x-filament::button color="gray" size="sm" x-on:click="expand(true)">Desplegar todo</x-filament::button>
@@ -38,7 +63,7 @@
             @forelse ($chapters as $chapter)
                 @include('filament.resources.work-orders.pages.partials.chapter-node', ['chapter' => $chapter, 'items' => $items, 'currency' => $currency, 'canBudget' => $canBudget, 'editingBudget' => $editingBudget])
             @empty
-                <p class="rounded-xl border border-dashed border-gray-300 p-6 text-sm text-gray-500 dark:border-gray-600 dark:text-gray-400">Esta orden no tiene partidas. Añada o importe mediciones antes de crear un presupuesto.</p>
+                <p class="rounded-xl border border-dashed border-gray-300 p-6 text-sm text-gray-500 dark:border-gray-600 dark:text-gray-400">No hay partidas cargadas. Puede crear un presupuesto desde Presupuestos y añadir líneas manuales.</p>
             @endforelse
         </div>
         @if ($canBudget)

@@ -39,6 +39,11 @@
                             <x-filament::badge color="gray">Partida {{ $item['source_code'] ?? $id }}</x-filament::badge>
                             @if (!$choice['included']) <span class="text-xs font-medium text-gray-500">Excluida del presupuesto</span> @endif
                         </div>
+                        @if ($editingBudget && $canBudget && $choice['included'])
+                            <x-filament::button type="button" color="danger" size="sm" wire:click="removeBudgetLine({{ $id }})">
+                                Eliminar línea
+                            </x-filament::button>
+                        @endif
                         <p class="mt-2 whitespace-pre-line text-sm leading-relaxed text-gray-700 dark:text-gray-200">{{ $item['description'] }}</p>
                         <div class="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
                             <label class="text-xs font-medium text-gray-600 dark:text-gray-300">Cantidad
