@@ -7,7 +7,6 @@ use App\Filament\Resources\WorkOrders\Tables\WorkOrdersTable;
 use App\Support\BusinessRecordValidator;
 use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions\CreateAction;
-use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
@@ -47,9 +46,7 @@ class WorkOrdersRelationManager extends RelationManager
                         return $record;
                     }, $this->getMountedActionSchema()?->getStatePath() ?? '');
                 }),
-                DeleteAction::make()
-                    ->modalDescription('Se eliminará la orden y, si está en borrador, sus partidas, fases y asignaciones. Los capítulos de la obra se conservarán.')
-                    ->visible(fn (Model $record): bool => BusinessRecordValidator::canDelete($record)),
+                WorkOrdersTable::deleteAction(),
             ]);
     }
 }

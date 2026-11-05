@@ -20,6 +20,13 @@ class WorkOrderForm
     public static function configure(Schema $schema, array $context = []): Schema
     {
         return $schema->columns(2)->components([
+            TextEntry::make('sales_invoices_count')->label(__('business.fields.invoicing'))->columnSpanFull()
+                ->visible(fn (?WorkOrder $record): bool => (bool) $record?->exists)
+                ->state(fn (WorkOrder $record): int => $record->salesInvoices()->count())
+                ->formatStateUsing(fn (int $state): string => $state > 0
+                    ? trans_choice('business.messages.linked_invoices', $state, ['count' => $state])
+                    : __('business.messages.no_linked_invoices'))
+                ->badge()->color(fn (int $state): string => $state > 0 ? 'warning' : 'gray'),
             TextEntry::make('actual_cost_summary')->label(__('costing.costs'))->columnSpanFull()->visible(fn (?WorkOrder $record): bool => (bool) $record?->exists)
                 ->state(function (WorkOrder $record): string {
                     return __('costing.cost_summary', app(ProjectCosting::class)->totals($record));

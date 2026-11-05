@@ -7,7 +7,9 @@ use App\Filament\Resources\Projects\RelationManagers\WorkOrdersRelationManager;
 use App\Filament\Resources\WorkOrders\Pages\EditWorkOrder;
 use App\Filament\Resources\WorkOrders\Pages\ListWorkOrders;
 use App\Filament\Resources\WorkOrders\WorkOrderResource;
+use App\Models\Budget;
 use App\Models\ProjectChapter;
+use App\Models\SalesInvoice;
 use App\Models\User;
 use App\Models\WorkOrder;
 use App\Models\WorkOrderContractorAssignment;
@@ -75,6 +77,23 @@ class DraftWorkOrderDeletionTest extends TestCase
         $this->assertDatabaseMissing('work_order_lines', ['work_order_id' => $order->id]);
     }
 
+    public function test_linked_invoices_are_visible_in_the_order_list_and_edit_page(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $order = $this->populatedDraft();
+        SalesInvoice::factory()->count(2)->create([
+            'customer_id' => $order->project->customer_id,
+            'work_order_id' => $order->id,
+        ]);
+
+        Livewire::test(ListWorkOrders::class)
+            ->assertCanSeeTableRecords([$order])
+            ->assertSee('2 facturas vinculadas');
+
+        Livewire::test(EditWorkOrder::class, ['record' => $order->id])
+            ->assertSee('2 facturas vinculadas');
+    }
+
     public function test_draft_can_be_deleted_from_the_project_relation_manager(): void
     {
         $this->actingAs(User::factory()->create());
@@ -111,6 +130,25 @@ class DraftWorkOrderDeletionTest extends TestCase
         $this->assertSame(1, $order->workOrderPhases()->count());
         $this->assertSame(1, $order->workOrderEmployeeAssignments()->count());
         $this->assertSame(1, $order->workOrderContractorAssignments()->count());
+    }
+
+    public function test_orders_created_from_accepted_budgets_show_why_deletion_is_unavailable(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $order = $this->populatedDraft();
+        $budget = Budget::factory()->create();
+        $order->forceFill(['accepted_budget_id' => $budget->id])->save();
+
+        Livewire::test(EditWorkOrder::class, ['record' => $order->id])
+            ->assertActionDisabled('delete');
+
+        Livewire::test(ListWorkOrders::class)
+            ->assertActionDisabled(TestAction::make('delete')->table($order));
+
+        Livewire::test(WorkOrdersRelationManager::class, ['ownerRecord' => $order->project, 'pageClass' => EditProject::class])
+            ->assertActionDisabled(TestAction::make('delete')->table($order));
+
+        $this->assertModelExists($order);
     }
 
     /** @return array<string, array{string}> */

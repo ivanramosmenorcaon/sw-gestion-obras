@@ -7,7 +7,6 @@ use App\Filament\Resources\WorkOrders\Tables\WorkOrdersTable;
 use App\Filament\Resources\WorkOrders\WorkOrderResource;
 use App\Support\BusinessRecordValidator;
 use Filament\Actions\Action;
-use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;
 
@@ -22,8 +21,7 @@ class EditWorkOrder extends EditRecord
             BillWorkOrder::make(),
             WorkOrdersTable::treeAction(),
             WorkOrdersTable::budgetAction(),
-            DeleteAction::make()
-                ->modalDescription('Se eliminará la orden y, si está en borrador, sus partidas, fases y asignaciones. Los capítulos de la obra se conservarán.'),
+            WorkOrdersTable::deleteAction(),
         ];
     }
 
