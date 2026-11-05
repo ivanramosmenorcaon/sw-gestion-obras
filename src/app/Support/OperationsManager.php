@@ -49,8 +49,13 @@ final class OperationsManager
             if ($record instanceof WorkTimeReversal) {
                 WorkTimeEntry::whereKey($record->work_time_entry_id)->lockForUpdate()->firstOrFail();
             }
-            if ($record->exists && $record->newQuery()->whereKey($record->id)->lockForUpdate()->firstOrFail()->status !== 'draft') {
-                $this->fail('status', 'El registro ya está confirmado o cancelado. No se puede sobrescribir.');
+            if ($record->exists) {
+                $stored = $record->newQuery()->whereKey($record->id)->lockForUpdate()->firstOrFail();
+                $absenceMetadataOnly = $record instanceof EmployeeAbsence && $stored->status === 'posted' && $record->status === 'posted'
+                    && ! $record->isDirty(['employee_id', 'starts_on', 'ends_on', 'status']);
+                if ($stored->status !== 'draft' && ! $absenceMetadataOnly) {
+                    $this->fail('status', 'El registro ya está confirmado o cancelado. No se puede sobrescribir.');
+                }
             }
 
             return $save();

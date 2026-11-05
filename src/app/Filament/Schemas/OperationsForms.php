@@ -76,29 +76,31 @@ final class OperationsForms
             if (! in_array($key, $attributes, true)) {
                 continue;
             }
-            $fields[] = Select::make($key)->label($label)->relationship($relationship, $title, function (Builder $query, Get $get) use ($key): void {
-                if (in_array($key, ['contractor_agreement_id', 'purchase_order_id', 'purchase_invoice_id', 'work_order_line_id'], true) && $get('project_id')) {
-                    $query->where('project_id', $get('project_id'));
-                }
-                if ($key === 'contractor_id') {
-                    $query->whereHas('partyRoles', fn (Builder $q) => $q->where('role', 'subcontractor'));
-                }
-                if ($key === 'supplier_id') {
-                    $query->whereHas('partyRoles', fn (Builder $q) => $q->whereIn('role', ['supplier', 'subcontractor']));
-                }
-                if ($key === 'work_time_entry_id') {
-                    $query->where('status', 'posted');
-                }
-                if ($key === 'work_order_phase_id' && $get('project_id')) {
-                    $query->whereHas('workOrder', fn (Builder $q) => $q->where('project_id', $get('project_id')));
-                }
-            })->searchable()->preload()->required(in_array($key, ['employee_id', 'contractor_id', 'supplier_id', 'party_id', 'work_order_line_id', 'work_time_entry_id', 'payment_id'], true) || ($name === 'ContractorCertificate' && $key === 'contractor_agreement_id'));
+            $fields[] = Select::make($key)->label($label)
+                ->disabled(fn (?Model $record): bool => $name === 'EmployeeAbsence' && $key === 'employee_id' && $record?->status === 'posted')
+                ->relationship($relationship, $title, function (Builder $query, Get $get) use ($key): void {
+                    if (in_array($key, ['contractor_agreement_id', 'purchase_order_id', 'purchase_invoice_id', 'work_order_line_id'], true) && $get('project_id')) {
+                        $query->where('project_id', $get('project_id'));
+                    }
+                    if ($key === 'contractor_id') {
+                        $query->whereHas('partyRoles', fn (Builder $q) => $q->where('role', 'subcontractor'));
+                    }
+                    if ($key === 'supplier_id') {
+                        $query->whereHas('partyRoles', fn (Builder $q) => $q->whereIn('role', ['supplier', 'subcontractor']));
+                    }
+                    if ($key === 'work_time_entry_id') {
+                        $query->where('status', 'posted');
+                    }
+                    if ($key === 'work_order_phase_id' && $get('project_id')) {
+                        $query->whereHas('workOrder', fn (Builder $q) => $q->where('project_id', $get('project_id')));
+                    }
+                })->searchable()->preload()->required(in_array($key, ['employee_id', 'contractor_id', 'supplier_id', 'party_id', 'work_order_line_id', 'work_time_entry_id', 'payment_id'], true) || ($name === 'ContractorCertificate' && $key === 'contractor_agreement_id'));
         }
         $fields[] = TextInput::make('reference')->label('Referencia')->required()->maxLength(100);
-        $fields[] = Textarea::make('description')->label($name === 'WorkTimeReversal' ? 'Motivo de la corrección' : 'Descripción / alcance')->required()->maxLength(10000)->columnSpanFull();
+        $fields[] = Textarea::make('description')->label($name === 'EmployeeAbsence' ? 'Descripción / motivo de la ausencia' : ($name === 'WorkTimeReversal' ? 'Motivo de la corrección' : 'Descripción / alcance'))->required()->maxLength(10000)->columnSpanFull();
         foreach (['operation_date' => 'Fecha de operación', 'starts_on' => 'Desde', 'ends_on' => 'Hasta', 'due_date' => 'Vencimiento / fecha prevista', 'valid_until' => 'Caducidad documental'] as $key => $label) {
             if (in_array($key, $attributes, true)) {
-                $fields[] = DatePicker::make($key)->label($label)->default(today('Europe/Madrid'))->required(in_array($key, ['operation_date', 'starts_on', 'ends_on'], true) || $name === 'PurchaseInvoice' && $key === 'due_date');
+                $fields[] = DatePicker::make($key)->label($label)->disabled(fn (?Model $record): bool => $name === 'EmployeeAbsence' && $record?->status === 'posted')->default(today('Europe/Madrid'))->required(in_array($key, ['operation_date', 'starts_on', 'ends_on'], true) || $name === 'PurchaseInvoice' && $key === 'due_date');
             }
         }
         foreach (['amount' => 'Importe sin impuestos / movimiento', 'net_amount' => 'Base imponible', 'tax_amount' => 'Impuestos soportados', 'withholding_amount' => 'Retención fiscal', 'retention_amount' => 'Retención de garantía', 'retention_percentage' => 'Garantía pactada (%)', 'quantity' => 'Cantidad ejecutada en este parte', 'version' => 'Versión'] as $key => $label) {
@@ -176,13 +178,13 @@ final class OperationsForms
         $columns[] = TextColumn::make('status')->label('Estado')->badge()->formatStateUsing(fn (string $state): string => ['draft' => 'Pendiente', 'posted' => 'Confirmado', 'cancelled' => 'Cancelado'][$state] ?? $state);
         $resource = Filament::getModelResource($model);
         $actions = [
-            EditAction::make(),
-            ViewAction::make(),
+            EditAction::make()->authorize(fn (Model $record): bool => $resource::canEdit($record)),
+            ViewAction::make()->authorize(fn (Model $record): bool => $resource::canView($record)),
             Action::make('post')->label($model === ProjectActivity::class ? 'Cerrar / resolver' : 'Confirmar')->requiresConfirmation()->databaseTransaction()
-                ->authorize(fn (Model $record): bool => $resource::canEdit($record))
+                ->authorize(fn (Model $record): bool => $record->status === 'draft' && $resource::canEdit($record))
                 ->action(fn (Model $record) => app(OperationsManager::class)->post($record)),
             Action::make('cancelDraft')->label('Cancelar pendiente')->color('danger')->requiresConfirmation()->databaseTransaction()
-                ->authorize(fn (Model $record): bool => $resource::canEdit($record))
+                ->authorize(fn (Model $record): bool => $record->status === 'draft' && $resource::canEdit($record))
                 ->action(fn (Model $record) => app(OperationsManager::class)->cancel($record)),
         ];
         if (in_array($model, [PurchaseOrder::class, PurchaseInvoice::class], true)) {

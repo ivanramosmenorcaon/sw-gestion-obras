@@ -37,6 +37,11 @@ class LinesRelationManager extends RelationManager
         return CostingForms::configure($schema, 'line');
     }
 
+    private function notifyParentLinesChanged(): void
+    {
+        $this->dispatch('purchase-delivery-lines-changed', noteId: $this->getOwnerRecord()->id);
+    }
+
     public function table(Table $table): Table
     {
         $allowed = fn (): bool => PurchaseDeliveryNoteResource::canEdit($this->getOwnerRecord());
@@ -48,14 +53,14 @@ class LinesRelationManager extends RelationManager
             TextColumn::make('base_unit_cost')->label(__('costing.fields.base_unit_cost')), TextColumn::make('suggested_sale_price')->label(__('costing.fields.suggested_sale_price')),
             TextColumn::make('physical_stock')->label(__('costing.fields.physical_stock'))->state(fn ($record): ?string => $this->isReadOnly() ? app(ProjectCosting::class)->available($record, false) : null),
             TextColumn::make('available_stock')->label(__('costing.fields.available_stock'))->state(fn ($record): ?string => $this->isReadOnly() ? app(ProjectCosting::class)->available($record) : null),
-        ])->headerActions([CreateAction::make()->authorize($allowed)->using(fn (array $data): Model => BusinessRecordValidator::inForm(fn (): Model => $this->getRelationship()->create($data), $this->getMountedActionSchema()?->getStatePath() ?? ''))])
-            ->recordActions([EditAction::make()->authorize($allowed)->using(function (Model $record, array $data): Model {
+        ])->headerActions([CreateAction::make()->authorize($allowed)->after(fn () => $this->notifyParentLinesChanged())->using(fn (array $data): Model => BusinessRecordValidator::inForm(fn (): Model => $this->getRelationship()->create($data), $this->getMountedActionSchema()?->getStatePath() ?? ''))])
+            ->recordActions([EditAction::make()->authorize($allowed)->after(fn () => $this->notifyParentLinesChanged())->using(function (Model $record, array $data): Model {
                 return BusinessRecordValidator::inForm(function () use ($record, $data): Model {
                     $record->update($data);
 
                     return $record;
                 }, $this->getMountedActionSchema()?->getStatePath() ?? '');
-            }), DeleteAction::make()->authorize($allowed)])
+            }), DeleteAction::make()->authorize($allowed)->after(fn () => $this->notifyParentLinesChanged())])
             ->dragReorderableColumns()->stickableColumns();
     }
 }

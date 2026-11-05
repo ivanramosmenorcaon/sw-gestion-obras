@@ -1105,3 +1105,41 @@ OperationalArea conserva los prefijos y nombres de ruta originales al agrupar re
 Se actualiza la guía del dashboard con la explicación de los dos niveles y las ubicaciones de partes, correcciones, fiscalidad y series. No hay migraciones ni cambios de datos o permisos.
 
 Verificación de navegación: 89 pruebas correctas y 1.767 aserciones (NavigationAreasTest, FilamentResourcesTest, OperationsManagementTest, DashboardGuideTest y OperationalAccessTest). Se comprueba el menú principal de ocho entradas, submenús de área, iconos Tabler únicos, conservación de rutas y visibilidad del operario. Pint y compilación de vistas correctos. No se ha realizado una revisión visual interactiva en navegador.
+
+### Submenús de área horizontales — 5 de noviembre de 2026
+
+Se configura SubNavigationPosition::Top en OperationalArea para todos los clusters: las opciones de cada área aparecen como navegación horizontal sobre el contenido, conservando los grupos, iconos, permisos y rutas. El menú principal permanece lateral y se elimina la columna lateral adicional de subnavegación. Se actualiza la explicación del dashboard. Se utiliza la opción nativa de Filament 5.11.1, sin plantillas sobrescritas ni dependencias nuevas. No hay cambios de datos.
+
+### Corrección de clics en desplegables horizontales — 5 de noviembre de 2026
+
+Se identifica un conflicto de apilamiento con resized-column: la barra de herramientas de la tabla tiene z-index 21, por encima del panel desplegable estándar. El tema sitúa la navegación superior del cluster, tanto pestañas como selector móvil, en una capa relativa 22. Queda por encima de la tabla y por debajo de la barra principal de Filament (30) y de los modales. No se crea un contexto de aislamiento sobre todo el contenido, que podría atrapar overlays de tablas. No se modifican archivos de vendor ni se desactivan acciones de la tabla.
+
+Tema recompilado con npm run build. Las pruebas de navegación comprueban renderizado, permisos y rutas; no ejecutan clics en navegador. No se añade una prueba PHP para una corrección exclusivamente CSS.
+
+### Desplegables fuera del contenedor desplazable — 5 de noviembre de 2026
+
+La corrección previa solo con z-index provocaba un scroll interno: fi-tabs usa overflow-x:auto y atrapaba el panel dentro de su contenedor al posicionar la barra. Se retira ese posicionamiento y su z-index. Las vistas de subnavegación horizontal y móvil se adaptan en resources/views/vendor/filament-panels/components/page/sub-navigation para activar la opción nativa teleport del dropdown. El panel se dibuja fuera del contenedor desplazable y se identifica con una clase interna para aplicar z-index 25 solo a esos menús, por encima de la barra de tablas (21) y por debajo del chrome y modales. Se conserva el comportamiento nativo de apertura, foco, enlaces y permisos; no se modifican archivos de vendor.
+
+Se recompila el tema y se limpia la caché de vistas. Se añade regresión de renderizado que exige teleport en los paneles de navegación; no sustituye una comprobación interactiva de los clics en navegador.
+
+### Corrección de líneas de albarán creadas desde relation manager — 5 de noviembre de 2026
+
+Se identifica el conflicto entre dos editores de la misma relación: el formulario de cabecera cargaba lines vacío; el relation manager insertaba una línea y, al confirmar, save() del formulario desactualizado podía eliminarla antes de llamar a recepción. La prueba anterior montaba el formulario después de crear la línea y no cubría este orden real de acciones.
+
+Ahora las altas, modificaciones y borrados del relation manager notifican al formulario propietario. Si sus líneas no tienen cambios pendientes, se recargan únicamente esas líneas sin tocar la cabecera. Si hay un borrador local, se conserva y se muestra un aviso. Una huella bloqueada y una comprobación bajo bloqueo antes de guardar impiden que un formulario desactualizado sobrescriba las líneas de otro componente/sesión. La acción «Recargar líneas guardadas» requiere confirmación y explica que sustituye solo ese bloque.
+
+La confirmación usa una transacción que incluye el guardado previo y la recepción. Si falla la recepción, se revierten los cambios de base y se restaura el borrador de formulario para poder corregir y reintentar. Se suprime el aviso prematuro de Guardado durante esa confirmación. No se omite el requisito de tener al menos una línea ni se inventan productos/cantidades.
+
+Regresiones: formulario abierto antes de crear línea desde la relación, notificación al padre, protección frente a una petición desactualizada, conservación de filas locales pendientes, guardado de líneas nuevas directamente desde el formulario, rollback de una recepción fallida y reintento tras corregir su fecha. Resultado: 37 pruebas correctas y 302 aserciones (CostingResourcesTest, KeyboardDocumentsTest y ProjectCostingTest), en SQLite :memory:. Pint aplicado y caché de vistas limpiada.
+
+Comprobación de solo lectura posterior en la instalación operativa: el albarán 1 ya consta received con una línea guardada. La confirmación no se ejecutó desde el diagnóstico ni se alteraron sus datos manualmente.
+
+### Ausencias: listado y edición de referencia/motivo — 5 de noviembre de 2026
+
+El listado de Ausencias y calendario deja de utilizar solo las columnas genéricas: muestra empleado, referencia, descripción/motivo completa con ajuste de línea, desde, hasta y estado. Se carga employee de forma anticipada y se permite buscar por empleado y descripción. Se mantienen las columnas redimensionables, reordenables y fijables, los filtros y las acciones.
+
+Se comprueba que la ausencia 1 está confirmada; el bloqueo anterior de todo registro confirmado impedía guardar incluso su referencia y descripción. Se permite corregir exclusivamente esos metadatos en ausencias confirmadas. El selector de empleado y las fechas se deshabilitan en ese estado, y la capa de persistencia también rechaza su cambio, incluido un intento directo que evite el formulario. No se aplica esta excepción a los documentos económicos ni se permite editar ausencias canceladas. La auditoría conserva las correcciones.
+
+Las acciones compartidas de edición y consulta reciben autorización explícita del recurso. Confirmar y Cancelar pendiente exigen estado draft para no ofrecer reconfirmación/cancelación de una ausencia ya aprobada. La guía del dashboard explica la excepción de referencia/motivo.
+
+Pruebas: listado con empleado/motivo/fechas y búsqueda, edición real desde el modal en borrador y confirmada, protección de fechas y ocultación de acciones no válidas. Resultado: 14 pruebas correctas, 108 aserciones (EmployeeAbsenceResourceTest, OperationsManagementTest y PurchaseDocumentLinesTest). Pint aplicado y caché de vistas limpiada. Sin migraciones ni modificación manual de ausencias reales.

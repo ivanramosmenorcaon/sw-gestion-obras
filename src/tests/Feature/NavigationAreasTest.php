@@ -48,6 +48,26 @@ class NavigationAreasTest extends TestCase
         Livewire::test(ListProjects::class)->assertSuccessful()->assertSee('Preparación')->assertSee('Ejecución');
     }
 
+    public function test_area_dropdowns_render_with_teleport_to_avoid_the_scrollable_tabs_container(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $page = Livewire::test(ListProjects::class)->assertSuccessful();
+        $document = new \DOMDocument;
+        $document->loadHTML($page->html(), LIBXML_NOERROR | LIBXML_NOWARNING);
+        $xpath = new \DOMXPath($document);
+        $panels = $xpath->query('//div[contains(@class, "fi-dropdown-panel")][div[contains(@class, "fi-cluster-navigation-items")]]');
+        $this->assertGreaterThan(0, $panels->length);
+        foreach ($panels as $panel) {
+            $teleported = false;
+            foreach ($panel->attributes as $attribute) {
+                if (str_starts_with($attribute->name, 'x-float') && str_contains($attribute->name, '.teleport')) {
+                    $teleported = true;
+                }
+            }
+            $this->assertTrue($teleported, 'El menú de área debe salir del contenedor con scroll.');
+        }
+    }
+
     public function test_every_resource_has_its_own_tabler_icon(): void
     {
         $icons = [];

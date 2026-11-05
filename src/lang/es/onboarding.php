@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'navigation_help' => 'El menú principal abre un área de trabajo. Dentro encontrará su menú lateral: Obras, Compras y almacén, Equipo, Ventas y cobros, Catálogo o Configuración. Contactos tiene acceso directo. Inicio reúne la guía, los pendientes y las exportaciones. Solo aparecen las opciones de su perfil.',
+    'navigation_help' => 'El menú principal abre un área de trabajo. Dentro encontrará su menú horizontal sobre el contenido: Obras, Compras y almacén, Equipo, Ventas y cobros, Catálogo o Configuración. Contactos tiene acceso directo. Inicio reúne la guía, los pendientes y las exportaciones. Solo aparecen las opciones de su perfil.',
     'title' => 'Guía de uso: de la primera obra al cierre',
     'intro' => 'Sigue este recorrido para preparar una obra, presupuestarla, registrar su ejecución y facturarla. Abre cada paso para ver el menú y las opciones que necesitas.',
     'flow' => ['Preparar', 'Presupuestar', 'Ejecutar', 'Facturar', 'Cerrar'],
@@ -188,7 +188,7 @@ return [
         [
             'title' => 'Planifica ausencias y corrige partes',
             'path' => 'Equipo → Ausencias y calendario · Equipo → Correcciones de partes',
-            'instructions' => ['Registre la ausencia del empleado con fechas desde/hasta y motivo. Confirme la aprobación; no se admiten ausencias aprobadas solapadas.', 'El operario introduce su propio parte en Partes de trabajo. El encargado o administración comprueba y confirma la imputación; el operario no se aprueba a sí mismo.', 'Para corregir un parte confirmado, registre Correcciones de partes con el original, motivo y fecha; confirme la reversión.', 'Cree un nuevo parte con los datos correctos. El original se conserva y la reversión confirmada anula su efecto en costes y libera su intervalo horario.'],
+            'instructions' => ['Registre la ausencia del empleado con fechas desde/hasta y motivo. Confirme la aprobación; no se admiten ausencias aprobadas solapadas. En una ausencia confirmada puede corregir la referencia y el motivo; el empleado y las fechas aprobadas quedan bloqueados.', 'El operario introduce su propio parte en Partes de trabajo. El encargado o administración comprueba y confirma la imputación; el operario no se aprueba a sí mismo.', 'Para corregir un parte confirmado, registre Correcciones de partes con el original, motivo y fecha; confirme la reversión.', 'Cree un nuevo parte con los datos correctos. El original se conserva y la reversión confirmada anula su efecto en costes y libera su intervalo horario.'],
             'tip' => 'Estos partes son imputaciones productivas. No sustituyen un registro laboral completo de jornada ni un programa de nóminas.',
             'links' => ['absences'],
         ],

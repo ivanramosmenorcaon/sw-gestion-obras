@@ -2,6 +2,7 @@
 
 namespace App\Filament\Actions;
 
+use App\Filament\Resources\PurchaseDeliveryNotes\Pages\EditPurchaseDeliveryNote;
 use App\Models\MaterialConsumption;
 use App\Models\PurchaseDeliveryNote;
 use App\Models\WorkTimeEntry;
@@ -19,7 +20,7 @@ final class CostingActions
     /** @param class-string $resource */
     public static function confirm(string $resource): Action
     {
-        return Action::make('confirm')->label(fn (Model $record): string => $record instanceof PurchaseDeliveryNote ? __('costing.receive') : __('costing.post'))->requiresConfirmation()
+        return Action::make('confirm')->databaseTransaction()->label(fn (Model $record): string => $record instanceof PurchaseDeliveryNote ? __('costing.receive') : __('costing.post'))->requiresConfirmation()
             ->authorize(fn (Model $record): bool => $record->status === 'draft' && $resource::canEdit($record) && (OperationalAccess::canSeeCosts() || auth()->user()?->role === 'foreman'))
             ->action(function (Model $record, Component $livewire) use ($resource): void {
                 abort_unless($resource::canEdit($record) && (OperationalAccess::canSeeCosts() || auth()->user()?->role === 'foreman'), 403);
@@ -29,6 +30,9 @@ final class CostingActions
                         $record instanceof PurchaseDeliveryNote => $service->receive($record), $record instanceof MaterialConsumption => $service->postMaterial($record), $record instanceof WorkTimeEntry => $service->postTime($record)
                     };
                 } catch (ValidationException $exception) {
+                    if ($livewire instanceof EditPurchaseDeliveryNote) {
+                        $livewire->restoreConfirmationDraft();
+                    }
                     Notification::make()->danger()->title(__('costing.failed'))->body(implode(' ', Arr::flatten($exception->errors())))->persistent()->send();
                     throw $exception;
                 }

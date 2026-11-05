@@ -76,6 +76,70 @@ class CostingResourcesTest extends TestCase
         Livewire::test(EditPurchaseDeliveryNote::class, ['record' => $note->id])->assertForbidden();
     }
 
+    public function test_receipt_editor_keeps_lines_created_by_its_relation_manager_after_the_page_was_opened(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $note = PurchaseDeliveryNote::factory()->create();
+        $product = Product::factory()->create(['tracks_stock' => true]);
+        $page = Livewire::test(EditPurchaseDeliveryNote::class, ['record' => $note->id]);
+        Livewire::test(LinesRelationManager::class, ['ownerRecord' => $note, 'pageClass' => EditPurchaseDeliveryNote::class])
+            ->callAction(TestAction::make('create')->table(), ['product_id' => $product->id, 'description' => 'Material desde la relación', 'position' => 1, 'quantity' => '2', 'unit_price' => '5', 'discount_percentage' => '0'])
+            ->assertHasNoActionErrors()->assertDispatched('purchase-delivery-lines-changed', noteId: $note->id);
+        $page->dispatch('purchase-delivery-lines-changed', noteId: $note->id)
+            ->callAction('confirm')->assertHasNoActionErrors()->assertRedirect();
+        $this->assertSame('received', $note->fresh()->status);
+        $this->assertSame(1, $note->lines()->count());
+        $this->assertSame('10.00', $note->fresh()->net_total);
+    }
+
+    public function test_stale_receipt_form_cannot_delete_a_line_saved_in_another_component(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $note = PurchaseDeliveryNote::factory()->create();
+        $page = Livewire::test(EditPurchaseDeliveryNote::class, ['record' => $note->id]);
+        $line = PurchaseDeliveryLine::factory()->create(['purchase_delivery_note_id' => $note->id]);
+
+        $page->callAction('confirm')->assertHasErrors('data.lines');
+
+        $this->assertModelExists($line);
+        $this->assertSame('draft', $note->fresh()->status);
+        $this->assertSame(1, $note->lines()->count());
+    }
+
+    public function test_relation_updates_do_not_discard_unsaved_lines_from_the_parent_form(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $note = PurchaseDeliveryNote::factory()->create();
+        $product = Product::factory()->create(['tracks_stock' => true]);
+        $page = Livewire::test(EditPurchaseDeliveryNote::class, ['record' => $note->id])
+            ->set('data.lines.unsaved', ['product_id' => $product->id, 'description' => 'Borrador que se conserva', 'position' => 1, 'quantity' => '2', 'unit_price' => '3', 'discount_percentage' => '0']);
+        $line = PurchaseDeliveryLine::factory()->create(['purchase_delivery_note_id' => $note->id]);
+
+        $page->dispatch('purchase-delivery-lines-changed', noteId: $note->id)
+            ->assertSet('data.lines.unsaved.description', 'Borrador que se conserva')
+            ->callAction('confirm')->assertHasErrors('data.lines');
+
+        $this->assertModelExists($line);
+    }
+
+    public function test_failed_reception_rolls_back_edits_to_previously_saved_lines(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $line = PurchaseDeliveryLine::factory()->create(['unit_price' => '5']);
+        $note = $line->deliveryNote;
+        $page = Livewire::test(EditPurchaseDeliveryNote::class, ['record' => $note->id])
+            ->set('data.lines.record-'.$line->id.'.unit_price', '9')
+            ->set('data.received_date', today('Europe/Madrid')->addDay()->toDateString());
+
+        $page->callAction('confirm')->assertHasErrors('received_date');
+
+        $this->assertSame('5.000000', $line->fresh()->unit_price);
+        $this->assertSame('draft', $note->fresh()->status);
+        $page->call('unmountAction')->set('data.received_date', today('Europe/Madrid')->toDateString())->callAction('confirm')->assertHasNoActionErrors()->assertRedirect();
+        $this->assertSame('9.000000', $line->fresh()->unit_price);
+        $this->assertSame('received', $note->fresh()->status);
+    }
+
     public function test_phase_material_relation_manager_fixes_phase_and_order_in_server(): void
     {
         $this->actingAs(User::factory()->create());

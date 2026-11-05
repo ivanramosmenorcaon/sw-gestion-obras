@@ -16,6 +16,7 @@ use App\Models\WorkTimeEntry;
 use App\Support\BudgetEditor;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -102,6 +103,20 @@ class KeyboardDocumentsTest extends TestCase
             ->call('addManualLine')->set('manualLines.0.description', 'Trabajo')
             ->set('manualLines.0.price', '-1')->callAction('saveBudget')
             ->assertHasErrors('lines.0.price');
+    }
+
+    public function test_confirm_receipt_saves_lines_entered_in_the_form_before_receiving(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $note = PurchaseDeliveryNote::factory()->create();
+        $product = Product::factory()->create(['tracks_stock' => true]);
+        Livewire::test(EditPurchaseDeliveryNote::class, ['record' => $note->id])
+            ->set('data.lines', [
+                (string) Str::uuid() => ['product_id' => $product->id, 'description' => 'Material recién introducido', 'position' => 1, 'quantity' => '2', 'unit_price' => '3', 'discount_percentage' => '0'],
+            ])->mountAction('confirm')->callMountedAction()->assertHasNoActionErrors()->assertRedirect();
+        $this->assertSame('received', $note->fresh()->status);
+        $this->assertSame(1, $note->lines()->count());
+        $this->assertSame('6.00', $note->fresh()->net_total);
     }
 
     public function test_delivery_lines_can_be_saved_together_in_the_keyboard_form(): void

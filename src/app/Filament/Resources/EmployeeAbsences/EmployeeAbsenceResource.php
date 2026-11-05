@@ -10,7 +10,9 @@ use App\Models\EmployeeAbsence;
 use BackedEnum;
 use Daljo25\FilamentTablerIcons\Enums\TablerIcon;
 use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class EmployeeAbsenceResource extends BusinessResource
@@ -42,7 +44,7 @@ class EmployeeAbsenceResource extends BusinessResource
 
     public static function canEdit(Model $record): bool
     {
-        return $record->status === 'draft' && parent::canEdit($record);
+        return in_array($record->status, ['draft', 'posted'], true) && parent::canEdit($record);
     }
 
     public static function canDelete(Model $record): bool
@@ -62,7 +64,17 @@ class EmployeeAbsenceResource extends BusinessResource
 
     public static function table(Table $table): Table
     {
-        return OperationsForms::table($table, static::getModel());
+        return OperationsForms::table($table, static::getModel())
+            ->modifyQueryUsing(fn (Builder $query) => $query->with('employee'))
+            ->columns([
+                TextColumn::make('employee.name')->label('Empleado')->searchable()->sortable(),
+                TextColumn::make('reference')->label('Referencia')->searchable()->sortable(),
+                TextColumn::make('description')->label('Descripción / motivo')->wrap()->searchable(),
+                TextColumn::make('starts_on')->label('Desde')->date('d/m/Y')->sortable(),
+                TextColumn::make('ends_on')->label('Hasta')->date('d/m/Y')->sortable(),
+                TextColumn::make('status')->label('Estado')->badge()
+                    ->formatStateUsing(fn (string $state): string => ['draft' => 'Pendiente', 'posted' => 'Confirmada', 'cancelled' => 'Cancelada'][$state] ?? $state),
+            ]);
     }
 
     public static function getPages(): array

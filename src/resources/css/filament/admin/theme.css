@@ -12,3 +12,8 @@ html.fi-thin {
 html.fi-thin .fi-ta-cell {
     line-height: 1.25;
 }
+
+/* Teleported area menus clear table toolbars without clipping inside tabs. */
+.fi-dropdown-panel:has(> .fi-cluster-navigation-items) {
+    z-index: 25;
+}
