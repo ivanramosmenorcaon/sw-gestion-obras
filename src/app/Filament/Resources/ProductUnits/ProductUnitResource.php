@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ProductUnits;
 
+use App\Filament\Clusters\Catalog\CatalogCluster;
 use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\ProductUnits\Pages\CreateProductUnit;
 use App\Filament\Resources\ProductUnits\Pages\EditProductUnit;
@@ -11,16 +12,20 @@ use App\Filament\Resources\ProductUnits\Tables\ProductUnitsTable;
 use App\Models\ProductUnit;
 use App\Support\BusinessRecordValidator;
 use BackedEnum;
+use Daljo25\FilamentTablerIcons\Enums\TablerIcon;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
 class ProductUnitResource extends BusinessResource
 {
+    protected static ?string $cluster = CatalogCluster::class;
+
+    protected static ?int $navigationSort = 33;
+
     protected static ?string $model = ProductUnit::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = TablerIcon::Package;
 
     protected static ?string $recordTitleAttribute = 'name';
 

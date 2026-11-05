@@ -2,21 +2,26 @@
 
 namespace App\Filament\Resources\PurchaseInvoices;
 
+use App\Filament\Clusters\Purchases\PurchasesCluster;
 use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\PurchaseInvoices\Pages\ManagePurchaseInvoices;
 use App\Filament\Schemas\OperationsForms;
 use App\Models\PurchaseInvoice;
 use BackedEnum;
+use Daljo25\FilamentTablerIcons\Enums\TablerIcon;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
 class PurchaseInvoiceResource extends BusinessResource
 {
+    protected static ?string $cluster = PurchasesCluster::class;
+
+    protected static ?int $navigationSort = 16;
+
     protected static ?string $model = PurchaseInvoice::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = TablerIcon::FileInvoice;
 
     protected static ?string $recordTitleAttribute = 'reference';
 
@@ -30,9 +35,9 @@ class PurchaseInvoiceResource extends BusinessResource
         return static::getModelLabel();
     }
 
-    public static function getNavigationGroup(): string
+    public static function getNavigationGroup(): ?string
     {
-        return 'Compras y almacén';
+        return 'Compras';
     }
 
     public static function canEdit(Model $record): bool

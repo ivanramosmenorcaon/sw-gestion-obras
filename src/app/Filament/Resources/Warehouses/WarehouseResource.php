@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Warehouses;
 
+use App\Filament\Clusters\Purchases\PurchasesCluster;
 use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\Warehouses\Pages\CreateWarehouse;
 use App\Filament\Resources\Warehouses\Pages\EditWarehouse;
@@ -19,9 +20,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class WarehouseResource extends BusinessResource
 {
+    protected static ?string $cluster = PurchasesCluster::class;
+
+    protected static ?int $navigationSort = 19;
+
     protected static ?string $model = Warehouse::class;
 
-    protected static string|BackedEnum|null $navigationIcon = TablerIcon::BuildingFactory;
+    protected static string|BackedEnum|null $navigationIcon = TablerIcon::BuildingWarehouse;
 
     protected static ?string $recordTitleAttribute = 'name';
 
@@ -35,9 +40,9 @@ class WarehouseResource extends BusinessResource
         return __('costing.warehouses');
     }
 
-    public static function getNavigationGroup(): string
+    public static function getNavigationGroup(): ?string
     {
-        return __('costing.group');
+        return 'Almacén';
     }
 
     public static function canEdit(Model $record): bool

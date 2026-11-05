@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Projects;
 
+use App\Filament\Clusters\Works\WorksCluster;
 use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\Projects\Pages\CreateProject;
 use App\Filament\Resources\Projects\Pages\EditProject;
@@ -11,22 +12,26 @@ use App\Filament\Resources\Projects\Tables\ProjectsTable;
 use App\Models\Project;
 use App\Support\BusinessRecordValidator;
 use BackedEnum;
+use Daljo25\FilamentTablerIcons\Enums\TablerIcon;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
 class ProjectResource extends BusinessResource
 {
+    protected static ?string $cluster = WorksCluster::class;
+
+    protected static ?int $navigationSort = 1;
+
     protected static ?string $model = Project::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBuildingOffice2;
+    protected static string|BackedEnum|null $navigationIcon = TablerIcon::Crane;
 
     protected static ?string $recordTitleAttribute = 'name';
 
-    public static function getNavigationGroup(): string
+    public static function getNavigationGroup(): ?string
     {
-        return __('business.groups.works');
+        return 'Preparación';
     }
 
     public static function getModelLabel(): string

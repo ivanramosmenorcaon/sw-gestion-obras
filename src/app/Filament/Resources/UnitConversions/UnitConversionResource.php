@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\UnitConversions;
 
+use App\Filament\Clusters\Catalog\CatalogCluster;
 use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\UnitConversions\Pages\CreateUnitConversion;
 use App\Filament\Resources\UnitConversions\Pages\EditUnitConversion;
@@ -11,16 +12,20 @@ use App\Filament\Resources\UnitConversions\Tables\UnitConversionsTable;
 use App\Models\UnitConversion;
 use App\Support\BusinessRecordValidator;
 use BackedEnum;
+use Daljo25\FilamentTablerIcons\Enums\TablerIcon;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
 class UnitConversionResource extends BusinessResource
 {
+    protected static ?string $cluster = CatalogCluster::class;
+
+    protected static ?int $navigationSort = 38;
+
     protected static ?string $model = UnitConversion::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = TablerIcon::ArrowsExchange;
 
     protected static ?string $recordTitleAttribute = 'factor';
 

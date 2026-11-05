@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ProjectChapters;
 
+use App\Filament\Clusters\Works\WorksCluster;
 use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\ProjectChapters\Pages\CreateProjectChapter;
 use App\Filament\Resources\ProjectChapters\Pages\EditProjectChapter;
@@ -11,16 +12,20 @@ use App\Filament\Resources\ProjectChapters\Tables\ProjectChaptersTable;
 use App\Models\ProjectChapter;
 use App\Support\BusinessRecordValidator;
 use BackedEnum;
+use Daljo25\FilamentTablerIcons\Enums\TablerIcon;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
 class ProjectChapterResource extends BusinessResource
 {
+    protected static ?string $cluster = WorksCluster::class;
+
+    protected static ?int $navigationSort = 3;
+
     protected static ?string $model = ProjectChapter::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = TablerIcon::Sitemap;
 
     protected static ?string $recordTitleAttribute = 'name';
 

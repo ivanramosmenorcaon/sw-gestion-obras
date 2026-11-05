@@ -2,26 +2,31 @@
 
 namespace App\Filament\Resources\Users;
 
+use App\Filament\Clusters\Settings\SettingsCluster;
 use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\Users\Pages\ManageUsers;
 use App\Models\User;
 use App\Support\OperationalAccess;
 use BackedEnum;
+use Daljo25\FilamentTablerIcons\Enums\TablerIcon;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
 class UserResource extends BusinessResource
 {
+    protected static ?string $cluster = SettingsCluster::class;
+
+    protected static ?int $navigationSort = 45;
+
     protected static ?string $model = User::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = TablerIcon::ShieldLock;
 
     protected static ?string $recordTitleAttribute = 'name';
 
@@ -46,9 +51,9 @@ class UserResource extends BusinessResource
         return 'Usuarios y permisos';
     }
 
-    public static function getNavigationGroup(): string
+    public static function getNavigationGroup(): ?string
     {
-        return 'Configuración';
+        return 'Acceso y control';
     }
 
     public static function table(Table $table): Table

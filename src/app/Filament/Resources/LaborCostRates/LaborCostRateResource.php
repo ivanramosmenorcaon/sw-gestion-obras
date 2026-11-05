@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\LaborCostRates;
 
+use App\Filament\Clusters\Team\TeamCluster;
 use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\LaborCostRates\Pages\CreateLaborCostRate;
 use App\Filament\Resources\LaborCostRates\Pages\EditLaborCostRate;
@@ -19,9 +20,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class LaborCostRateResource extends BusinessResource
 {
+    protected static ?string $cluster = TeamCluster::class;
+
+    protected static ?int $navigationSort = 25;
+
     protected static ?string $model = LaborCostRate::class;
 
-    protected static string|BackedEnum|null $navigationIcon = TablerIcon::FileEuro;
+    protected static string|BackedEnum|null $navigationIcon = TablerIcon::Hourglass;
 
     protected static ?string $recordTitleAttribute = 'id';
 
@@ -35,9 +40,9 @@ class LaborCostRateResource extends BusinessResource
         return __('costing.rates');
     }
 
-    public static function getNavigationGroup(): string
+    public static function getNavigationGroup(): ?string
     {
-        return __('business.groups.team');
+        return 'Trabajo y costes';
     }
 
     public static function canEdit(Model $record): bool

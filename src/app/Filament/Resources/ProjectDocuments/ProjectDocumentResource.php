@@ -2,21 +2,26 @@
 
 namespace App\Filament\Resources\ProjectDocuments;
 
+use App\Filament\Clusters\Works\WorksCluster;
 use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\ProjectDocuments\Pages\ManageProjectDocuments;
 use App\Filament\Schemas\OperationsForms;
 use App\Models\ProjectDocument;
 use BackedEnum;
+use Daljo25\FilamentTablerIcons\Enums\TablerIcon;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
 class ProjectDocumentResource extends BusinessResource
 {
+    protected static ?string $cluster = WorksCluster::class;
+
+    protected static ?int $navigationSort = 11;
+
     protected static ?string $model = ProjectDocument::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = TablerIcon::Files;
 
     protected static ?string $recordTitleAttribute = 'reference';
 
@@ -30,9 +35,9 @@ class ProjectDocumentResource extends BusinessResource
         return static::getModelLabel();
     }
 
-    public static function getNavigationGroup(): string
+    public static function getNavigationGroup(): ?string
     {
-        return 'Obras';
+        return 'Seguimiento';
     }
 
     public static function canEdit(Model $record): bool

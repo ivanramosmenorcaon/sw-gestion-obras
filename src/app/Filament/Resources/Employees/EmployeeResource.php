@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Employees;
 
+use App\Filament\Clusters\Team\TeamCluster;
 use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\Employees\Pages\CreateEmployee;
 use App\Filament\Resources\Employees\Pages\EditEmployee;
@@ -11,22 +12,26 @@ use App\Filament\Resources\Employees\Tables\EmployeesTable;
 use App\Models\Employee;
 use App\Support\BusinessRecordValidator;
 use BackedEnum;
+use Daljo25\FilamentTablerIcons\Enums\TablerIcon;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
 class EmployeeResource extends BusinessResource
 {
+    protected static ?string $cluster = TeamCluster::class;
+
+    protected static ?int $navigationSort = 21;
+
     protected static ?string $model = Employee::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
+    protected static string|BackedEnum|null $navigationIcon = TablerIcon::User;
 
     protected static ?string $recordTitleAttribute = 'name';
 
-    public static function getNavigationGroup(): string
+    public static function getNavigationGroup(): ?string
     {
-        return __('business.groups.team');
+        return 'Personal';
     }
 
     public static function getModelLabel(): string

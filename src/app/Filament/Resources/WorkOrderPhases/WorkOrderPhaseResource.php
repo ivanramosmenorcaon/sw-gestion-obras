@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\WorkOrderPhases;
 
+use App\Filament\Clusters\Works\WorksCluster;
 use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\WorkOrderPhases\Pages\CreateWorkOrderPhase;
 use App\Filament\Resources\WorkOrderPhases\Pages\EditWorkOrderPhase;
@@ -13,16 +14,20 @@ use App\Filament\Resources\WorkOrderPhases\Tables\WorkOrderPhasesTable;
 use App\Models\WorkOrderPhase;
 use App\Support\BusinessRecordValidator;
 use BackedEnum;
+use Daljo25\FilamentTablerIcons\Enums\TablerIcon;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
 class WorkOrderPhaseResource extends BusinessResource
 {
+    protected static ?string $cluster = WorksCluster::class;
+
+    protected static ?int $navigationSort = 5;
+
     protected static ?string $model = WorkOrderPhase::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = TablerIcon::Timeline;
 
     protected static ?string $recordTitleAttribute = 'name';
 

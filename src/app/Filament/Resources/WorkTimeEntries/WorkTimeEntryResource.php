@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\WorkTimeEntries;
 
+use App\Filament\Clusters\Team\TeamCluster;
 use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\WorkOrderPhases\WorkOrderPhaseResource;
 use App\Filament\Resources\WorkTimeEntries\Pages\CreateWorkTimeEntry;
@@ -20,6 +21,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class WorkTimeEntryResource extends BusinessResource
 {
+    protected static ?string $cluster = TeamCluster::class;
+
+    protected static ?int $navigationSort = 23;
+
     protected static ?string $model = WorkTimeEntry::class;
 
     protected static string|BackedEnum|null $navigationIcon = TablerIcon::Clock;
@@ -36,9 +41,9 @@ class WorkTimeEntryResource extends BusinessResource
         return __('costing.times');
     }
 
-    public static function getNavigationGroup(): string
+    public static function getNavigationGroup(): ?string
     {
-        return __('business.groups.works');
+        return 'Trabajo y costes';
     }
 
     public static function canEdit(Model $record): bool

@@ -1086,3 +1086,22 @@ La suite completa detectó una preparación antigua que intentaba cerrar una ord
 Resultado final de php artisan test --compact: **393 pruebas correctas, 3.688 aserciones**, 79,2 segundos, con SQLite :memory: forzado. Formato aplicado con Pint, compilación Vite correcta y vistas Blade compiladas. El aviso de fontaine es opcional y no impide compilar; no se añade esa dependencia.
 
 El plan sigue abierto: no se presenta la ampliación como terminación del 100 % de sus apartados. Los pendientes funcionales y los dependientes de infraestructura/validación externa están separados en PLAN.md, apartado 16, y en la guía operativa. Se prepara una instantánea local de código en Git excluyendo claves, certificados, .env, datos privados y compilados. No se publica ni se envía el repositorio a un servicio externo.
+
+## 2026-11-05 — Navegación por áreas e iconos Tabler
+
+Se reorganiza el panel con clusters de Filament 5, manteniendo los recursos en sus carpetas actuales. El menú principal contiene el dashboard, seis áreas y Contactos como acceso directo. Al abrir un área aparece su menú lateral propio:
+
+- Obras: Preparación (proyectos y presupuestos), Ejecución (órdenes, fases y avance), Seguimiento (diario/incidencias, documentos, gastos y consumos).
+- Compras y almacén: Compras (pedidos → albaranes → facturas recibidas), Subcontratas (contratos y certificaciones), Almacén (almacenes y movimientos).
+- Equipo: Personal (empleados y ausencias), Trabajo y costes (partes, correcciones y tarifas horarias).
+- Ventas y cobros: Ventas (facturas emitidas), Tesorería (movimientos, vencimientos, anticipos y devoluciones).
+- Catálogo: productos, tarifas y unidades.
+- Configuración: empresa y condiciones comerciales, fiscalidad y series, usuarios y auditoría.
+
+Los 50 recursos tienen iconos distintos del enum Daljo25\FilamentTablerIcons\Enums\TablerIcon, incluidos los auxiliares no publicados en el menú. Se utiliza la versión instalada 3.50.0; no se añaden dependencias. Los recursos auxiliares siguen abriéndose desde sus relaciones y no se publican entradas nuevas solo por asignarles icono.
+
+OperationalArea conserva los prefijos y nombres de ruta originales al agrupar recursos en clusters. Así continúan funcionando los favoritos, enlaces de documentos y acciones que utilizan las rutas anteriores. Las entradas de área solo aparecen cuando existe algún recurso accesible; un operario accede a Equipo y su listado de partes.
+
+Se actualiza la guía del dashboard con la explicación de los dos niveles y las ubicaciones de partes, correcciones, fiscalidad y series. No hay migraciones ni cambios de datos o permisos.
+
+Verificación de navegación: 89 pruebas correctas y 1.767 aserciones (NavigationAreasTest, FilamentResourcesTest, OperationsManagementTest, DashboardGuideTest y OperationalAccessTest). Se comprueba el menú principal de ocho entradas, submenús de área, iconos Tabler únicos, conservación de rutas y visibilidad del operario. Pint y compilación de vistas correctos. No se ha realizado una revisión visual interactiva en navegador.

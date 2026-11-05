@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'navigation_help' => 'El menú principal abre un área de trabajo. Dentro encontrará su menú lateral: Obras, Compras y almacén, Equipo, Ventas y cobros, Catálogo o Configuración. Contactos tiene acceso directo. Inicio reúne la guía, los pendientes y las exportaciones. Solo aparecen las opciones de su perfil.',
     'title' => 'Guía de uso: de la primera obra al cierre',
     'intro' => 'Sigue este recorrido para preparar una obra, presupuestarla, registrar su ejecución y facturarla. Abre cada paso para ver el menú y las opciones que necesitas.',
     'flow' => ['Preparar', 'Presupuestar', 'Ejecutar', 'Facturar', 'Cerrar'],
@@ -16,7 +17,7 @@ return [
                 'Crea el cliente en Contactos, guarda su ficha y añade el rol Cliente en Roles. Para proveedores y contratistas utiliza los roles Proveedor y Subcontratista.',
                 'En la ficha del cliente abre Direcciones y guarda exactamente un domicilio con Dirección fiscal y Activo marcados. Completa también municipio, código postal y país.',
                 'En Productos y servicios configura referencia, descripción, tipo y unidad base. Para entradas de material activa Controlar stock; usa Presentaciones para cajas, sacos u otros formatos de compra.',
-                'Revisa la Configuración fiscal predeterminada del producto, cliente y empresa. Los códigos y porcentajes se administran en Fiscalidad → Perfiles fiscales y Tipos impositivos y retenciones.',
+                'Revisa la Configuración fiscal predeterminada del producto, cliente y empresa. Los códigos y porcentajes se administran en Configuración → Fiscalidad → Perfiles fiscales y Tipos impositivos y retenciones.',
             ],
             'tip' => 'El domicilio se guarda en Direcciones del cliente, no al seleccionarlo en la factura. El porcentaje sobre compra propone precios; revisa los importes acordados antes de presupuestar o facturar.',
             'links' => ['company', 'contacts', 'products'],
@@ -102,7 +103,7 @@ return [
         ],
         [
             'title' => 'Registra los partes de trabajo y revisa los costes',
-            'path' => 'Obras → Partes de trabajo · Orden → Fases → Abrir fase → Partes de trabajo',
+            'path' => 'Equipo → Partes de trabajo · Orden → Fases → Abrir fase → Partes de trabajo',
             'instructions' => [
                 'Crea el parte indicando orden, fase, operario o contratista, inicio, fin, pausas y descripción del trabajo realizado.',
                 'Revisa la asignación y la tarifa vigente. Si el trabajo atraviesa un cambio de tarifa, divídelo en dos partes en ese límite.',
@@ -114,13 +115,13 @@ return [
         ],
         [
             'title' => 'Factura las fases o crea una factura individual',
-            'path' => 'Orden → Facturar fases · Facturación → Facturas de venta',
+            'path' => 'Orden → Facturar fases · Ventas y cobros → Facturas de venta',
             'instructions' => [
                 'En la edición de la orden pulsa Facturar fases. Selecciona una serie, las fases y el porcentaje de las cantidades pendientes que deseas facturar.',
                 'Revisa el borrador generado: cliente, fechas, descripción, cantidades, precios, perfiles fiscales y retenciones de cada línea. Las cantidades reservadas por otros borradores ya se descuentan del pendiente.',
-                'Para una factura individual, entra en Facturación → Facturas de venta, crea la cabecera eligiendo cliente y serie y añade después sus líneas.',
+                'Para una factura individual, entra en Ventas y cobros → Facturas de venta, crea la cabecera eligiendo cliente y serie y añade después sus líneas.',
                 'En Series de facturación usa una serie Ordinaria para facturas y una Rectificativa para abonos; el ejercicio debe coincidir con la fecha de expedición.',
-                'Si falta el domicilio, utiliza Gestionar domicilio fiscal del cliente. Revisa también el domicilio completo de la empresa emisora y las series en Facturación → Series de facturación.',
+                'Si falta el domicilio, utiliza Gestionar domicilio fiscal del cliente. Revisa también el domicilio completo de la empresa emisora y las series en Configuración → Fiscalidad → Series de facturación.',
                 'Pulsa Emitir en pruebas, revisa el documento y el XML y consulta su estado de envío. Si está habilitado, Enviar a AEAT (pruebas) solicita el envío; Pendiente no equivale a Aceptado por AEAT.',
             ],
             'tip' => 'El flujo de emisión habilitado actualmente es de pruebas: sus documentos no tienen validez fiscal. La emisión real continúa bloqueada hasta completar los trabajos pendientes. Emitir fija número y datos históricos; ya no se puede editar la factura. Un consumo o parte no se factura automáticamente: revisa las partidas de venta de la orden.',
@@ -128,7 +129,7 @@ return [
         ],
         [
             'title' => 'Resuelve borradores pendientes y rectificaciones',
-            'path' => 'Facturación → Facturas de venta → Editar / Ver factura',
+            'path' => 'Ventas y cobros → Facturas de venta → Editar / Ver factura',
             'instructions' => [
                 'Si un borrador no se va a utilizar, pulsa Cancelar borrador. Así se liberan las cantidades reservadas de sus partidas.',
                 'Si una factura ya emitida necesita un abono, abre su vista y pulsa Preparar rectificativa. Elige serie rectificativa, tipo y motivo.',
@@ -186,7 +187,7 @@ return [
         ],
         [
             'title' => 'Planifica ausencias y corrige partes',
-            'path' => 'Equipo → Ausencias y calendario · Obras → Correcciones de partes',
+            'path' => 'Equipo → Ausencias y calendario · Equipo → Correcciones de partes',
             'instructions' => ['Registre la ausencia del empleado con fechas desde/hasta y motivo. Confirme la aprobación; no se admiten ausencias aprobadas solapadas.', 'El operario introduce su propio parte en Partes de trabajo. El encargado o administración comprueba y confirma la imputación; el operario no se aprueba a sí mismo.', 'Para corregir un parte confirmado, registre Correcciones de partes con el original, motivo y fecha; confirme la reversión.', 'Cree un nuevo parte con los datos correctos. El original se conserva y la reversión confirmada anula su efecto en costes y libera su intervalo horario.'],
             'tip' => 'Estos partes son imputaciones productivas. No sustituyen un registro laboral completo de jornada ni un programa de nóminas.',
             'links' => ['absences'],

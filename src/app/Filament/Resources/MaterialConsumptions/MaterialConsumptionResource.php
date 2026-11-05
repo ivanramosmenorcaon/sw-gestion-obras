@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\MaterialConsumptions;
 
+use App\Filament\Clusters\Works\WorksCluster;
 use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\MaterialConsumptions\Pages\CreateMaterialConsumption;
 use App\Filament\Resources\MaterialConsumptions\Pages\EditMaterialConsumption;
@@ -20,9 +21,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class MaterialConsumptionResource extends BusinessResource
 {
+    protected static ?string $cluster = WorksCluster::class;
+
+    protected static ?int $navigationSort = 13;
+
     protected static ?string $model = MaterialConsumption::class;
 
-    protected static string|BackedEnum|null $navigationIcon = TablerIcon::BasketMinus;
+    protected static string|BackedEnum|null $navigationIcon = TablerIcon::PackageExport;
 
     protected static ?string $recordTitleAttribute = 'id';
 
@@ -36,9 +41,9 @@ class MaterialConsumptionResource extends BusinessResource
         return __('costing.consumptions');
     }
 
-    public static function getNavigationGroup(): string
+    public static function getNavigationGroup(): ?string
     {
-        return __('costing.group');
+        return 'Seguimiento';
     }
 
     public static function canEdit(Model $record): bool

@@ -2,21 +2,26 @@
 
 namespace App\Filament\Resources\PaymentReversals;
 
+use App\Filament\Clusters\Finance\FinanceCluster;
 use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\PaymentReversals\Pages\ManagePaymentReversals;
 use App\Filament\Schemas\OperationsForms;
 use App\Models\PaymentReversal;
 use BackedEnum;
+use Daljo25\FilamentTablerIcons\Enums\TablerIcon;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
 class PaymentReversalResource extends BusinessResource
 {
+    protected static ?string $cluster = FinanceCluster::class;
+
+    protected static ?int $navigationSort = 30;
+
     protected static ?string $model = PaymentReversal::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = TablerIcon::ReceiptRefund;
 
     protected static ?string $recordTitleAttribute = 'reference';
 
@@ -30,9 +35,9 @@ class PaymentReversalResource extends BusinessResource
         return static::getModelLabel();
     }
 
-    public static function getNavigationGroup(): string
+    public static function getNavigationGroup(): ?string
     {
-        return 'Obras';
+        return 'Tesorería';
     }
 
     public static function canEdit(Model $record): bool

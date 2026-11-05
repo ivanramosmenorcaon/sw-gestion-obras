@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\SalesInvoices;
 
+use App\Filament\Clusters\Finance\FinanceCluster;
 use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\SalesInvoices\Pages\CreateSalesInvoice;
 use App\Filament\Resources\SalesInvoices\Pages\EditSalesInvoice;
@@ -13,22 +14,26 @@ use App\Filament\Resources\SalesInvoices\Schemas\SalesInvoiceInfolist;
 use App\Filament\Resources\SalesInvoices\Tables\SalesInvoicesTable;
 use App\Models\SalesInvoice;
 use BackedEnum;
+use Daljo25\FilamentTablerIcons\Enums\TablerIcon;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
 class SalesInvoiceResource extends BusinessResource
 {
+    protected static ?string $cluster = FinanceCluster::class;
+
+    protected static ?int $navigationSort = 26;
+
     protected static ?string $model = SalesInvoice::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::DocumentCurrencyEuro;
+    protected static string|BackedEnum|null $navigationIcon = TablerIcon::Invoice;
 
     protected static ?string $recordTitleAttribute = 'number';
 
-    public static function getNavigationGroup(): string
+    public static function getNavigationGroup(): ?string
     {
-        return __('billing.group');
+        return 'Ventas';
     }
 
     public static function getModelLabel(): string

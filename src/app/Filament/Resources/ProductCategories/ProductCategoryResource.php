@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ProductCategories;
 
+use App\Filament\Clusters\Catalog\CatalogCluster;
 use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\ProductCategories\Pages\CreateProductCategory;
 use App\Filament\Resources\ProductCategories\Pages\EditProductCategory;
@@ -11,22 +12,26 @@ use App\Filament\Resources\ProductCategories\Tables\ProductCategoriesTable;
 use App\Models\ProductCategory;
 use App\Support\BusinessRecordValidator;
 use BackedEnum;
+use Daljo25\FilamentTablerIcons\Enums\TablerIcon;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
 class ProductCategoryResource extends BusinessResource
 {
+    protected static ?string $cluster = CatalogCluster::class;
+
+    protected static ?int $navigationSort = 32;
+
     protected static ?string $model = ProductCategory::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCube;
+    protected static string|BackedEnum|null $navigationIcon = TablerIcon::Category;
 
     protected static ?string $recordTitleAttribute = 'name';
 
-    public static function getNavigationGroup(): string
+    public static function getNavigationGroup(): ?string
     {
-        return __('business.groups.catalog');
+        return 'Productos y tarifas';
     }
 
     public static function getModelLabel(): string

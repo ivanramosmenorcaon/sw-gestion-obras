@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\PurchaseDeliveryNotes;
 
+use App\Filament\Clusters\Purchases\PurchasesCluster;
 use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\PurchaseDeliveryNotes\Pages\CreatePurchaseDeliveryNote;
 use App\Filament\Resources\PurchaseDeliveryNotes\Pages\EditPurchaseDeliveryNote;
@@ -20,9 +21,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class PurchaseDeliveryNoteResource extends BusinessResource
 {
+    protected static ?string $cluster = PurchasesCluster::class;
+
+    protected static ?int $navigationSort = 15;
+
     protected static ?string $model = PurchaseDeliveryNote::class;
 
-    protected static string|BackedEnum|null $navigationIcon = TablerIcon::FileInvoiceFilled;
+    protected static string|BackedEnum|null $navigationIcon = TablerIcon::TruckDelivery;
 
     protected static ?string $recordTitleAttribute = 'reference';
 
@@ -36,9 +41,9 @@ class PurchaseDeliveryNoteResource extends BusinessResource
         return __('costing.notes');
     }
 
-    public static function getNavigationGroup(): string
+    public static function getNavigationGroup(): ?string
     {
-        return __('costing.group');
+        return 'Compras';
     }
 
     public static function canEdit(Model $record): bool

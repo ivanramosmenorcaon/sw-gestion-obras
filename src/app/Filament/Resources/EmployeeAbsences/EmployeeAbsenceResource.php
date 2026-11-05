@@ -2,21 +2,26 @@
 
 namespace App\Filament\Resources\EmployeeAbsences;
 
+use App\Filament\Clusters\Team\TeamCluster;
 use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\EmployeeAbsences\Pages\ManageEmployeeAbsences;
 use App\Filament\Schemas\OperationsForms;
 use App\Models\EmployeeAbsence;
 use BackedEnum;
+use Daljo25\FilamentTablerIcons\Enums\TablerIcon;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
 class EmployeeAbsenceResource extends BusinessResource
 {
+    protected static ?string $cluster = TeamCluster::class;
+
+    protected static ?int $navigationSort = 22;
+
     protected static ?string $model = EmployeeAbsence::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = TablerIcon::CalendarOff;
 
     protected static ?string $recordTitleAttribute = 'reference';
 
@@ -30,9 +35,9 @@ class EmployeeAbsenceResource extends BusinessResource
         return static::getModelLabel();
     }
 
-    public static function getNavigationGroup(): string
+    public static function getNavigationGroup(): ?string
     {
-        return 'Equipo';
+        return 'Personal';
     }
 
     public static function canEdit(Model $record): bool

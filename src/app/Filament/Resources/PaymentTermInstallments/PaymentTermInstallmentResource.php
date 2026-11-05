@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\PaymentTermInstallments;
 
+use App\Filament\Clusters\Settings\SettingsCluster;
 use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\PaymentTermInstallments\Pages\CreatePaymentTermInstallment;
 use App\Filament\Resources\PaymentTermInstallments\Pages\EditPaymentTermInstallment;
@@ -11,16 +12,20 @@ use App\Filament\Resources\PaymentTermInstallments\Tables\PaymentTermInstallment
 use App\Models\PaymentTermInstallment;
 use App\Support\BusinessRecordValidator;
 use BackedEnum;
+use Daljo25\FilamentTablerIcons\Enums\TablerIcon;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
 class PaymentTermInstallmentResource extends BusinessResource
 {
+    protected static ?string $cluster = SettingsCluster::class;
+
+    protected static ?int $navigationSort = 41;
+
     protected static ?string $model = PaymentTermInstallment::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = TablerIcon::ListNumbers;
 
     protected static ?string $recordTitleAttribute = 'sequence';
 

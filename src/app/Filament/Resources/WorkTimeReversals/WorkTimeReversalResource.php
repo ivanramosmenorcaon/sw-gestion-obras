@@ -2,21 +2,26 @@
 
 namespace App\Filament\Resources\WorkTimeReversals;
 
+use App\Filament\Clusters\Team\TeamCluster;
 use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\WorkTimeReversals\Pages\ManageWorkTimeReversals;
 use App\Filament\Schemas\OperationsForms;
 use App\Models\WorkTimeReversal;
 use BackedEnum;
+use Daljo25\FilamentTablerIcons\Enums\TablerIcon;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
 class WorkTimeReversalResource extends BusinessResource
 {
+    protected static ?string $cluster = TeamCluster::class;
+
+    protected static ?int $navigationSort = 24;
+
     protected static ?string $model = WorkTimeReversal::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = TablerIcon::ClockEdit;
 
     protected static ?string $recordTitleAttribute = 'reference';
 
@@ -30,9 +35,9 @@ class WorkTimeReversalResource extends BusinessResource
         return static::getModelLabel();
     }
 
-    public static function getNavigationGroup(): string
+    public static function getNavigationGroup(): ?string
     {
-        return 'Obras';
+        return 'Trabajo y costes';
     }
 
     public static function canEdit(Model $record): bool

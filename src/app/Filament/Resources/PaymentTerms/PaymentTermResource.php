@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\PaymentTerms;
 
+use App\Filament\Clusters\Settings\SettingsCluster;
 use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\PaymentTerms\Pages\CreatePaymentTerm;
 use App\Filament\Resources\PaymentTerms\Pages\EditPaymentTerm;
@@ -11,22 +12,26 @@ use App\Filament\Resources\PaymentTerms\Tables\PaymentTermsTable;
 use App\Models\PaymentTerm;
 use App\Support\BusinessRecordValidator;
 use BackedEnum;
+use Daljo25\FilamentTablerIcons\Enums\TablerIcon;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
 class PaymentTermResource extends BusinessResource
 {
+    protected static ?string $cluster = SettingsCluster::class;
+
+    protected static ?int $navigationSort = 40;
+
     protected static ?string $model = PaymentTerm::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCog6Tooth;
+    protected static string|BackedEnum|null $navigationIcon = TablerIcon::CreditCardPay;
 
     protected static ?string $recordTitleAttribute = 'name';
 
-    public static function getNavigationGroup(): string
+    public static function getNavigationGroup(): ?string
     {
-        return __('business.groups.settings');
+        return 'Empresa';
     }
 
     public static function getModelLabel(): string

@@ -2,6 +2,7 @@
     <x-filament::section :heading="__('onboarding.title')" :description="__('onboarding.intro')">
         <div class="space-y-6" x-data="{ expandAll: false }">
             <p class="text-sm text-gray-600 dark:text-gray-300">Perfil actual: {{ $role }}. Los accesos y pendientes se limitan a sus permisos.</p>
+            <p>{{ __('onboarding.navigation_help') }}</p>
             @if ($pending)
                 <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     @foreach ($pending as $item)

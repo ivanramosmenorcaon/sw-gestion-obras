@@ -2,19 +2,24 @@
 
 namespace App\Filament\Resources\AuditEntries;
 
+use App\Filament\Clusters\Settings\SettingsCluster;
 use App\Filament\Resources\AuditEntries\Pages\ManageAuditEntries;
 use App\Filament\Resources\BusinessResource;
 use App\Models\AuditEntry;
 use BackedEnum;
-use Filament\Support\Icons\Heroicon;
+use Daljo25\FilamentTablerIcons\Enums\TablerIcon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
 class AuditEntryResource extends BusinessResource
 {
+    protected static ?string $cluster = SettingsCluster::class;
+
+    protected static ?int $navigationSort = 46;
+
     protected static ?string $model = AuditEntry::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = TablerIcon::History;
 
     protected static ?string $recordTitleAttribute = 'event';
 
@@ -28,9 +33,9 @@ class AuditEntryResource extends BusinessResource
         return 'Auditoría';
     }
 
-    public static function getNavigationGroup(): string
+    public static function getNavigationGroup(): ?string
     {
-        return 'Configuración';
+        return 'Acceso y control';
     }
 
     public static function table(Table $table): Table

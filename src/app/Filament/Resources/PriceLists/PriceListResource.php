@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\PriceLists;
 
+use App\Filament\Clusters\Catalog\CatalogCluster;
 use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\PriceLists\Pages\CreatePriceList;
 use App\Filament\Resources\PriceLists\Pages\EditPriceList;
@@ -11,22 +12,26 @@ use App\Filament\Resources\PriceLists\Tables\PriceListsTable;
 use App\Models\PriceList;
 use App\Support\BusinessRecordValidator;
 use BackedEnum;
+use Daljo25\FilamentTablerIcons\Enums\TablerIcon;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
 class PriceListResource extends BusinessResource
 {
+    protected static ?string $cluster = CatalogCluster::class;
+
+    protected static ?int $navigationSort = 35;
+
     protected static ?string $model = PriceList::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCube;
+    protected static string|BackedEnum|null $navigationIcon = TablerIcon::Tags;
 
     protected static ?string $recordTitleAttribute = 'name';
 
-    public static function getNavigationGroup(): string
+    public static function getNavigationGroup(): ?string
     {
-        return __('business.groups.catalog');
+        return 'Productos y tarifas';
     }
 
     public static function getModelLabel(): string

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\WorkOrderLines;
 
+use App\Filament\Clusters\Works\WorksCluster;
 use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\WorkOrderLines\Pages\CreateWorkOrderLine;
 use App\Filament\Resources\WorkOrderLines\Pages\EditWorkOrderLine;
@@ -12,16 +13,20 @@ use App\Filament\Resources\WorkOrderLines\Tables\WorkOrderLinesTable;
 use App\Models\WorkOrderLine;
 use App\Support\BusinessRecordValidator;
 use BackedEnum;
+use Daljo25\FilamentTablerIcons\Enums\TablerIcon;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
 class WorkOrderLineResource extends BusinessResource
 {
+    protected static ?string $cluster = WorksCluster::class;
+
+    protected static ?int $navigationSort = 6;
+
     protected static ?string $model = WorkOrderLine::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = TablerIcon::ListCheck;
 
     protected static ?string $recordTitleAttribute = 'description';
 

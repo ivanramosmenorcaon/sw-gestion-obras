@@ -11,16 +11,18 @@ use App\Filament\Resources\PartyContacts\Tables\PartyContactsTable;
 use App\Models\PartyContact;
 use App\Support\BusinessRecordValidator;
 use BackedEnum;
+use Daljo25\FilamentTablerIcons\Enums\TablerIcon;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
 class PartyContactResource extends BusinessResource
 {
+    protected static ?int $navigationSort = 50;
+
     protected static ?string $model = PartyContact::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = TablerIcon::Phone;
 
     protected static ?string $recordTitleAttribute = 'name';
 

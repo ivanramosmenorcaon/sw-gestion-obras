@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Units;
 
+use App\Filament\Clusters\Catalog\CatalogCluster;
 use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\Units\Pages\CreateUnit;
 use App\Filament\Resources\Units\Pages\EditUnit;
@@ -11,22 +12,26 @@ use App\Filament\Resources\Units\Tables\UnitsTable;
 use App\Models\Unit;
 use App\Support\BusinessRecordValidator;
 use BackedEnum;
+use Daljo25\FilamentTablerIcons\Enums\TablerIcon;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
 class UnitResource extends BusinessResource
 {
+    protected static ?string $cluster = CatalogCluster::class;
+
+    protected static ?int $navigationSort = 37;
+
     protected static ?string $model = Unit::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCube;
+    protected static string|BackedEnum|null $navigationIcon = TablerIcon::RulerMeasure;
 
     protected static ?string $recordTitleAttribute = 'name';
 
-    public static function getNavigationGroup(): string
+    public static function getNavigationGroup(): ?string
     {
-        return __('business.groups.catalog');
+        return 'Unidades';
     }
 
     public static function getModelLabel(): string

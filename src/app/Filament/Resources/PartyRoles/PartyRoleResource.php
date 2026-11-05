@@ -11,16 +11,18 @@ use App\Filament\Resources\PartyRoles\Tables\PartyRolesTable;
 use App\Models\PartyRole;
 use App\Support\BusinessRecordValidator;
 use BackedEnum;
+use Daljo25\FilamentTablerIcons\Enums\TablerIcon;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
 class PartyRoleResource extends BusinessResource
 {
+    protected static ?int $navigationSort = 50;
+
     protected static ?string $model = PartyRole::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = TablerIcon::IdBadge;
 
     protected static ?string $recordTitleAttribute = 'role';
 

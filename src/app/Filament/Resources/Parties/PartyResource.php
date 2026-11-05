@@ -11,22 +11,24 @@ use App\Filament\Resources\Parties\Tables\PartiesTable;
 use App\Models\Party;
 use App\Support\BusinessRecordValidator;
 use BackedEnum;
+use Daljo25\FilamentTablerIcons\Enums\TablerIcon;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
 class PartyResource extends BusinessResource
 {
+    protected static ?int $navigationSort = 50;
+
     protected static ?string $model = Party::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserGroup;
+    protected static string|BackedEnum|null $navigationIcon = TablerIcon::AddressBook;
 
     protected static ?string $recordTitleAttribute = 'legal_name';
 
-    public static function getNavigationGroup(): string
+    public static function getNavigationGroup(): ?string
     {
-        return __('business.groups.contacts');
+        return null;
     }
 
     public static function getModelLabel(): string

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\SupplierProducts;
 
+use App\Filament\Clusters\Catalog\CatalogCluster;
 use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\SupplierProducts\Pages\CreateSupplierProduct;
 use App\Filament\Resources\SupplierProducts\Pages\EditSupplierProduct;
@@ -11,16 +12,20 @@ use App\Filament\Resources\SupplierProducts\Tables\SupplierProductsTable;
 use App\Models\SupplierProduct;
 use App\Support\BusinessRecordValidator;
 use BackedEnum;
+use Daljo25\FilamentTablerIcons\Enums\TablerIcon;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
 class SupplierProductResource extends BusinessResource
 {
+    protected static ?string $cluster = CatalogCluster::class;
+
+    protected static ?int $navigationSort = 34;
+
     protected static ?string $model = SupplierProduct::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = TablerIcon::PackageImport;
 
     protected static ?string $recordTitleAttribute = 'supplier_reference';
 

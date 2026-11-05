@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\WorkOrderContractorAssignments;
 
+use App\Filament\Clusters\Works\WorksCluster;
 use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\WorkOrderContractorAssignments\Pages\CreateWorkOrderContractorAssignment;
 use App\Filament\Resources\WorkOrderContractorAssignments\Pages\EditWorkOrderContractorAssignment;
@@ -11,16 +12,20 @@ use App\Filament\Resources\WorkOrderContractorAssignments\Tables\WorkOrderContra
 use App\Models\WorkOrderContractorAssignment;
 use App\Support\BusinessRecordValidator;
 use BackedEnum;
+use Daljo25\FilamentTablerIcons\Enums\TablerIcon;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
 class WorkOrderContractorAssignmentResource extends BusinessResource
 {
+    protected static ?string $cluster = WorksCluster::class;
+
+    protected static ?int $navigationSort = 9;
+
     protected static ?string $model = WorkOrderContractorAssignment::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = TablerIcon::UsersGroup;
 
     protected static ?string $recordTitleAttribute = 'scope';
 

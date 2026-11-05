@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\WorkOrders;
 
+use App\Filament\Clusters\Works\WorksCluster;
 use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\WorkOrders\Pages\CreateWorkOrder;
 use App\Filament\Resources\WorkOrders\Pages\EditWorkOrder;
@@ -19,15 +20,19 @@ use Illuminate\Database\Eloquent\Model;
 
 class WorkOrderResource extends BusinessResource
 {
+    protected static ?string $cluster = WorksCluster::class;
+
+    protected static ?int $navigationSort = 4;
+
     protected static ?string $model = WorkOrder::class;
 
-    protected static string|BackedEnum|null $navigationIcon = TablerIcon::ListCheck;
+    protected static string|BackedEnum|null $navigationIcon = TablerIcon::ClipboardList;
 
     protected static ?string $recordTitleAttribute = 'name';
 
-    public static function getNavigationGroup(): string
+    public static function getNavigationGroup(): ?string
     {
-        return __('business.groups.works');
+        return 'Ejecución';
     }
 
     public static function getModelLabel(): string

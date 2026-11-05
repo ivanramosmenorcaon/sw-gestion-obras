@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\WorkOrderEmployeeAssignments;
 
+use App\Filament\Clusters\Works\WorksCluster;
 use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\WorkOrderEmployeeAssignments\Pages\CreateWorkOrderEmployeeAssignment;
 use App\Filament\Resources\WorkOrderEmployeeAssignments\Pages\EditWorkOrderEmployeeAssignment;
@@ -11,16 +12,20 @@ use App\Filament\Resources\WorkOrderEmployeeAssignments\Tables\WorkOrderEmployee
 use App\Models\WorkOrderEmployeeAssignment;
 use App\Support\BusinessRecordValidator;
 use BackedEnum;
+use Daljo25\FilamentTablerIcons\Enums\TablerIcon;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
 class WorkOrderEmployeeAssignmentResource extends BusinessResource
 {
+    protected static ?string $cluster = WorksCluster::class;
+
+    protected static ?int $navigationSort = 8;
+
     protected static ?string $model = WorkOrderEmployeeAssignment::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = TablerIcon::UserCheck;
 
     protected static ?string $recordTitleAttribute = 'role';
 
