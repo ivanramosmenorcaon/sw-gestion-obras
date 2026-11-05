@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ProjectChapters;
 
+use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\ProjectChapters\Pages\CreateProjectChapter;
 use App\Filament\Resources\ProjectChapters\Pages\EditProjectChapter;
 use App\Filament\Resources\ProjectChapters\Pages\ListProjectChapters;
@@ -10,13 +11,12 @@ use App\Filament\Resources\ProjectChapters\Tables\ProjectChaptersTable;
 use App\Models\ProjectChapter;
 use App\Support\BusinessRecordValidator;
 use BackedEnum;
-use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
-class ProjectChapterResource extends Resource
+class ProjectChapterResource extends BusinessResource
 {
     protected static ?string $model = ProjectChapter::class;
 

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\PriceLists;
 
+use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\PriceLists\Pages\CreatePriceList;
 use App\Filament\Resources\PriceLists\Pages\EditPriceList;
 use App\Filament\Resources\PriceLists\Pages\ListPriceLists;
@@ -10,13 +11,12 @@ use App\Filament\Resources\PriceLists\Tables\PriceListsTable;
 use App\Models\PriceList;
 use App\Support\BusinessRecordValidator;
 use BackedEnum;
-use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
-class PriceListResource extends Resource
+class PriceListResource extends BusinessResource
 {
     protected static ?string $model = PriceList::class;
 

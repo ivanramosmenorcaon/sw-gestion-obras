@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\WorkTimeEntries;
 
+use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\WorkOrderPhases\WorkOrderPhaseResource;
 use App\Filament\Resources\WorkTimeEntries\Pages\CreateWorkTimeEntry;
 use App\Filament\Resources\WorkTimeEntries\Pages\EditWorkTimeEntry;
@@ -12,14 +13,12 @@ use App\Filament\Resources\WorkTimeEntries\Schemas\WorkTimeEntryInfolist;
 use App\Filament\Resources\WorkTimeEntries\Tables\WorkTimeEntriesTable;
 use App\Models\WorkTimeEntry;
 use BackedEnum;
-use Filament\Resources\Resource;
-use Filament\Schemas\Schema;
 use Daljo25\FilamentTablerIcons\Enums\TablerIcon;
-use Filament\Support\Icons\Heroicon;
+use Filament\Schemas\Schema;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
-class WorkTimeEntryResource extends Resource
+class WorkTimeEntryResource extends BusinessResource
 {
     protected static ?string $model = WorkTimeEntry::class;
 
@@ -44,12 +43,12 @@ class WorkTimeEntryResource extends Resource
 
     public static function canEdit(Model $record): bool
     {
-        return $record->status === 'draft' && WorkOrderPhaseResource::canEdit($record->workOrderPhase) && parent::canEdit($record);
+        return $record->status === 'draft' && (in_array(auth()->user()?->role, ['worker', 'foreman'], true) || WorkOrderPhaseResource::canEdit($record->workOrderPhase)) && parent::canEdit($record);
     }
 
     public static function canView(Model $record): bool
     {
-        return WorkOrderPhaseResource::canView($record->workOrderPhase) && parent::canView($record);
+        return (in_array(auth()->user()?->role, ['worker', 'foreman'], true) || WorkOrderPhaseResource::canView($record->workOrderPhase)) && parent::canView($record);
     }
 
     public static function canDelete(Model $record): bool

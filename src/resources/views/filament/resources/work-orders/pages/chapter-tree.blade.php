@@ -10,8 +10,16 @@
                 if ($amount !== null) { $total = $total->plus($amount); }
             }
         }
+        if ($editingBudget && $this->getRecord()->status === 'draft') {
+            foreach ($this->manualLines as $line) {
+                if (filled($line['description'] ?? null)) {
+                    $amount = \App\Support\BudgetEditor::previewAmount(['quantity' => \App\Support\BudgetEditor::decimal($line['quantity']), 'price' => \App\Support\BudgetEditor::decimal($line['price']), 'discount_percentage' => $line['discount_percentage'] ?? '0']);
+                    if ($amount !== null) { $total = $total->plus($amount); $includedCount++; }
+                }
+            }
+        }
     @endphp
-    <div class="space-y-6" x-data="{ expand(open) { $refs.tree.querySelectorAll('details').forEach(node => node.open = open); } }">
+    <div class="space-y-6" x-on:input="dirty = true" x-on:budget-saved.window="dirty = false" x-on:beforeunload.window="if (dirty) { $event.preventDefault(); $event.returnValue = ''; }" x-data="{ dirty: false, expand(open) { $refs.tree.querySelectorAll('details').forEach(node => node.open = open); } }">
         <div class="rounded-2xl bg-gray-950 p-6 text-white dark:bg-gray-800">
             <p class="text-xs text-gray-300">{{ $this->getRecord()->project->name }} · {{ $this->getRecord()->reference }}</p>
             <h2 class="mt-2 text-xl font-semibold">{{ $editingBudget ? 'Edición del presupuesto' : 'Capítulos → Subcapítulos → Partidas' }}</h2>
@@ -30,14 +38,23 @@
             </label>
         @endif
         @if ($editingBudget)
+            <p x-show="dirty" role="status">Hay cambios sin guardar.</p>
+            <p>Estado: {{ $this->getRecord()->status }} · Revisión {{ $this->getRecord()->revision }}. Guarde antes de imprimir.</p>
+            @if ($this->getRecord()->status === 'draft')
+            <x-filament::section heading="Condiciones comerciales">
+                @foreach (['terms' => 'Condiciones y forma de pago', 'exclusions' => 'Exclusiones', 'valid_until' => 'Válido hasta'] as $field => $label)
+                    <label class="block">{{ $label }}<input class="w-full rounded border p-2 dark:bg-gray-900" type="{{ $field === 'valid_until' ? 'date' : 'text' }}" wire:model="commercialTerms.{{ $field }}" /></label>
+                    @error($field) <p role="alert">{{ $message }}</p> @enderror
+                @endforeach
+            </x-filament::section>
             <x-filament::section heading="Líneas manuales">
-                <p>Descripción, unidad, cantidad y precio. Tab al final añade otra línea. Puede quitar filas con «Eliminar línea»; confirme los cambios con «Guardar líneas manuales».</p>
+                <p>Descripción, unidad, cantidad y precio. Tab al final añade otra línea. Puede quitar filas con «Eliminar línea»; confirme los cambios con «Guardar presupuesto».</p>
                 @foreach ($this->manualLines as $index => $line)
-                    <div class="grid gap-3 md:grid-cols-4" wire:key="manual-{{ $index }}">
-                        @foreach (['description' => 'Descripción y detalles', 'unit' => 'Unidad', 'quantity' => 'Cantidad', 'price' => 'Precio'] as $field => $label)
+                    <div class="grid gap-3 md:grid-cols-4" wire:key="manual-{{ $line['editor_key'] ?? $index }}">
+                        @foreach (['description' => 'Descripción y detalles', 'unit' => 'Unidad', 'quantity' => 'Cantidad', 'price' => 'Precio', 'discount_percentage' => 'Descuento (%)'] as $field => $label)
                             <label>{{ $label }}
-                                <input class="w-full rounded border p-2 dark:bg-gray-900" wire:model="manualLines.{{ $index }}.{{ $field }}"
-                                    @if ($field === 'price' && $loop->parent->last)
+                                <input class="w-full rounded border p-2 dark:bg-gray-900" wire:model.live.debounce.300ms="manualLines.{{ $index }}.{{ $field }}"
+                                    @if ($field === 'discount_percentage' && $loop->parent->last)
                                         x-on:keydown.tab="if (!$event.shiftKey) { $event.preventDefault(); await $wire.addManualLine(); $nextTick(() => document.querySelectorAll('[data-manual-description]')[{{ $index + 1 }}]?.focus()); }"
                                     @endif
                                     @if ($field === 'description') data-manual-description @endif
@@ -51,8 +68,9 @@
                     </div>
                 @endforeach
                 <x-filament::button wire:click="addManualLine">Añadir línea</x-filament::button>
-                <x-filament::button wire:click="mountAction('saveManual')">Guardar líneas manuales</x-filament::button>
+
             </x-filament::section>
+            @endif
         @endif
         @error('selection') <p role="alert" class="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">{{ $message }}</p> @enderror
         <div class="flex flex-wrap gap-2">
@@ -68,9 +86,9 @@
         </div>
         @if ($canBudget)
             <div class="flex justify-end">
-                @if ($editingBudget)
+                @if ($editingBudget && $this->getRecord()->status === 'draft')
                     <x-filament::button wire:click="mountAction('saveBudget')">Guardar presupuesto</x-filament::button>
-                @else
+                @elseif (!$editingBudget)
                     <x-filament::button wire:click="mountAction('createBudget')">Crear presupuesto</x-filament::button>
                 @endif
             </div>

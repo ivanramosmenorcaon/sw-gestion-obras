@@ -2,6 +2,7 @@
 
 namespace App\Filament\Forms\Components;
 
+use App\Models\ContractorAgreement;
 use App\Models\Employee;
 use App\Models\InvoiceSeries;
 use App\Models\LaborCostRate;
@@ -13,19 +14,24 @@ use App\Models\Project;
 use App\Models\ProjectChapter;
 use App\Models\PurchaseDeliveryLine;
 use App\Models\PurchaseDeliveryNote;
+use App\Models\PurchaseInvoice;
+use App\Models\PurchaseOrder;
 use App\Models\SalesInvoice;
 use App\Models\TaxRate;
+use App\Models\User;
 use App\Models\Warehouse;
 use App\Models\WorkOrder;
 use App\Models\WorkOrderPhase;
 use App\Models\WorkTimeEntry;
 use App\Support\BusinessRecordValidator;
+use App\Support\OperationalAccess;
 use Closure;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Select;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
 
@@ -33,7 +39,15 @@ class RecordSelect extends Select
 {
     public function relationship(string|Closure|null $name = null, string|Closure|null $titleAttribute = null, ?Closure $modifyQueryUsing = null, bool $ignoreRecord = false): static
     {
-        parent::relationship($name, $titleAttribute, $modifyQueryUsing, $ignoreRecord);
+        $scopedQuery = function (Builder $query) use ($modifyQueryUsing): Builder {
+            OperationalAccess::scope($query);
+            if ($modifyQueryUsing) {
+                $this->evaluate($modifyQueryUsing, ['query' => $query]);
+            }
+
+            return $query;
+        };
+        parent::relationship($name, $titleAttribute, $scopedQuery, $ignoreRecord);
 
         return $this
             ->createOptionForm(function (Schema $schema): Schema {
@@ -89,7 +103,7 @@ class RecordSelect extends Select
     /** @return class-string<resource> | null */
     protected function getOptionResource(): ?string
     {
-        if (! $this->hasRelationship() || ! Filament::getCurrentPanel()) {
+        if (! $this->hasRelationship() || $this->getRelationship()->getRelated() instanceof User || ! Filament::getCurrentPanel()) {
             return null;
         }
 
@@ -131,7 +145,7 @@ class RecordSelect extends Select
         $context = [];
 
         $parentField = match (true) {
-            $related instanceof WorkOrder, $related instanceof ProjectChapter => 'project_id',
+            $related instanceof WorkOrder, $related instanceof ProjectChapter, $related instanceof ContractorAgreement, $related instanceof PurchaseOrder, $related instanceof PurchaseInvoice => 'project_id',
             $related instanceof WorkOrderPhase => 'work_order_id',
             $related instanceof ProductUnit => 'product_id',
             default => null,

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Parties;
 
+use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\Parties\Pages\CreateParty;
 use App\Filament\Resources\Parties\Pages\EditParty;
 use App\Filament\Resources\Parties\Pages\ListParties;
@@ -10,13 +11,12 @@ use App\Filament\Resources\Parties\Tables\PartiesTable;
 use App\Models\Party;
 use App\Support\BusinessRecordValidator;
 use BackedEnum;
-use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
-class PartyResource extends Resource
+class PartyResource extends BusinessResource
 {
     protected static ?string $model = Party::class;
 

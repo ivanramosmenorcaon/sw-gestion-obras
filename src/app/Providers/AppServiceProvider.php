@@ -3,10 +3,12 @@
 namespace App\Providers;
 
 use App\Filament\Forms\Components\RecordSelect;
+use App\Support\OperationalAudit;
 use Filament\Forms\Components\Select;
 use Filament\Support\Facades\FilamentView;
 use Filament\View\PanelsRenderHook;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -24,6 +26,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        foreach (['created', 'updated', 'deleted'] as $event) {
+            Event::listen('eloquent.'.$event.': App\\Models\\*', function (string $eventName, array $data) use ($event): void {
+                OperationalAudit::record($event, $data[0]);
+            });
+        }
         FilamentView::registerRenderHook(
             PanelsRenderHook::HEAD_END,
             fn (): string => Blade::render(<<<'HTML'

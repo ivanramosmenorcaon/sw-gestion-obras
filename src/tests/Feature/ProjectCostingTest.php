@@ -277,20 +277,20 @@ class ProjectCostingTest extends TestCase
         LaborCostRate::factory()->create(['employee_id' => $employee->id, 'contractor_id' => $contractor->id]);
     }
 
-    public function test_partial_returns_are_rejected_instead_of_refunding_the_entire_original_cost(): void
+    public function test_partial_returns_refund_only_their_proportion_and_final_return_closes_the_cost(): void
     {
         $line = $this->receivedLine();
         $entry = MaterialConsumption::factory()->create(['purchase_delivery_line_id' => $line->id, 'quantity' => '2']);
-        $entry = app(ProjectCosting::class)->postMaterial($entry);
-        $partial = new MaterialConsumption($entry->only(['purchase_delivery_line_id', 'work_order_id', 'work_order_phase_id']));
-        $partial->forceFill(['reverses_id' => $entry->id, 'quantity' => '-0.5', 'consumed_date' => '2026-11-04']);
-        try {
-            $partial->save();
-            $this->fail('Se permite una devolución parcial sin repartir el coste.');
-        } catch (ValidationException $exception) {
-            $this->assertSame([__('costing.messages.return_full')], $exception->errors()['quantity']);
-        }
-        $this->assertSame('8.000000', app(ProjectCosting::class)->available($line, false));
+        $costing = app(ProjectCosting::class);
+        $entry = $costing->postMaterial($entry);
+        $partial = $costing->returnMaterial($entry, '0.5');
+        $this->assertSame('-50.00', $partial->total_cost);
+        $this->assertSame('8.500000', $costing->available($line, false));
+        $last = $costing->returnMaterial($entry);
+        $this->assertSame('-150.00', $last->total_cost);
+        $this->assertSame('10.000000', $costing->available($line, false));
+        $this->expectException(ValidationException::class);
+        $costing->returnMaterial($entry, '0.1');
     }
 
     public function test_hour_cost_is_calculated_from_elapsed_seconds_before_rounding_display_hours(): void

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\LaborCostRates;
 
+use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\LaborCostRates\Pages\CreateLaborCostRate;
 use App\Filament\Resources\LaborCostRates\Pages\EditLaborCostRate;
 use App\Filament\Resources\LaborCostRates\Pages\ListLaborCostRates;
@@ -12,13 +13,11 @@ use App\Filament\Resources\LaborCostRates\Tables\LaborCostRatesTable;
 use App\Models\LaborCostRate;
 use BackedEnum;
 use Daljo25\FilamentTablerIcons\Enums\TablerIcon;
-use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
-class LaborCostRateResource extends Resource
+class LaborCostRateResource extends BusinessResource
 {
     protected static ?string $model = LaborCostRate::class;
 

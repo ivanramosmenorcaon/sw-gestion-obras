@@ -5,6 +5,7 @@ namespace App\Filament\Actions;
 use App\Models\MaterialConsumption;
 use App\Models\PurchaseDeliveryNote;
 use App\Models\WorkTimeEntry;
+use App\Support\OperationalAccess;
 use App\Support\ProjectCosting;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
@@ -19,9 +20,9 @@ final class CostingActions
     public static function confirm(string $resource): Action
     {
         return Action::make('confirm')->label(fn (Model $record): string => $record instanceof PurchaseDeliveryNote ? __('costing.receive') : __('costing.post'))->requiresConfirmation()
-            ->authorize(fn (Model $record): bool => $record->status === 'draft' && $resource::canEdit($record))
+            ->authorize(fn (Model $record): bool => $record->status === 'draft' && $resource::canEdit($record) && (OperationalAccess::canSeeCosts() || auth()->user()?->role === 'foreman'))
             ->action(function (Model $record, Component $livewire) use ($resource): void {
-                abort_unless($resource::canEdit($record), 403);
+                abort_unless($resource::canEdit($record) && (OperationalAccess::canSeeCosts() || auth()->user()?->role === 'foreman'), 403);
                 try {
                     $service = app(ProjectCosting::class);
                     match (true) {

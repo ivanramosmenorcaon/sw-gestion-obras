@@ -6,14 +6,15 @@ use App\Filament\Resources\Budgets\Pages\EditBudget;
 use App\Filament\Resources\Budgets\Pages\ListBudgets;
 use App\Filament\Resources\Budgets\Schemas\BudgetForm;
 use App\Filament\Resources\Budgets\Tables\BudgetsTable;
+use App\Filament\Resources\BusinessResource;
 use App\Models\Budget;
 use BackedEnum;
-use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 
-class BudgetResource extends Resource
+class BudgetResource extends BusinessResource
 {
     protected static ?string $model = Budget::class;
 
@@ -34,6 +35,11 @@ class BudgetResource extends Resource
     public static function getNavigationGroup(): string
     {
         return __('business.groups.works');
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return $record->status === 'draft' && ! Budget::where('revises_id', $record->id)->orWhere('extra_for_id', $record->id)->exists() && parent::canDelete($record);
     }
 
     public static function form(Schema $schema): Schema

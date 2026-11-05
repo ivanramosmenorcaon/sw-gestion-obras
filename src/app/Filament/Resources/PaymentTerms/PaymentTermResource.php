@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\PaymentTerms;
 
+use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\PaymentTerms\Pages\CreatePaymentTerm;
 use App\Filament\Resources\PaymentTerms\Pages\EditPaymentTerm;
 use App\Filament\Resources\PaymentTerms\Pages\ListPaymentTerms;
@@ -10,13 +11,12 @@ use App\Filament\Resources\PaymentTerms\Tables\PaymentTermsTable;
 use App\Models\PaymentTerm;
 use App\Support\BusinessRecordValidator;
 use BackedEnum;
-use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
-class PaymentTermResource extends Resource
+class PaymentTermResource extends BusinessResource
 {
     protected static ?string $model = PaymentTerm::class;
 

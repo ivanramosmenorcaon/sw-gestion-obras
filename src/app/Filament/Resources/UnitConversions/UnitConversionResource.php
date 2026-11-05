@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\UnitConversions;
 
+use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\UnitConversions\Pages\CreateUnitConversion;
 use App\Filament\Resources\UnitConversions\Pages\EditUnitConversion;
 use App\Filament\Resources\UnitConversions\Pages\ListUnitConversions;
@@ -10,13 +11,12 @@ use App\Filament\Resources\UnitConversions\Tables\UnitConversionsTable;
 use App\Models\UnitConversion;
 use App\Support\BusinessRecordValidator;
 use BackedEnum;
-use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
-class UnitConversionResource extends Resource
+class UnitConversionResource extends BusinessResource
 {
     protected static ?string $model = UnitConversion::class;
 

@@ -30,7 +30,6 @@ class ProjectChaptersTable
             ])->recordActions([EditAction::make()])->defaultSort('id', 'desc')
             ->bulkActions([
                 DeleteBulkAction::make(),
-            ])
-            ;
+            ]);
     }
 }

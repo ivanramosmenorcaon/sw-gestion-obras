@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\PurchaseDeliveryNotes;
 
+use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\PurchaseDeliveryNotes\Pages\CreatePurchaseDeliveryNote;
 use App\Filament\Resources\PurchaseDeliveryNotes\Pages\EditPurchaseDeliveryNote;
 use App\Filament\Resources\PurchaseDeliveryNotes\Pages\ListPurchaseDeliveryNotes;
@@ -13,13 +14,11 @@ use App\Filament\Resources\PurchaseDeliveryNotes\Tables\PurchaseDeliveryNotesTab
 use App\Models\PurchaseDeliveryNote;
 use BackedEnum;
 use Daljo25\FilamentTablerIcons\Enums\TablerIcon;
-use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
-class PurchaseDeliveryNoteResource extends Resource
+class PurchaseDeliveryNoteResource extends BusinessResource
 {
     protected static ?string $model = PurchaseDeliveryNote::class;
 

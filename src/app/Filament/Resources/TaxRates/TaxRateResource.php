@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\TaxRates;
 
+use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\TaxRates\Pages\CreateTaxRate;
 use App\Filament\Resources\TaxRates\Pages\EditTaxRate;
 use App\Filament\Resources\TaxRates\Pages\ListTaxRates;
@@ -9,13 +10,12 @@ use App\Filament\Resources\TaxRates\Schemas\TaxRateForm;
 use App\Filament\Resources\TaxRates\Tables\TaxRatesTable;
 use App\Models\TaxRate;
 use BackedEnum;
-use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
-class TaxRateResource extends Resource
+class TaxRateResource extends BusinessResource
 {
     protected static ?string $model = TaxRate::class;
 

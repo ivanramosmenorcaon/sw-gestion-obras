@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\WorkOrderEmployeeAssignments;
 
+use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\WorkOrderEmployeeAssignments\Pages\CreateWorkOrderEmployeeAssignment;
 use App\Filament\Resources\WorkOrderEmployeeAssignments\Pages\EditWorkOrderEmployeeAssignment;
 use App\Filament\Resources\WorkOrderEmployeeAssignments\Pages\ListWorkOrderEmployeeAssignments;
@@ -10,13 +11,12 @@ use App\Filament\Resources\WorkOrderEmployeeAssignments\Tables\WorkOrderEmployee
 use App\Models\WorkOrderEmployeeAssignment;
 use App\Support\BusinessRecordValidator;
 use BackedEnum;
-use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
-class WorkOrderEmployeeAssignmentResource extends Resource
+class WorkOrderEmployeeAssignmentResource extends BusinessResource
 {
     protected static ?string $model = WorkOrderEmployeeAssignment::class;
 

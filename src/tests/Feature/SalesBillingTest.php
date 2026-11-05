@@ -174,11 +174,12 @@ class SalesBillingTest extends TestCase
         $company->update(['sales_tax_profile_id' => $invoice->lines()->first()->tax_profile_id]);
         $order = WorkOrder::factory()->create(['project_id' => Project::factory()->create(['customer_id' => $invoice->customer_id])->id]);
         $phase = WorkOrderPhase::factory()->create(['work_order_id' => $order->id]);
-        $source = WorkOrderLine::factory()->create(['work_order_id' => $order->id, 'work_order_phase_id' => $phase->id, 'planned_quantity' => '10', 'estimated_unit_sale_price' => '20']);
+        $source = WorkOrderLine::factory()->create(['work_order_id' => $order->id, 'work_order_phase_id' => $phase->id, 'planned_quantity' => '10', 'estimated_unit_sale_price' => '20', 'discount_percentage' => '10']);
         $billing = app(SalesBilling::class);
 
         $draft = $billing->fromWorkOrder($order, $invoice->invoice_series_id, [$phase->id], '50');
         $this->assertSame('5.000000', $draft->lines()->first()->quantity);
+        $this->assertSame('10.0000', $draft->lines()->first()->discount_percentage);
         $this->assertSame('5.000000', $billing->remaining($source->id));
         $second = $billing->fromWorkOrder($order, $invoice->invoice_series_id, [$phase->id]);
         $this->assertSame('0.000000', $billing->remaining($source->id));

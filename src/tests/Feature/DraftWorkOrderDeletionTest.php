@@ -91,6 +91,11 @@ class DraftWorkOrderDeletionTest extends TestCase
     public function test_populated_non_draft_orders_remain_protected(string $status): void
     {
         $order = $this->populatedDraft();
+        if ($status === 'completed') {
+            foreach ($order->workOrderPhases as $phase) {
+                $phase->update(['status' => 'completed']);
+            }
+        }
         $order->update(['status' => $status]);
         $this->assertFalse(BusinessRecordValidator::canDelete($order));
 

@@ -57,7 +57,7 @@ class RelatedRecordSelectTest extends TestCase
                 continue;
             }
             $relatedResource = Filament::getModelResource($field->getRelationship()->getRelated());
-            if ($relatedResource === null) {
+            if ($relatedResource === null || $field->getRelationship()->getRelated() instanceof User) {
                 $this->assertNull($field->getCreateOptionAction(), $field->getStatePath());
 
                 continue;

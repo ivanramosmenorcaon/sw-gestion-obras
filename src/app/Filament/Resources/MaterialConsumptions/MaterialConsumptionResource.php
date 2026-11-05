@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\MaterialConsumptions;
 
+use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\MaterialConsumptions\Pages\CreateMaterialConsumption;
 use App\Filament\Resources\MaterialConsumptions\Pages\EditMaterialConsumption;
 use App\Filament\Resources\MaterialConsumptions\Pages\ListMaterialConsumptions;
@@ -13,13 +14,11 @@ use App\Filament\Resources\WorkOrderPhases\WorkOrderPhaseResource;
 use App\Models\MaterialConsumption;
 use BackedEnum;
 use Daljo25\FilamentTablerIcons\Enums\TablerIcon;
-use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
-class MaterialConsumptionResource extends Resource
+class MaterialConsumptionResource extends BusinessResource
 {
     protected static ?string $model = MaterialConsumption::class;
 

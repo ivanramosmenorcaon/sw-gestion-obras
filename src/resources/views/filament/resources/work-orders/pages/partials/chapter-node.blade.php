@@ -58,6 +58,9 @@
                                 <x-filament::input.wrapper class="mt-1"><x-filament::input type="number" min="0" step="0.000001" wire:model.live.debounce.300ms="selection.{{ $id }}.price" :disabled="!$canBudget || !$choice['included']" /></x-filament::input.wrapper>
                                 @error('selection.'.$id.'.price') <span class="text-red-600">{{ $message }}</span> @enderror
                             </label>
+                            <label class="text-xs font-medium text-gray-600 dark:text-gray-300">Descuento (%)
+                                <x-filament::input.wrapper><x-filament::input type="number" min="0" max="100" step="0.0001" wire:model.live.debounce.300ms="selection.{{ $id }}.discount_percentage" :disabled="!$canBudget || !$choice['included']" /></x-filament::input.wrapper>
+                            </label>
                             <div class="text-xs text-gray-500 dark:text-gray-400">Importe<p class="mt-3 text-sm font-semibold tabular-nums text-gray-950 dark:text-white">{{ $choice['included'] && $amount !== null ? \App\Support\BudgetEditor::formatAmount($amount) . ' ' . $currency : '—' }}</p></div>
                         </div>
                         @if (!$editingBudget && !empty($item['view_url']))

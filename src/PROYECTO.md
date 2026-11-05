@@ -971,3 +971,118 @@ Conclusión: existe base para una operativa interna supervisada, pero falta cerr
 Hallazgos de código prioritarios documentados: los dos guardados de presupuesto recargan y pueden descartar cambios del otro bloque; las líneas manuales aparecen además en el árbol con un segundo estado; no se detectan conflictos de edición obsoleta; no se localizan políticas de autorización por rol/obra; la impresión de albarán calcula importes sin descuento; el paso del precio ofertado a ejecución/factura no está implementado; la emisión de producción permanece bloqueada explícitamente. Se documenta también la necesidad de validar teclado, coma decimal y reglas de vigencia del personal. No se han corregido estos puntos durante el diagnóstico.
 
 Verificación: suite completa, 372 pruebas y 3.526 aserciones correctas, 75,2 segundos, sobre SQLite :memory:. No se han modificado dependencias, migraciones ni código funcional. La consulta de esquema de Boost devolvió SQLite sin tablas, por lo que no certifica el estado de la base operativa. No se han leído secretos ni efectuado envíos fiscales reales. Las pruebas actuales no sustituyen la validación de navegador, MySQL concurrente o restauración de copias indicada en PLAN.md.
+
+## 2026-11-05 — Aplicación del plan: ampliación operativa
+
+### Base de trabajo confirmada
+
+El usuario confirma una empresa en EUR, partes introducidos por empleados y aprobados por encargado, presupuestos por medición o precio cerrado y contabilidad externa mediante CSV. Añade expresamente que pedidos y facturas de compra deben tener líneas. No se configura un programa contable concreto ni una conexión bancaria, no se inventa un destino externo de respaldo y no se habilita la emisión fiscal real.
+
+Se aplican las skills de Laravel, Filament, columnas redimensionables, Tailwind y pruebas. No existe .ai/rules. Versiones: PHP 8.3, Laravel 13.39.0, Filament 5.11.1; sin nuevas dependencias.
+
+### Presupuestos y ejecución
+
+- Guardado único y transaccional de nombre, condiciones, exclusiones, validez, selección y líneas manuales. Se elimina el botón separado de guardado manual.
+- Una sola representación editable de cada línea manual; claves de edición estables, vista previa de total con cambios sin guardar y normalización de coma decimal. Se ignora únicamente la fila final vacía sin importes introducidos.
+- Huella del documento bloqueada en Livewire para detectar otra sesión: un conflicto conserva el borrador en pantalla y no sobrescribe el documento actual.
+- Aviso de cambios sin guardar al intentar salir del navegador.
+- Alta de una oferta desde obra sin orden previa. Se mantiene la creación desde mediciones.
+- Preparar envío guarda y bloquea la versión, conservando instantáneas comerciales; no envía correo automáticamente. Registrar aceptación exige evidencia escrita.
+- Crear revisión conserva el original; Presupuestar extra crea una oferta adicional vinculada.
+- Crear ejecución genera una orden nueva y una fase con las cantidades y precios aceptados; repetir la acción devuelve la misma orden. No altera la orden original de mediciones. Las unidades deben existir activas en catálogo.
+- La cantidad, descripción y precio de las partidas de ejecución vinculadas a oferta aceptada quedan protegidos frente a cambios directos. Los extras se tramitan mediante su oferta y orden.
+- El presupuesto mantiene total sin impuestos; no se declara implementada una oferta con desglose fiscal mixto completo.
+
+### Acceso y trazabilidad
+
+Se introduce BusinessResource y OperationalAccess para los recursos existentes y nuevos, conservando los controles y policies ya presentes. Perfiles: administrador, administración, jefe de obra, encargado y operario. Los usuarios anteriores conservan el perfil administrador al migrar; las nuevas cuentas tienen perfil operario por defecto. El administrador dispone de Usuarios y permisos. Los selectores de cuentas siguen sin creación inline.
+
+Los operarios acceden a sus propios partes, no a costes o tarifas, y no pueden confirmarlos; el encargado puede confirmar los partes de su ámbito. La visibilidad por obra se aplica a recursos, selectores, documentos y exportaciones. El jefe de obra no puede cambiar la configuración fiscal y solo modifica obras de su ámbito. Una cuenta inactiva no accede al panel. Los cambios de perfil/actividad revocan sesiones; no se puede desactivar o degradar la cuenta de la propia sesión.
+
+Se registran eventos de alta, modificación, borrado y descarga con usuario, fecha, entidad, id y nombres de campos cambiados. No se almacenan contraseñas ni valores completos de los cambios. Esta es auditoría básica; no se presenta como un registro forense inalterable o una solución completa de cumplimiento normativo.
+
+### Personal, avance, incidencias y correcciones
+
+Nuevos recursos:
+- Ausencias de empleados, con fechas y aprobación; se impiden solapamientos aprobados. Al confirmar un parte se comprueba actividad, fechas laborales y ausencia aprobada.
+- Avance y mediciones ejecutadas por partida, con control del acumulado de borradores y confirmados respecto a lo previsto.
+- Diario, incidencias, instrucciones, hitos, repasos y garantías por obra, con fecha prevista y cierre/resolución.
+- Correcciones de partes confirmados mediante reversión con motivo. Se conserva el original; la reversión confirmada excluye su efecto de los costes y libera su intervalo para el parte corregido.
+
+No se considera implementado un calendario visual con turnos/dependencias/capacidad, un registro laboral completo de jornada o una nómina. La medición ejecutada no genera automáticamente una certificación comercial.
+
+### Compras y subcontratación
+
+Nuevos contratos de subcontrata por obra, tercero, alcance, importe y garantía pactada, con confirmación. Las certificaciones parciales reservan importe y no pueden exceder el contrato. Los extras requieren otro contrato/oferta autorizado.
+
+Los pedidos de compra y facturas recibidas incorporan líneas de producto opcional, descripción, unidad, cantidad, precio, descuento, impuesto, retención fiscal y garantía. La posición se gestiona en el repetidor y permite reordenación con botones. Los totales se calculan desde las líneas con decimales exactos y se recalculan al editar o borrar. No se puede confirmar sin líneas. Los documentos y líneas confirmados son inmutables, también desde un formulario obsoleto.
+
+Se pueden vincular cabeceras y líneas a pedido/albarán. Las recepciones parciales de una línea de pedido comprueban producto, unidad e importe pendiente en cantidad; la unidad de recepción debe coincidir con la línea del pedido. Una factura puede referenciar un contrato o un albarán, con comprobación de obra/proveedor. Los impuestos se introducen según el documento del proveedor; no se propone un porcentaje ficticio.
+
+Las facturas recibidas muestran base, impuestos, retención fiscal, garantía e importe a pagar. Las facturas vinculadas a material ya valorado por consumo o a contrato ya certificado no se suman de nuevo al coste. Los gastos manuales e importes de facturas independientes se incluyen en el coste de obra: no registrar dos veces el mismo justificante. El sistema no realiza todavía conciliación automática de diferencias de precio ni reparto de una misma factura entre varias obras.
+
+### Almacén y costes
+
+- Devoluciones parciales de consumos, con valoración proporcional y absorción del resto de céntimos en la última devolución. Se conserva la devolución completa dejando cantidad vacía.
+- Ajustes de inventario positivos/negativos sobre lotes recibidos, salidas por devolución a proveedor y traslados entre almacenes.
+- Las salidas pendientes reservan cantidad. Al confirmar traslado se genera una recepción interna en destino con coste de procedencia; no se considera una compra nueva para proponer el último precio de adquisición.
+- La valoración al agotar el lote incorpora los ajustes para no cargar a la obra el coste de material devuelto al proveedor o trasladado.
+- Gastos de obra por categorías: maquinaria, transporte, desplazamiento, tasas, indirectos y otros, opcionalmente por fase.
+
+La situación económica en la ficha del proyecto separa venta aceptada, material, horas, subcontrata certificada, gastos, facturas independientes, importes pedidos/contratados, facturado, cobrado y pagado. Venta aceptada menos coste incurrido no se etiqueta como margen final: falta el coste futuro de ejecución. Los contratos/pedidos confirmados son compromisos nominales, no una previsión final automática.
+
+### Tesorería y exportación contable
+
+Se registran cobros/pagos parciales con obra, tercero, sentido, método, referencia y factura opcional. Se comprueban coincidencias y saldo, incluidos borradores reservados. Sin factura son anticipos.
+
+Se añaden aplicación de anticipos a facturas posteriores, plazos/vencimientos múltiples y devoluciones de dinero con motivo. Una aplicación no crea otro movimiento de dinero; se limita por saldo del anticipo y de la factura. Las devoluciones no pueden consumir la parte de un anticipo ya aplicada. La situación de caja descuenta las devoluciones confirmadas.
+
+El dashboard ofrece CSV de horas, cabeceras y líneas de facturas recibidas, movimientos, devoluciones y aplicaciones de anticipos. Las exportaciones respetan el ámbito y evitan fórmulas de hoja de cálculo en campos de texto. El contrato final de importación con la asesoría y sus cuentas contables queda por acordar. No hay integración bancaria automática ni liberación automática de garantías.
+
+### Documentación e impresión
+
+Repositorio privado por obra con referencia, tipo, versión y caducidad; admite PDF, imágenes y Excel. Se protege la selección de rutas existentes y la descarga se autoriza por obra. Al confirmar una versión queda bloqueada; su sustitución se archiva con un número de versión superior.
+
+El albarán impreso aplica descuento e importe neto. Las nuevas recepciones guardan el nombre de presentación en su instantánea. Las ofertas imprimen identidad comercial y condiciones; las órdenes incluyen instrucciones, supervisor, asignaciones y fechas. Los pedidos y facturas recibidas tienen impresión de detalle y totales. Es impresión/guardar PDF desde el navegador; no se declara implementada la generación automática y archivo de un PDF firmado.
+
+### Operación técnica y despliegue
+
+operations:backup exporta la base MySQL mediante la conexión de la aplicación, cifra con APP_KEY y guarda checksum/recuentos. Se probó descifrado y comparación. El intento inicial con el cliente mysqldump detectó una cadena TLS autofirmada; se utilizó la conexión PDO de la aplicación, sin desactivar la comprobación TLS del cliente.
+
+La copia se programa a las 02:00 si el scheduler está activo. Solo incluye base de datos: hace falta respaldar archivos y clave de forma separada, establecer retención y destino externo.
+
+operations:verify-backup comprueba integridad y ofrece --restore para una base temporal aislada. El ensayo se intentó y no pudo crear esa base por permisos de la cuenta disponible; no se tocó una base de negocio como alternativa. La restauración sigue sin estar certificada.
+
+operations:check detecta configuración de desarrollo, URL sin HTTPS, tareas fallidas, ausencia de copia reciente y proximidad de caducidad del certificado. En esta instalación detecta APP_ENV distinto de production, APP_DEBUG activo y APP_URL HTTP. No se han sustituido valores sin conocer el dominio y despliegue reales. No se detectaron procesos cron/scheduler o queue:work; podrían depender de orquestación externa.
+
+Se inicializa Git local, se excluyen certificados, claves, configuración privada y datos, y se incorpora CI para pruebas SQLite, compilación y auditoría de dependencias. Falta conectar repositorio remoto y validar el entorno MySQL aislado. README actualizado con despliegue, copias y certificado. No se añaden dependencias.
+
+### Dashboard y guía de usuario
+
+La guía incluye perfil, pendientes autorizados, accesos y exportaciones. Se actualiza la explicación de presupuestos, recepción, corrección de partes, cobros y cierre, y se añaden recorridos de contratación, gastos, documentación, vencimientos, anticipos, movimientos de stock y líneas de compras. No anuncia como disponible la emisión fiscal real ni la automatización pendiente.
+
+### Migraciones y copias aplicadas
+
+Se aplican únicamente migraciones aditivas, sin migrate:fresh en MySQL. Se crean copias cifradas antes de las tandas: operations-20261105-173649.sql.enc, operations-20261105-174426.sql.enc, operations-20261105-175437.sql.enc y operations-20261105-175800.sql.enc; posteriormente operations-20261105-175843.sql.enc incorpora recuentos para ensayo. Se preservan las copias históricas previas.
+
+### Alcance todavía abierto
+
+Este bloque implementa una ampliación operativa extensa, pero no cierra todo PLAN.md. Permanecen: desglose fiscal mixto de ofertas, numeración comercial configurable, biblioteca de partidas/descompuestos editables, planificación visual/dependencias/capacidad, certificación comercial periódica independiente, reparto de compras entre obras, abonos de compra y conciliación automática, inventario inicial sin recepción previa, stock mínimo y caducidad de reservas, garantías económicas completas, coste laboral ampliado, previsión final/margen completo, generación y envío/archivo automático de PDF, registro laboral de jornada, cumplimiento documental personalizado, acceso externo, segundo factor y validación fiscal real.
+
+También quedan condicionados a datos/permisos externos: respaldo fuera del servidor, restauración aislada, dominio y configuración de producción, supervisión real de scheduler/worker, formato final de la asesoría y validación fiscal. No se cambia el bloqueo de emisión real ni se remite información a AEAT.
+
+### Seguimiento adicional de esta entrega
+
+Se añaden descuentos comerciales por línea de presupuesto y se propagan a la ejecución y a las facturas generadas desde fases. El total e impresión reflejan el descuento; no se altera el precio unitario original para ocultarlo. La migración de descuento se aplica tras la copia operations-20261105-181019.sql.enc.
+
+Las ofertas enviadas/aceptadas conservan la consulta de líneas en modo lectura y no permiten borrado ordinario; tampoco se permite borrar una orden derivada de oferta aceptada. Se filtran los pasos del dashboard según los accesos disponibles para cada perfil.
+
+Se comprueba el estado tras migrar: MySQL contiene 70 tablas; se conservan los 2 presupuestos, 384 partidas, 3 órdenes y 1 usuario que había antes del trabajo. No se crean registros ficticios de negocio para demostrar las pantallas. Las pruebas crean sus fixtures exclusivamente en SQLite en memoria.
+
+La suite completa detectó una preparación antigua que intentaba cerrar una orden con fases pendientes. Se actualiza esa preparación para finalizar primero las fases y conservar la prueba de protección frente al borrado. Se mantienen las pruebas anteriores y se amplía cobertura para guardado conjunto, conflicto de edición, aceptación/conversión, perfiles, compras por líneas, pagos/anticipos/plazos, correcciones, documentos privados y movimientos de stock.
+
+### Validación final del bloque aplicado
+
+Resultado final de php artisan test --compact: **393 pruebas correctas, 3.688 aserciones**, 79,2 segundos, con SQLite :memory: forzado. Formato aplicado con Pint, compilación Vite correcta y vistas Blade compiladas. El aviso de fontaine es opcional y no impide compilar; no se añade esa dependencia.
+
+El plan sigue abierto: no se presenta la ampliación como terminación del 100 % de sus apartados. Los pendientes funcionales y los dependientes de infraestructura/validación externa están separados en PLAN.md, apartado 16, y en la guía operativa. Se prepara una instantánea local de código en Git excluyendo claves, certificados, .env, datos privados y compilados. No se publica ni se envía el repositorio a un servicio externo.

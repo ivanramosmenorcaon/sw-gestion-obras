@@ -87,6 +87,7 @@ class WorkOrderLineForm
             TextInput::make('base_unit_factor')->label(__('business.fields.base_unit_factor'))->required()->default('1')->numeric()->minValue(0.000000000001)->helperText(__('business.helpers.factor')),
             TextInput::make('planned_quantity')->label(__('business.fields.planned_quantity'))->required()->default('0')->numeric()->minValue(0),
             TextInput::make('estimated_unit_cost')->label(__('business.fields.estimated_unit_cost'))->required()->default('0')->numeric()->minValue(0),
+            TextInput::make('discount_percentage')->label('Descuento de venta (%)')->numeric()->minValue(0)->maxValue(100)->default(0),
             TextInput::make('estimated_unit_sale_price')->label(__('business.fields.estimated_unit_sale_price'))->required()->default('0')->numeric()->minValue(0),
             Textarea::make('notes')->rows(3)->columnSpanFull()->label(__('business.fields.notes')),
             Repeater::make('measurement_details')

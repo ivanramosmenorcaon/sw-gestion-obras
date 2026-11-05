@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\WorkOrderPhases;
 
+use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\WorkOrderPhases\Pages\CreateWorkOrderPhase;
 use App\Filament\Resources\WorkOrderPhases\Pages\EditWorkOrderPhase;
 use App\Filament\Resources\WorkOrderPhases\Pages\ListWorkOrderPhases;
@@ -12,13 +13,12 @@ use App\Filament\Resources\WorkOrderPhases\Tables\WorkOrderPhasesTable;
 use App\Models\WorkOrderPhase;
 use App\Support\BusinessRecordValidator;
 use BackedEnum;
-use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
-class WorkOrderPhaseResource extends Resource
+class WorkOrderPhaseResource extends BusinessResource
 {
     protected static ?string $model = WorkOrderPhase::class;
 

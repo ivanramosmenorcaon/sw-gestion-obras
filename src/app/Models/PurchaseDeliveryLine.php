@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['purchase_delivery_note_id', 'product_id', 'product_unit_id', 'description', 'position', 'quantity', 'unit_price', 'discount_percentage'])]
+#[Fillable(['purchase_order_line_id', 'purchase_delivery_note_id', 'product_id', 'product_unit_id', 'description', 'position', 'quantity', 'unit_price', 'discount_percentage'])]
 class PurchaseDeliveryLine extends Model
 {
     use HasFactory;
@@ -51,6 +51,11 @@ class PurchaseDeliveryLine extends Model
 
             return parent::delete();
         });
+    }
+
+    public function purchaseOrderLine(): BelongsTo
+    {
+        return $this->belongsTo(PurchaseOrderLine::class);
     }
 
     public function deliveryNote(): BelongsTo

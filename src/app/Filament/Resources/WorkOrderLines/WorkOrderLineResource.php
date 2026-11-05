@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\WorkOrderLines;
 
+use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\WorkOrderLines\Pages\CreateWorkOrderLine;
 use App\Filament\Resources\WorkOrderLines\Pages\EditWorkOrderLine;
 use App\Filament\Resources\WorkOrderLines\Pages\ListWorkOrderLines;
@@ -11,13 +12,12 @@ use App\Filament\Resources\WorkOrderLines\Tables\WorkOrderLinesTable;
 use App\Models\WorkOrderLine;
 use App\Support\BusinessRecordValidator;
 use BackedEnum;
-use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
-class WorkOrderLineResource extends Resource
+class WorkOrderLineResource extends BusinessResource
 {
     protected static ?string $model = WorkOrderLine::class;
 

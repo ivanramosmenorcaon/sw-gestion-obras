@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\SupplierProducts;
 
+use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\SupplierProducts\Pages\CreateSupplierProduct;
 use App\Filament\Resources\SupplierProducts\Pages\EditSupplierProduct;
 use App\Filament\Resources\SupplierProducts\Pages\ListSupplierProducts;
@@ -10,13 +11,12 @@ use App\Filament\Resources\SupplierProducts\Tables\SupplierProductsTable;
 use App\Models\SupplierProduct;
 use App\Support\BusinessRecordValidator;
 use BackedEnum;
-use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
-class SupplierProductResource extends Resource
+class SupplierProductResource extends BusinessResource
 {
     protected static ?string $model = SupplierProduct::class;
 

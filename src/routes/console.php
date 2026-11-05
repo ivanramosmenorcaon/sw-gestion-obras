@@ -9,3 +9,5 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('billing:send-pending')->everyMinute()->withoutOverlapping();
+
+Schedule::command('operations:backup')->dailyAt('02:00')->withoutOverlapping();

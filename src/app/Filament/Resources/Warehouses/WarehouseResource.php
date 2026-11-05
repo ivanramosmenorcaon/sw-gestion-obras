@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Warehouses;
 
+use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\Warehouses\Pages\CreateWarehouse;
 use App\Filament\Resources\Warehouses\Pages\EditWarehouse;
 use App\Filament\Resources\Warehouses\Pages\ListWarehouses;
@@ -12,13 +13,11 @@ use App\Filament\Resources\Warehouses\Tables\WarehousesTable;
 use App\Models\Warehouse;
 use BackedEnum;
 use Daljo25\FilamentTablerIcons\Enums\TablerIcon;
-use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
-class WarehouseResource extends Resource
+class WarehouseResource extends BusinessResource
 {
     protected static ?string $model = Warehouse::class;
 

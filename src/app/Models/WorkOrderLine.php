@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Validation\ValidationException;
 
-#[Fillable(['project_id', 'work_order_id', 'project_chapter_id', 'work_order_phase_id', 'position', 'type', 'product_id', 'product_unit_id', 'description', 'unit_id', 'unit_label', 'base_unit_id', 'base_unit_factor', 'planned_quantity', 'estimated_unit_cost', 'estimated_unit_sale_price', 'notes', 'source_code', 'measurement_details', 'budget_breakdown'])]
+#[Fillable(['discount_percentage', 'project_id', 'work_order_id', 'project_chapter_id', 'work_order_phase_id', 'position', 'type', 'product_id', 'product_unit_id', 'description', 'unit_id', 'unit_label', 'base_unit_id', 'base_unit_factor', 'planned_quantity', 'estimated_unit_cost', 'estimated_unit_sale_price', 'notes', 'source_code', 'measurement_details', 'budget_breakdown'])]
 class WorkOrderLine extends Model
 {
     /** @use HasFactory<WorkOrderLineFactory> */
@@ -20,6 +20,7 @@ class WorkOrderLine extends Model
     protected $table = 'work_order_lines';
 
     protected $attributes = [
+        'discount_percentage' => '0',
         'base_unit_factor' => '1',
         'planned_quantity' => '0',
         'estimated_unit_cost' => '0',
@@ -42,6 +43,7 @@ class WorkOrderLine extends Model
     protected function casts(): array
     {
         return [
+            'discount_percentage' => 'decimal:4',
             'base_unit_factor' => 'decimal:12',
             'planned_quantity' => 'decimal:6',
             'measurement_details' => 'array',

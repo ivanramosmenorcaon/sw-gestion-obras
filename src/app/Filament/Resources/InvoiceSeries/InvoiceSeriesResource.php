@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\InvoiceSeries;
 
+use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\InvoiceSeries\Pages\CreateInvoiceSeries;
 use App\Filament\Resources\InvoiceSeries\Pages\EditInvoiceSeries;
 use App\Filament\Resources\InvoiceSeries\Pages\ListInvoiceSeries;
@@ -9,13 +10,12 @@ use App\Filament\Resources\InvoiceSeries\Schemas\InvoiceSeriesForm;
 use App\Filament\Resources\InvoiceSeries\Tables\InvoiceSeriesTable;
 use App\Models\InvoiceSeries;
 use BackedEnum;
-use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
-class InvoiceSeriesResource extends Resource
+class InvoiceSeriesResource extends BusinessResource
 {
     protected static ?string $model = InvoiceSeries::class;
 

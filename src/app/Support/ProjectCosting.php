@@ -4,12 +4,15 @@ namespace App\Support;
 
 use App\Models\CompanySetting;
 use App\Models\Employee;
+use App\Models\EmployeeAbsence;
 use App\Models\LaborCostRate;
 use App\Models\MaterialConsumption;
 use App\Models\Party;
 use App\Models\Product;
 use App\Models\PurchaseDeliveryLine;
 use App\Models\PurchaseDeliveryNote;
+use App\Models\PurchaseOrderLine;
+use App\Models\StockMovement;
 use App\Models\Warehouse;
 use App\Models\WorkOrder;
 use App\Models\WorkOrderPhase;
@@ -31,6 +34,17 @@ final class ProjectCosting
             $this->fail('status', 'immutable');
         }
         if ($record instanceof PurchaseDeliveryLine) {
+            if ($record->purchase_order_line_id) {
+                $source = PurchaseOrderLine::whereKey($record->purchase_order_line_id)->lockForUpdate()->firstOrFail();
+                $unitLabel = $record->product_unit_id ? $record->productUnit->name : $record->product->baseUnit->symbol;
+                if ($source->purchase_order_id !== $record->deliveryNote->purchase_order_id || $source->product_id !== $record->product_id || $source->unit_label !== $unitLabel) {
+                    $this->fail('purchase_order_line_id', 'owner');
+                }
+                $received = PurchaseDeliveryLine::where('purchase_order_line_id', $source->id)->whereKeyNot($record->id ?? 0)->whereHas('deliveryNote', fn (Builder $q) => $q->where('status', '!=', 'cancelled'))->pluck('quantity')->reduce(fn (BigDecimal $sum, string $q): BigDecimal => $sum->plus($q), BigDecimal::of(0));
+                if ($received->plus($record->quantity)->compareTo($source->quantity) > 0) {
+                    $this->fail('quantity', 'quantity');
+                }
+            }
             $this->assertEditable($record->deliveryNote()->firstOrFail());
         }
     }
@@ -74,6 +88,9 @@ final class ProjectCosting
             return;
         }
         if ($record instanceof PurchaseDeliveryNote) {
+            if ($record->purchase_order_id && ($record->purchaseOrder->status !== 'posted' || $record->purchaseOrder->supplier_id !== $record->supplier_id)) {
+                $this->fail('supplier_id', 'supplier');
+            }
             if (! $record->supplier->partyRoles()->where('role', 'supplier')->exists()) {
                 $this->fail('supplier_id', 'supplier');
             }
@@ -106,9 +123,6 @@ final class ProjectCosting
                 if ($original->status !== 'posted' || $original->reverses_id || $original->purchase_delivery_line_id !== $record->purchase_delivery_line_id || $original->work_order_phase_id !== $record->work_order_phase_id || $record->consumed_date->lt($original->consumed_date)) {
                     $this->fail('quantity', 'owner');
                 }
-                if (BigDecimal::of($record->quantity)->abs()->compareTo($original->quantity) !== 0) {
-                    $this->fail('quantity', 'return_full');
-                }
                 $returned = MaterialConsumption::where('reverses_id', $original->id)->whereKeyNot($record->id ?? 0)->whereIn('status', ['draft', 'posted'])->pluck('quantity')->reduce(fn (BigDecimal $sum, string $qty): BigDecimal => $sum->plus($qty), BigDecimal::of('0'));
                 if (BigDecimal::of($original->quantity)->plus($returned)->plus($record->quantity)->compareTo('0') < 0) {
                     $this->fail('quantity', 'over_return');
@@ -139,6 +153,9 @@ final class ProjectCosting
             }
         }
         if ($record instanceof WorkTimeEntry) {
+            if (auth()->user()?->role === 'worker' && $record->employee_id !== Employee::where('user_id', auth()->id())->value('id')) {
+                $this->fail('employee_id', 'worker');
+            }
             $seconds = (int) $record->started_at->diffInSeconds($record->ended_at);
             if ($seconds > 86400 || $seconds <= $record->break_minutes * 60) {
                 $this->fail('ended_at', 'duration');
@@ -149,6 +166,9 @@ final class ProjectCosting
     private function validatePhase(Model $record): void
     {
         $phase = WorkOrderPhase::findOrFail($record->work_order_phase_id);
+        if (auth()->check() && ! OperationalAccess::scope(WorkOrderPhase::query())->whereKey($phase->id)->exists()) {
+            abort(403);
+        }
         if ($phase->work_order_id !== $record->work_order_id || (! $record->getAttribute('reverses_id') && ($phase->status === 'cancelled' || $phase->workOrder->status === 'cancelled')) || $phase->workOrder->project->currency_code !== 'EUR') {
             $this->fail('work_order_phase_id', 'owner');
         }
@@ -175,7 +195,7 @@ final class ProjectCosting
     /** @return array{cost: string, sale: string}|null */
     public function productQuote(int $productId, string $date, string $factor = '1'): ?array
     {
-        $purchase = PurchaseDeliveryLine::where('product_id', $productId)->whereHas('deliveryNote', fn (Builder $query) => $query->where('status', 'received')->whereDate('received_date', '<=', $date))
+        $purchase = PurchaseDeliveryLine::where('product_id', $productId)->whereHas('deliveryNote', fn (Builder $query) => $query->where('status', 'received')->whereNull('source_transfer_id')->whereDate('received_date', '<=', $date))
             ->join('purchase_delivery_notes', 'purchase_delivery_notes.id', '=', 'purchase_delivery_lines.purchase_delivery_note_id')->select('purchase_delivery_lines.*')->orderByDesc('purchase_delivery_notes.received_date')->orderByDesc('purchase_delivery_notes.id')->orderByDesc('purchase_delivery_lines.id')->first();
         if (! $purchase) {
             return null;
@@ -222,7 +242,7 @@ final class ProjectCosting
                 $markup = $this->markup($line->product);
                 $line->forceFill(['base_unit_id' => $line->product->base_unit_id, 'base_unit_factor' => $factor, 'base_quantity' => (string) $base, 'base_unit_cost' => $cost,
                     'net_total' => $net, 'markup_percentage' => $markup, 'suggested_sale_price' => $this->salePrice($cost, $markup),
-                    'product_snapshot' => ['reference' => $line->product->reference, 'name' => $line->product->name, 'unit' => $line->product->baseUnit->symbol]])->save();
+                    'product_snapshot' => ['reference' => $line->product->reference, 'name' => $line->product->name, 'unit' => $line->product->baseUnit->symbol, 'presentation' => $line->productUnit?->name]])->save();
                 $total = $total->plus($net);
             }
             if ($total->compareTo('9999999999999999.99') > 0) {
@@ -234,7 +254,7 @@ final class ProjectCosting
         }, 3);
     }
 
-    public function available(PurchaseDeliveryLine $line, bool $reserveDrafts = true, ?int $except = null): string
+    public function available(PurchaseDeliveryLine $line, bool $reserveDrafts = true, ?int $except = null, ?int $exceptMovement = null): string
     {
         $query = $line->materialConsumptions()->when($except, fn (Builder $q) => $q->whereKeyNot($except))->where(function (Builder $q) use ($reserveDrafts): void {
             $q->where('status', 'posted');
@@ -244,7 +264,12 @@ final class ProjectCosting
         });
         $used = $query->pluck('quantity')->reduce(fn (BigDecimal $sum, string $qty): BigDecimal => $sum->plus($qty), BigDecimal::of('0'));
 
-        return (string) BigDecimal::of($line->base_quantity ?? '0')->minus($used)->toScale(6);
+        $adjustment = BigDecimal::of(0);
+        foreach (StockMovement::where('purchase_delivery_line_id', $line->id)->when($exceptMovement, fn (Builder $q) => $q->whereKeyNot($exceptMovement))->where(fn (Builder $q) => $q->where('status', 'posted')->when($reserveDrafts, fn (Builder $q) => $q->orWhere(fn (Builder $q) => $q->where('status', 'draft')->where('quantity', '<', 0))))->pluck('quantity') as $quantity) {
+            $adjustment = $adjustment->plus($quantity);
+        }
+
+        return (string) BigDecimal::of($line->base_quantity ?? '0')->plus($adjustment)->minus($used)->toScale(6);
     }
 
     public function postMaterial(MaterialConsumption $consumption): MaterialConsumption
@@ -263,29 +288,49 @@ final class ProjectCosting
             $unitSale = $line->suggested_sale_price;
             if ($entry->reverses_id) {
                 $original = $entry->reverses;
-                $cost = (string) BigDecimal::of($original->total_cost)->negated();
+                $otherReturns = MaterialConsumption::where('reverses_id', $original->id)->whereKeyNot($entry->id)->where('status', 'posted')->get();
+                $remaining = BigDecimal::of($original->quantity);
+                $remainingCost = BigDecimal::of($original->total_cost);
+                $remainingSale = BigDecimal::of($original->sale_total);
+                foreach ($otherReturns as $other) {
+                    $remaining = $remaining->plus($other->quantity);
+                    $remainingCost = $remainingCost->plus($other->total_cost);
+                    $remainingSale = $remainingSale->plus($other->sale_total);
+                }
+                $isLast = BigDecimal::of($entry->quantity)->abs()->compareTo($remaining) === 0;
+                $cost = $isLast ? (string) $remainingCost->negated() : InvoiceCalculator::money(BigDecimal::of($original->total_cost)->multipliedBy($entry->quantity)->dividedBy($original->quantity, 12, RoundingMode::HalfUp));
+                $returnSale = $isLast ? (string) $remainingSale->negated() : InvoiceCalculator::money(BigDecimal::of($original->sale_total)->multipliedBy($entry->quantity)->dividedBy($original->quantity, 12, RoundingMode::HalfUp));
                 $markup = $original->markup_percentage;
                 $unitSale = $original->unit_sale_price;
             } elseif (BigDecimal::of($entry->quantity)->compareTo($this->available($line, false)) === 0) {
                 $spent = $line->materialConsumptions()->where('status', 'posted')->pluck('total_cost')->reduce(fn (BigDecimal $sum, string $amount): BigDecimal => $sum->plus($amount), BigDecimal::of('0'));
-                $cost = InvoiceCalculator::money(BigDecimal::of($line->net_total)->minus($spent));
+                $cost = InvoiceCalculator::money(BigDecimal::of($line->net_total)->plus(ProjectEconomics::sum(StockMovement::where('purchase_delivery_line_id', $line->id)->where('status', 'posted'), 'total_cost'))->minus($spent));
             }
             $entry->forceFill(['status' => 'posted', 'unit_cost' => $line->base_unit_cost, 'total_cost' => $cost, 'markup_percentage' => $markup, 'unit_sale_price' => $unitSale,
-                'sale_total' => $entry->reverses_id ? (string) BigDecimal::of($entry->reverses->sale_total)->negated() : InvoiceCalculator::money(BigDecimal::of($entry->quantity)->multipliedBy($unitSale)), 'posted_at' => now()])->save();
+                'sale_total' => $entry->reverses_id ? $returnSale : InvoiceCalculator::money(BigDecimal::of($entry->quantity)->multipliedBy($unitSale)), 'posted_at' => now()])->save();
 
             return $entry;
         }, 3);
     }
 
-    public function returnMaterial(MaterialConsumption $consumption): MaterialConsumption
+    public function returnMaterial(MaterialConsumption $consumption, ?string $quantity = null): MaterialConsumption
     {
-        return DB::transaction(function () use ($consumption): MaterialConsumption {
+        return DB::transaction(function () use ($consumption, $quantity): MaterialConsumption {
             $original = MaterialConsumption::whereKey($consumption->id)->lockForUpdate()->firstOrFail();
-            if ($original->status !== 'posted' || $original->reverses_id || MaterialConsumption::where('reverses_id', $original->id)->whereIn('status', ['draft', 'posted'])->exists()) {
+            if ($original->status !== 'posted' || $original->reverses_id) {
                 $this->fail('status', 'return');
             }
+            $remaining = BigDecimal::of($original->quantity);
+            foreach (MaterialConsumption::where('reverses_id', $original->id)->whereIn('status', ['draft', 'posted'])->pluck('quantity') as $returned) {
+                $remaining = $remaining->plus($returned);
+            }
+            if ($remaining->compareTo(0) <= 0) {
+                $this->fail('status', 'return');
+            }
+            $quantity ??= (string) $remaining;
+            validator(['quantity' => $quantity], ['quantity' => ['required', 'numeric', 'decimal:0,6', 'gt:0']])->validate();
             $return = new MaterialConsumption($original->only(['purchase_delivery_line_id', 'work_order_id', 'work_order_phase_id']));
-            $return->forceFill(['quantity' => (string) BigDecimal::of($original->quantity)->negated(), 'consumed_date' => today('Europe/Madrid')->toDateString(), 'reverses_id' => $original->id, 'notes' => __('costing.return_note', ['id' => $original->id])]);
+            $return->forceFill(['quantity' => (string) BigDecimal::of($quantity)->negated(), 'consumed_date' => today('Europe/Madrid')->toDateString(), 'reverses_id' => $original->id, 'notes' => __('costing.return_note', ['id' => $original->id])]);
             $return->save();
 
             return $this->postMaterial($return);
@@ -305,6 +350,12 @@ final class ProjectCosting
             $workerField = $entry->employee_id ? 'employee_id' : 'contractor_id';
             $workerId = $entry->$workerField;
             $worker = $entry->employee_id ? $entry->employee : $entry->contractor;
+            if ($entry->employee_id && (($worker->employment_start_date && $entry->started_at->copy()->timezone('Europe/Madrid')->toDateString() < $worker->employment_start_date->toDateString()) || ($worker->employment_end_date && $entry->ended_at->copy()->timezone('Europe/Madrid')->toDateString() > $worker->employment_end_date->toDateString()))) {
+                $this->fail('employee_id', 'worker');
+            }
+            if ($entry->employee_id && EmployeeAbsence::where('employee_id', $entry->employee_id)->where('status', 'posted')->whereDate('starts_on', '<=', $entry->ended_at->copy()->timezone('Europe/Madrid')->toDateString())->whereDate('ends_on', '>=', $entry->started_at->copy()->timezone('Europe/Madrid')->toDateString())->exists()) {
+                $this->fail('employee_id', 'worker');
+            }
             if (! $worker->is_active) {
                 $this->fail($workerField, 'worker');
             }
@@ -312,7 +363,7 @@ final class ProjectCosting
             if (! $assignments->where($workerField, $workerId)->where('status', '!=', 'cancelled')->where(fn (Builder $q) => $q->whereNull('work_order_phase_id')->orWhere('work_order_phase_id', $entry->work_order_phase_id))->exists()) {
                 $this->fail($workerField, 'assignment');
             }
-            if (WorkTimeEntry::whereKeyNot($entry->id)->where($workerField, $workerId)->where('status', 'posted')->where('started_at', '<', $entry->ended_at)->where('ended_at', '>', $entry->started_at)->exists()) {
+            if (WorkTimeEntry::whereKeyNot($entry->id)->whereDoesntHave('reversals', fn (Builder $q) => $q->where('status', 'posted'))->where($workerField, $workerId)->where('status', 'posted')->where('started_at', '<', $entry->ended_at)->where('ended_at', '>', $entry->started_at)->exists()) {
                 $this->fail('started_at', 'time_overlap');
             }
             $from = $entry->started_at->copy()->setTimezone('Europe/Madrid')->toDateString();
@@ -346,7 +397,7 @@ final class ProjectCosting
     public function totals(WorkOrder|WorkOrderPhase $record): array
     {
         $materials = (string) $record->materialConsumptions()->where('status', 'posted')->sum('total_cost');
-        $labor = (string) $record->workTimeEntries()->where('status', 'posted')->sum('total_cost');
+        $labor = (string) $record->workTimeEntries()->where('status', 'posted')->whereDoesntHave('reversals', fn (Builder $q) => $q->where('status', 'posted'))->sum('total_cost');
 
         return ['materials' => InvoiceCalculator::money($materials), 'labor' => InvoiceCalculator::money($labor), 'total' => InvoiceCalculator::money(BigDecimal::of($materials)->plus($labor))];
     }

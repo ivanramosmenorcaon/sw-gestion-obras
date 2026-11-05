@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\PaymentTermInstallments;
 
+use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\PaymentTermInstallments\Pages\CreatePaymentTermInstallment;
 use App\Filament\Resources\PaymentTermInstallments\Pages\EditPaymentTermInstallment;
 use App\Filament\Resources\PaymentTermInstallments\Pages\ListPaymentTermInstallments;
@@ -10,13 +11,12 @@ use App\Filament\Resources\PaymentTermInstallments\Tables\PaymentTermInstallment
 use App\Models\PaymentTermInstallment;
 use App\Support\BusinessRecordValidator;
 use BackedEnum;
-use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
-class PaymentTermInstallmentResource extends Resource
+class PaymentTermInstallmentResource extends BusinessResource
 {
     protected static ?string $model = PaymentTermInstallment::class;
 

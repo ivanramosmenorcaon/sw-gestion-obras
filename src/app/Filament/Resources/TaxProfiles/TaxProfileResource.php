@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\TaxProfiles;
 
+use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\TaxProfiles\Pages\CreateTaxProfile;
 use App\Filament\Resources\TaxProfiles\Pages\EditTaxProfile;
 use App\Filament\Resources\TaxProfiles\Pages\ListTaxProfiles;
@@ -9,13 +10,12 @@ use App\Filament\Resources\TaxProfiles\Schemas\TaxProfileForm;
 use App\Filament\Resources\TaxProfiles\Tables\TaxProfilesTable;
 use App\Models\TaxProfile;
 use BackedEnum;
-use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
-class TaxProfileResource extends Resource
+class TaxProfileResource extends BusinessResource
 {
     protected static ?string $model = TaxProfile::class;
 

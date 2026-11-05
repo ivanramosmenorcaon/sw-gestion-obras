@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable(['work_order_id', 'work_order_phase_id', 'employee_id', 'contractor_id', 'started_at', 'ended_at', 'break_minutes', 'description'])]
 class WorkTimeEntry extends Model
@@ -50,6 +51,11 @@ class WorkTimeEntry extends Model
 
             return parent::delete();
         });
+    }
+
+    public function reversals(): HasMany
+    {
+        return $this->hasMany(WorkTimeReversal::class);
     }
 
     public function workOrder(): BelongsTo

@@ -2,13 +2,18 @@
 
 namespace App\Support;
 
+use App\Models\ContractorCertificate;
 use App\Models\Party;
 use App\Models\Product;
 use App\Models\ProductUnit;
+use App\Models\Project;
 use App\Models\ProjectChapter;
+use App\Models\ProjectExpense;
 use App\Models\Unit;
 use App\Models\WorkOrder;
+use App\Models\WorkOrderLine;
 use App\Models\WorkOrderPhase;
+use App\Models\WorkProgress;
 use Carbon\Carbon;
 use Closure;
 use Illuminate\Database\Eloquent\Builder;
@@ -24,6 +29,31 @@ final class BusinessRecordValidator
 {
     public static function validate(Model $record): void
     {
+        if ($record instanceof WorkOrderLine && $record->work_order_id && WorkOrder::find($record->work_order_id)?->accepted_budget_id && (! $record->exists || $record->isDirty(['planned_quantity', 'estimated_unit_sale_price', 'description', 'discount_percentage']))) {
+            throw ValidationException::withMessages(['estimated_unit_sale_price' => 'El alcance y precio proceden de una oferta aceptada. Presupueste un extra o una revisión; no cambie el acuerdo original.']);
+        }
+        if (auth()->user()?->role === 'manager') {
+            if ($record instanceof Project && (int) $record->manager_id !== (int) auth()->id()) {
+                abort(403);
+            }
+            if ($record->getAttribute('project_id') && ! OperationalAccess::scope(Project::query())->whereKey($record->project_id)->exists()) {
+                abort(403);
+            }
+        }
+        if ($record instanceof Project && $record->exists && $record->isDirty('status') && $record->status === 'completed') {
+            if ($record->workOrders()->whereNotIn('status', ['completed', 'cancelled'])->exists()) {
+                throw ValidationException::withMessages(['status' => 'Finalice o cancele las órdenes antes de cerrar la obra. El cierre económico se controla por separado.']);
+            }
+            foreach ([ProjectExpense::class, ContractorCertificate::class, WorkProgress::class] as $model) {
+                if ($model::where('project_id', $record->id)->where('status', 'draft')->exists()) {
+                    throw ValidationException::withMessages(['status' => 'Confirme o cancele las imputaciones pendientes antes de cerrar la obra.']);
+                }
+            }
+        }
+        if ($record instanceof WorkOrder && $record->exists && $record->isDirty('status') && $record->status === 'completed' && ($record->workOrderPhases()->whereNotIn('status', ['completed', 'cancelled'])->exists() || $record->materialConsumptions()->where('status', 'draft')->exists() || $record->workTimeEntries()->where('status', 'draft')->exists())) {
+            throw ValidationException::withMessages(['status' => 'Finalice las fases y resuelva los partes y consumos pendientes antes de cerrar la orden.']);
+        }
+
         foreach (['country_code', 'tax_country_code', 'currency_code'] as $field) {
             if ($record->getAttribute($field) !== null) {
                 $record->setAttribute($field, strtoupper(trim($record->getAttribute($field))));
@@ -193,6 +223,12 @@ final class BusinessRecordValidator
 
     public static function canDelete(Model $record): bool
     {
+        if ($record instanceof WorkOrder && $record->accepted_budget_id) {
+            return false;
+        }
+        if ($record instanceof WorkOrderLine && $record->workOrder?->accepted_budget_id) {
+            return false;
+        }
         if ($record instanceof WorkOrder && $record->status === 'draft') {
             return ! $record->salesInvoices()->exists() && ! $record->materialConsumptions()->exists() && ! $record->workTimeEntries()->exists();
         }

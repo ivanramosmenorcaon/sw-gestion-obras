@@ -28,7 +28,7 @@ class ViewWorkOrderTree extends ViewRecord
         parent::mount($record);
         $this->budgetName = 'Presupuesto · '.$this->getRecord()->name;
         foreach (app(WorkOrderChapterTree::class)->snapshots($this->getRecord()) as $item) {
-            $this->selection[$item['source_line_id']] = ['included' => true, 'quantity' => $item['quantity'], 'price' => $item['price'], 'unit' => $item['unit']];
+            $this->selection[$item['source_line_id']] = ['included' => true, 'quantity' => $item['quantity'], 'price' => $item['price'], 'unit' => $item['unit'], 'discount_percentage' => $item['discount_percentage'] ?? '0'];
         }
     }
 
@@ -45,7 +45,7 @@ class ViewWorkOrderTree extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            \Filament\Actions\Action::make('print')->label('Imprimir')->url(fn (): string => route('documents.print', ['type' => 'order', 'id' => $this->getRecord()->id]))->openUrlInNewTab(),
+            Action::make('print')->label('Imprimir')->url(fn (): string => route('documents.print', ['type' => 'order', 'id' => $this->getRecord()->id]))->openUrlInNewTab(),
             Action::make('createBudget')->label('Crear presupuesto')
                 ->authorize(fn (): bool => BudgetResource::canCreate())
                 ->action(function (): void {

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\PartyContacts;
 
+use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\PartyContacts\Pages\CreatePartyContact;
 use App\Filament\Resources\PartyContacts\Pages\EditPartyContact;
 use App\Filament\Resources\PartyContacts\Pages\ListPartyContacts;
@@ -10,13 +11,12 @@ use App\Filament\Resources\PartyContacts\Tables\PartyContactsTable;
 use App\Models\PartyContact;
 use App\Support\BusinessRecordValidator;
 use BackedEnum;
-use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
-class PartyContactResource extends Resource
+class PartyContactResource extends BusinessResource
 {
     protected static ?string $model = PartyContact::class;
 

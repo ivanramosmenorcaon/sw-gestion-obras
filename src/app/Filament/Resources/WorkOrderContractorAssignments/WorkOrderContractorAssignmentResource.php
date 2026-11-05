@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\WorkOrderContractorAssignments;
 
+use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\WorkOrderContractorAssignments\Pages\CreateWorkOrderContractorAssignment;
 use App\Filament\Resources\WorkOrderContractorAssignments\Pages\EditWorkOrderContractorAssignment;
 use App\Filament\Resources\WorkOrderContractorAssignments\Pages\ListWorkOrderContractorAssignments;
@@ -10,13 +11,12 @@ use App\Filament\Resources\WorkOrderContractorAssignments\Tables\WorkOrderContra
 use App\Models\WorkOrderContractorAssignment;
 use App\Support\BusinessRecordValidator;
 use BackedEnum;
-use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
-class WorkOrderContractorAssignmentResource extends Resource
+class WorkOrderContractorAssignmentResource extends BusinessResource
 {
     protected static ?string $model = WorkOrderContractorAssignment::class;
 

@@ -2,12 +2,16 @@
 
 namespace App\Filament\Resources\Projects\Schemas;
 
+use App\Models\Project;
 use App\Support\FiscalCatalog;
+use App\Support\OperationalAccess;
+use App\Support\ProjectEconomics;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Builder;
@@ -19,6 +23,13 @@ class ProjectForm
     public static function configure(Schema $schema, array $context = []): Schema
     {
         return $schema->columns(2)->components([
+            TextEntry::make('economic_summary')->label('Situación económica de la obra')->columnSpanFull()
+                ->visible(fn (?Project $record): bool => $record?->exists && OperationalAccess::canSeeCosts())
+                ->state(function (Project $record): string {
+                    $totals = app(ProjectEconomics::class)->forProject($record);
+
+                    return 'Ofertado aceptado: '.$totals['accepted'].' EUR · Coste real: '.$totals['actual'].' EUR · Contratado/pedido: '.$totals['committed'].' EUR · Facturado a cobrar: '.$totals['invoiced'].' EUR · Cobrado: '.$totals['received'].' EUR · Pagado: '.$totals['paid'].' EUR · Venta aceptada menos coste incurrido: '.$totals['sale_less_actual'].' EUR. Este último importe no es el margen final; faltan los costes pendientes de ejecución.';
+                }),
             TextInput::make('reference')->label(__('business.fields.reference'))->required()->maxLength(80)->unique(ignoreRecord: true),
             TextInput::make('name')->label(__('business.fields.name'))->required()->maxLength(255),
             Textarea::make('description')->rows(3)->columnSpanFull()->label(__('business.fields.description')),

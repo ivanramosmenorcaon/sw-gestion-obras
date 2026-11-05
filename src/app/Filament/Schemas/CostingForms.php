@@ -16,6 +16,7 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 final class CostingForms
 {
@@ -34,10 +35,15 @@ final class CostingForms
         ];
         $fields = match ($type) {
             'warehouse' => [TextInput::make('code')->label($label('code'))->required()->maxLength(50), TextInput::make('name')->label($label('name'))->required()->maxLength(255), Toggle::make('is_active')->label($label('is_active'))->default(true)],
-            'note' => [Select::make('supplier_id')->label($label('supplier_id'))->relationship('supplier', 'legal_name', fn (Builder $query) => $query->where('is_active', true)->whereHas('partyRoles', fn (Builder $roles) => $roles->where('role', 'supplier')))->searchable()->preload()->required(),
+            'note' => [Select::make('purchase_order_id')->label('Pedido de compra (opcional)')->relationship('purchaseOrder', 'reference', fn (Builder $query) => $query->where('status', 'posted'))->searchable()->preload(),
+                Select::make('supplier_id')->label($label('supplier_id'))->relationship('supplier', 'legal_name', fn (Builder $query) => $query->where('is_active', true)->whereHas('partyRoles', fn (Builder $roles) => $roles->where('role', 'supplier')))->searchable()->preload()->required(),
                 Select::make('warehouse_id')->label($label('warehouse_id'))->relationship('warehouse', 'name', fn (Builder $query) => $query->where('is_active', true))->searchable()->preload()->required(),
                 TextInput::make('reference')->label($label('reference'))->required()->maxLength(100), DatePicker::make('received_date')->label($label('received_date'))->default(today('Europe/Madrid'))->required(), Textarea::make('notes')->label($label('notes'))->columnSpanFull()],
             'line' => [
+                Select::make('purchase_order_line_id')->label('Línea del pedido (opcional)')->relationship('purchaseOrderLine', 'description', function (Builder $query, Get $get, ?Model $record): void {
+                    $orderId = $get('../../purchase_order_id') ?? ($record instanceof PurchaseDeliveryLine ? $record->deliveryNote?->purchase_order_id : null);
+                    $query->where('purchase_order_id', $orderId);
+                })->searchable()->preload(),
                 Select::make('product_id')->label($label('product_id'))->relationship('product', 'name', fn (Builder $query) => $query->where('is_active', true)->where('type', 'material')->where('tracks_stock', true))->searchable()->preload()->required()->live()->helperText(__('costing.stock_product_help'))
                     ->afterStateUpdated(function (mixed $state, Set $set): void {
                         $product = Product::find($state);

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\WorkOrders;
 
+use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\WorkOrders\Pages\CreateWorkOrder;
 use App\Filament\Resources\WorkOrders\Pages\EditWorkOrder;
 use App\Filament\Resources\WorkOrders\Pages\ListWorkOrders;
@@ -11,14 +12,12 @@ use App\Filament\Resources\WorkOrders\Tables\WorkOrdersTable;
 use App\Models\WorkOrder;
 use App\Support\BusinessRecordValidator;
 use BackedEnum;
-use Filament\Resources\Resource;
-use Filament\Schemas\Schema;
 use Daljo25\FilamentTablerIcons\Enums\TablerIcon;
-use Filament\Support\Icons\Heroicon;
+use Filament\Schemas\Schema;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
-class WorkOrderResource extends Resource
+class WorkOrderResource extends BusinessResource
 {
     protected static ?string $model = WorkOrder::class;
 

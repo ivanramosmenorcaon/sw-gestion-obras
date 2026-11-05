@@ -50,7 +50,7 @@ class KeyboardDocumentsTest extends TestCase
             ->set('manualLines.0.description', 'Trabajo y detalles')
             ->set('manualLines.0.quantity', '2')
             ->set('manualLines.0.price', '12.50')
-            ->callAction('saveManual')->assertHasNoActionErrors()->assertNotified();
+            ->callAction('saveBudget')->assertHasNoActionErrors()->assertNotified();
         $this->assertSame('25.00', $budget->fresh()->total());
         $this->assertSame(0, $order->workOrderLines()->count());
         $this->get(route('documents.print', ['type' => 'budget', 'id' => $budget->id]))
@@ -69,11 +69,11 @@ class KeyboardDocumentsTest extends TestCase
         $page = Livewire::test(EditBudget::class, ['record' => $budget->id])
             ->assertSee('Eliminar línea')->call('removeManualLine', 0)
             ->assertSet('manualLines.0.description', 'Segunda')
-            ->callAction('saveManual')->assertHasNoActionErrors();
+            ->callAction('saveBudget')->assertHasNoActionErrors();
         $this->assertCount(1, $budget->fresh()->items);
         $this->assertSame('20.00', $budget->fresh()->total());
 
-        $page->call('removeManualLine', 0)->callAction('saveManual')->assertHasNoActionErrors();
+        $page->call('removeManualLine', 0)->callAction('saveBudget')->assertHasNoActionErrors();
         $this->assertSame([], $budget->fresh()->items);
         $this->assertSame('0.00', $budget->fresh()->total());
     }
@@ -100,7 +100,7 @@ class KeyboardDocumentsTest extends TestCase
         $budget = Budget::factory()->create();
         Livewire::test(EditBudget::class, ['record' => $budget->id])
             ->call('addManualLine')->set('manualLines.0.description', 'Trabajo')
-            ->set('manualLines.0.price', '-1')->callAction('saveManual')
+            ->set('manualLines.0.price', '-1')->callAction('saveBudget')
             ->assertHasErrors('lines.0.price');
     }
 

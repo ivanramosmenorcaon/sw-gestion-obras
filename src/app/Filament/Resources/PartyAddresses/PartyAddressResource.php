@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\PartyAddresses;
 
+use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\PartyAddresses\Pages\CreatePartyAddress;
 use App\Filament\Resources\PartyAddresses\Pages\EditPartyAddress;
 use App\Filament\Resources\PartyAddresses\Pages\ListPartyAddresses;
@@ -10,13 +11,12 @@ use App\Filament\Resources\PartyAddresses\Tables\PartyAddressesTable;
 use App\Models\PartyAddress;
 use App\Support\BusinessRecordValidator;
 use BackedEnum;
-use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
-class PartyAddressResource extends Resource
+class PartyAddressResource extends BusinessResource
 {
     protected static ?string $model = PartyAddress::class;
 

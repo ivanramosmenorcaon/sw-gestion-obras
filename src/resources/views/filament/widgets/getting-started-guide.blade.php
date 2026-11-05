@@ -1,6 +1,23 @@
 <x-filament-widgets::widget>
     <x-filament::section :heading="__('onboarding.title')" :description="__('onboarding.intro')">
         <div class="space-y-6" x-data="{ expandAll: false }">
+            <p class="text-sm text-gray-600 dark:text-gray-300">Perfil actual: {{ $role }}. Los accesos y pendientes se limitan a sus permisos.</p>
+            @if ($pending)
+                <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    @foreach ($pending as $item)
+                        <a href="{{ $item['url'] }}" class="rounded-xl border border-gray-200 p-4 dark:border-white/10">
+                            <span class="block text-2xl font-semibold text-gray-950 dark:text-white">{{ $item['count'] }}</span>
+                            <span class="text-sm text-gray-600 dark:text-gray-300">{{ $item['label'] }}</span>
+                        </a>
+                    @endforeach
+                </div>
+            @endif
+            <p class="rounded-lg bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-500/10 dark:text-amber-200">La emisión fiscal continúa en pruebas. Los estados Enviado/Aceptado de presupuestos registran su gestión comercial: el envío al cliente se realiza por su canal habitual.</p>
+            <nav class="flex flex-wrap gap-3" aria-label="Exportaciones para asesoría">
+                @foreach ($exports as $link)
+                    <x-filament::link :href="$link['url']">{{ $link['label'] }}</x-filament::link>
+                @endforeach
+            </nav>
             <ol class="flex flex-wrap items-center gap-2" aria-label="{{ __('onboarding.steps_label') }}">
                 @foreach (__('onboarding.flow') as $stage)
                     <li class="rounded-full bg-primary-50 px-3 py-1.5 text-sm font-medium text-primary-700 dark:bg-primary-500/10 dark:text-primary-300">

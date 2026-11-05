@@ -37,6 +37,17 @@ class Project extends Model
         });
     }
 
+    public function save(array $options = []): bool
+    {
+        return $this->getConnection()->transaction(function () use ($options): bool {
+            if ($this->exists) {
+                $this->newQuery()->whereKey($this->id)->lockForUpdate()->firstOrFail();
+            }
+
+            return parent::save($options);
+        });
+    }
+
     /** @return array<string, string> */
     protected function casts(): array
     {

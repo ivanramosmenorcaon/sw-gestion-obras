@@ -141,7 +141,7 @@ final class SalesBilling
                     throw ValidationException::withMessages(['tax_profile_id' => __('billing.messages.no_default')]);
                 }
                 $line = new SalesInvoiceLine(['sales_invoice_id' => $invoice->id, 'product_id' => $source->product_id, 'position' => $source->position,
-                    'description' => $source->description, 'unit_label' => $source->unit_label, 'quantity' => (string) $quantity, 'unit_price' => $source->estimated_unit_sale_price,
+                    'description' => $source->description, 'unit_label' => $source->unit_label, 'quantity' => (string) $quantity, 'unit_price' => $source->estimated_unit_sale_price, 'discount_percentage' => $source->discount_percentage,
                     'tax_profile_id' => $profile,
                     'withholding_rate_id' => $source->product?->sales_withholding_rate_id ?? $invoice->customer->sales_withholding_rate_id ?? $company?->sales_withholding_rate_id]);
                 $line->work_order_line_id = $source->id;

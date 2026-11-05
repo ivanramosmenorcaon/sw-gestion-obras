@@ -28,3 +28,13 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Claves, certificados y datos privados
+/.env.*
+!/.env.example
+*.p12
+*.pfx
+*.pem
+*.key
+/storage/app/private/
+/storage/logs/

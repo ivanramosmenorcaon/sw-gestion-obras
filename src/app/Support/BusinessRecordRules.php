@@ -80,6 +80,7 @@ final class BusinessRecordRules
             'actual_end_date' => ['nullable', 'date'],
         ],
         'work_order_lines' => [
+            'discount_percentage' => ['nullable', 'numeric', 'decimal:0,4', 'between:0,100'],
             'source_code' => ['nullable', 'string', 'max:80'],
             'project_id' => ['required', 'integer', 'exists:projects,id'],
             'work_order_id' => ['required', 'integer', 'exists:work_orders,id'],
@@ -272,7 +273,8 @@ final class BusinessRecordRules
         'employees' => [['code'], ['user_id']],
         'work_orders' => [['reference']],
         'work_order_phases' => [['work_order_id', 'code']],
-        'work_order_lines' => [['work_order_id', 'position']],
+        'work_order_lines' => [
+            ['work_order_id', 'position']],
         'work_order_employee_assignments' => [],
         'work_order_contractor_assignments' => [],
         'company_settings' => [['scope']],
@@ -300,7 +302,8 @@ final class BusinessRecordRules
         'employees' => ['laborCostRates', 'workTimeEntries', 'workOrders', 'workOrderEmployeeAssignments'],
         'work_orders' => ['materialConsumptions', 'workTimeEntries', 'salesInvoices', 'workOrderPhases', 'workOrderLines', 'workOrderEmployeeAssignments', 'workOrderContractorAssignments'],
         'work_order_phases' => ['materialConsumptions', 'workTimeEntries', 'workOrderLines', 'workOrderEmployeeAssignments', 'workOrderContractorAssignments'],
-        'work_order_lines' => ['salesInvoiceLines'],
+        'work_order_lines' => [
+            'salesInvoiceLines'],
         'work_order_employee_assignments' => [],
         'work_order_contractor_assignments' => [],
         'company_settings' => [],

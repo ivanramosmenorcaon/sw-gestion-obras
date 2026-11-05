@@ -1,7 +1,7 @@
 # Plan para completar la gestión de obras
 
 Fecha de revisión: 5 de noviembre de 2026.
-Estado: diagnóstico y propuesta; las tareas de este plan todavía no están implementadas.
+Estado: ejecución parcial con ampliación operativa aplicada el 5 de noviembre de 2026. Véase el seguimiento al final; las casillas históricas del diagnóstico no equivalen a funciones verificadas.
 
 ## 1. Conclusión y objetivo
 
@@ -335,3 +335,27 @@ Suite completa ejecutada con php artisan test --compact y la configuración forz
 Este resultado confirma los escenarios ya cubiertos, no prueba las funcionalidades ausentes ni ejecuta los manejadores de teclado del navegador. La matriz y los hallazgos incluyen análisis estático; F01/F02 se deducen del flujo de carga/guardado y no se presentan como una nueva reproducción automatizada.
 
 Esta revisión solo genera PLAN.md y actualiza PROYECTO.md; no corrige silenciosamente las brechas detectadas.
+
+## 16. Seguimiento de implementación — 5 de noviembre de 2026
+
+Se confirma una empresa/EUR, partes por empleados con aprobación, contabilidad externa/CSV y líneas obligatorias en pedidos y facturas recibidas.
+
+| Bloque | Entregado | Pendiente para cerrar el bloque |
+| --- | --- | --- |
+| F01–F03 | Guardado único atómico, estado manual sin duplicar, total previo, huella de conflicto y aviso de salida | Validación interactiva de navegador |
+| F04 | Perfiles, cuentas, ámbito por obra, selectores y descargas/exportaciones; operario sin autoaprobación | Matriz ampliada, segundo factor y revisión integral de seguridad |
+| F05–F06 | Albarán neto con descuento; cabecera comercial/condiciones y orden con instrucciones; impresión de compras | PDF archivado automáticamente, diseño final y evidencia histórica completa en todos los documentos |
+| F07–F08 | Coma decimal, filas vacías, devolución parcial, fechas laborales y ausencias al confirmar horas | Recorrido real de teclado/móvil, calendario y reglas completas de reapertura |
+| A | Oferta desde obra, envío registrado, aceptación con evidencia, revisión, extra, ejecución idempotente con precio y descuento protegidos | Fiscalidad mixta, referencias configurables, biblioteca y comparación visual |
+| B | Avance por partida, diario/hitos/incidencias/repasos/garantías y comprobaciones de cierre | Planificación con dependencias/capacidad y certificación comercial independiente |
+| C | Ausencias, aprobación de partes, reversión confirmada, contratos y certificación económica de subcontratas | Coste laboral completo, cuadrillas, calendario avanzado y documentación preventiva específica |
+| D | Pedidos/facturas con líneas y totales, recepciones parciales vinculadas, gastos, devoluciones parciales, ajustes y traslados valorados | Abonos, reparto entre obras, conciliación automática, inventario inicial y mínimos de stock |
+| E | Movimientos parciales, anticipos/aplicación/devolución, plazos, exportaciones y caja neta | Conciliación por plazo, retenciones liberables y previsión final/tesorería completa |
+| F | Documentos privados/versiones/caducidad y descargas autorizadas | Envío/archivo PDF automático, obligaciones específicas y flujo fiscal real |
+| G | Auditoría básica, copia cifrada, verificador/ensayo aislado, diagnóstico, Git y CI SQLite/build | Copia externa, prueba real de restauración/MySQL, CI remoto, HTTPS/entorno y supervisión de servicios |
+
+Los modelos y pantallas se han aplicado con migraciones aditivas y copias previas. La cuenta MySQL no permite crear la base aislada del ensayo de restauración; se verificó integridad/descifrado sin sustituir ese ensayo. La configuración real sigue de desarrollo y no se ha inventado un dominio HTTPS.
+
+El dashboard explica la operativa entregada y señala sus límites. PROYECTO.md contiene decisiones, tablas y recorridos. **Este plan sigue abierto:** no se presenta este bloque como el 100 % de lo solicitado.
+
+Validación final de este bloque: **393 pruebas correctas y 3.688 aserciones**, suite completa sobre SQLite :memory:, Pint y compilación Vite correctos. La prueba de restauración sigue pendiente por permisos; tampoco se ha realizado todavía el recorrido interactivo de teclado/móvil ni la validación integral MySQL concurrente. El cumplimiento de las casillas de aceptación del apartado 14 debe verificarse individualmente; no se marcan todas como terminadas por disponer ya de pantallas.
