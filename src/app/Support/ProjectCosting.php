@@ -166,6 +166,9 @@ final class ProjectCosting
     private function validatePhase(Model $record): void
     {
         $phase = WorkOrderPhase::findOrFail($record->work_order_phase_id);
+        if ($phase->workOrder->purpose === 'measurement') {
+            throw ValidationException::withMessages(['work_order_id' => 'La medición prepara el presupuesto. Cree una intervención para registrar horas o consumos.']);
+        }
         if (auth()->check() && ! OperationalAccess::scope(WorkOrderPhase::query())->whereKey($phase->id)->exists()) {
             abort(403);
         }

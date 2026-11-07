@@ -4,7 +4,9 @@ namespace App\Filament\Resources\WorkOrderLines\Schemas;
 
 use App\Models\Product;
 use App\Models\ProductUnit;
+use App\Models\WorkOrderLine;
 use App\Support\ProjectCosting;
+use App\Support\ProjectScope;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -21,7 +23,7 @@ class WorkOrderLineForm
     /** @param array<string, mixed> $context */
     public static function configure(Schema $schema, array $context = []): Schema
     {
-        return $schema->columns(2)->components([
+        $schema = $schema->columns(2)->components([
             (array_key_exists('project_id', $context) ? Hidden::make('project_id')->default($context['project_id']) : Select::make('project_id')->relationship('project', 'name')->searchable()->preload()->live()->afterStateUpdated(function (Set $set): void {
                 $set('work_order_id', null);
                 $set('project_chapter_id', null);
@@ -121,5 +123,13 @@ class WorkOrderLineForm
                 ->collapsed()->columns(3)->columnSpanFull()->disabled()->dehydrated(false)
                 ->visible(fn (?Model $record): bool => ! empty($record?->budget_breakdown)),
         ]);
+
+        foreach ($schema->getFlatFields(withHidden: true) as $field) {
+            if (in_array($field->getName(), ProjectScope::SNAPSHOT_FIELDS, true)) {
+                $field->disabled(fn (?Model $record): bool => $record instanceof WorkOrderLine && $record->project_item_id !== null);
+            }
+        }
+
+        return $schema;
     }
 }

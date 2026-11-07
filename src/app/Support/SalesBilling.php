@@ -95,6 +95,9 @@ final class SalesBilling
         if ($line->work_order_line_id) {
             $source = $line->workOrderLine()->firstOrFail();
             WorkOrder::whereKey($source->work_order_id)->lockForUpdate()->firstOrFail();
+            if ($source->workOrder->purpose === 'measurement' || $source->workOrder->status === 'cancelled') {
+                throw ValidationException::withMessages(['work_order_line_id' => 'Seleccione una partida de una intervención no cancelada.']);
+            }
             if ($source->work_order_id !== $invoice->work_order_id || $source->project->customer_id !== $invoice->customer_id || BigDecimal::of($line->quantity)->compareTo($this->remaining($source->id, $line->id)) > 0) {
                 throw ValidationException::withMessages(['quantity' => __('billing.messages.overbilled')]);
             }
@@ -118,6 +121,9 @@ final class SalesBilling
 
         return DB::transaction(function () use ($order, $seriesId, $phaseIds, $percentage): SalesInvoice {
             $order = WorkOrder::whereKey($order->id)->lockForUpdate()->firstOrFail();
+            if ($order->purpose === 'measurement' || $order->status === 'cancelled') {
+                throw ValidationException::withMessages(['work_order_id' => 'La medición de origen no es una intervención facturable. Incorpore el presupuesto y encargue sus partidas.']);
+            }
             if ($order->project->currency_code !== 'EUR') {
                 throw ValidationException::withMessages(['work_order_id' => __('billing.messages.currency')]);
             }

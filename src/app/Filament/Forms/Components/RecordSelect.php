@@ -12,6 +12,7 @@ use App\Models\Product;
 use App\Models\ProductUnit;
 use App\Models\Project;
 use App\Models\ProjectChapter;
+use App\Models\ProjectItem;
 use App\Models\PurchaseDeliveryLine;
 use App\Models\PurchaseDeliveryNote;
 use App\Models\PurchaseInvoice;
@@ -145,7 +146,7 @@ class RecordSelect extends Select
         $context = [];
 
         $parentField = match (true) {
-            $related instanceof WorkOrder, $related instanceof ProjectChapter, $related instanceof ContractorAgreement, $related instanceof PurchaseOrder, $related instanceof PurchaseInvoice => 'project_id',
+            $related instanceof ProjectItem, $related instanceof WorkOrder, $related instanceof ProjectChapter, $related instanceof ContractorAgreement, $related instanceof PurchaseOrder, $related instanceof PurchaseInvoice => 'project_id',
             $related instanceof WorkOrderPhase => 'work_order_id',
             $related instanceof ProductUnit => 'product_id',
             default => null,
@@ -194,7 +195,7 @@ class RecordSelect extends Select
 
     protected function syncParentContext(Model $record): void
     {
-        if ($record instanceof WorkOrder || $record instanceof ProjectChapter) {
+        if ($record instanceof ProjectItem || $record instanceof WorkOrder || $record instanceof ProjectChapter) {
             $this->setParentValue('project_id', $record->project_id);
         }
         if ($record instanceof WorkOrderPhase) {

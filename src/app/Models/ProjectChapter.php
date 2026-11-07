@@ -63,4 +63,9 @@ class ProjectChapter extends Model
     {
         return $this->hasMany(WorkOrderLine::class, 'project_chapter_id');
     }
+
+    public function projectItems(): HasMany
+    {
+        return $this->hasMany(ProjectItem::class);
+    }
 }

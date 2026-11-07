@@ -3,15 +3,54 @@
 namespace App\Support;
 
 use App\Models\Budget;
+use App\Models\ProjectItem;
 use App\Models\WorkOrder;
 use Brick\Math\BigDecimal;
 use Brick\Math\RoundingMode;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 final class BudgetEditor
 {
+    /** @param Collection<int, ProjectItem> $items */
+    public function fromProjectItems(Collection $items, string $name): Budget
+    {
+        validator(['name' => $name], ['name' => ['required', 'string', 'max:255']])->validate();
+
+        return DB::transaction(function () use ($items, $name): Budget {
+            $items = ProjectItem::whereKey($items->modelKeys())->orderBy('id')->lockForUpdate()->get();
+            if ($items->isEmpty() || $items->pluck('project_id')->unique()->count() !== 1) {
+                throw ValidationException::withMessages(['name' => 'Seleccione partidas de una única obra.']);
+            }
+            abort_unless(OperationalAccess::allows(Budget::class, 'create'), 403);
+            $project = $items->first()->project;
+            $chapters = $project->projectChapters()->get()->keyBy('id');
+            $snapshots = [];
+            foreach ($items as $item) {
+                abort_unless(OperationalAccess::allows(ProjectItem::class, 'view', $item), 403);
+                $path = [];
+                $chapter = $chapters->get($item->project_chapter_id);
+                $visited = [];
+                while ($chapter && ! isset($visited[$chapter->id])) {
+                    $visited[$chapter->id] = true;
+                    array_unshift($path, $chapter->only(['id', 'code', 'name']));
+                    $chapter = $chapters->get($chapter->parent_id);
+                }
+                $snapshots[] = [
+                    'source_line_id' => $item->id, 'source_project_item_id' => $item->id,
+                    'source_code' => $item->source_code, 'description' => $item->description, 'unit' => $item->unit_label,
+                    'quantity' => $item->planned_quantity, 'price' => $item->estimated_unit_sale_price, 'discount_percentage' => $item->discount_percentage,
+                    'chapter_path' => $path, 'measurement_details' => $item->measurement_details ?? [], 'budget_breakdown' => $item->budget_breakdown ?? [],
+                ];
+            }
+
+            return Budget::create(['project_id' => $project->id, 'reference' => 'PRE-'.Str::ulid(), 'name' => $name, 'currency_code' => $project->currency_code, 'items' => $snapshots]);
+        }, 3);
+    }
+
     /**
      * @param  list<array<string, mixed>>  $items
      * @param  array<int, array{included: bool, quantity: string, price: string, unit?: string}>  $selection

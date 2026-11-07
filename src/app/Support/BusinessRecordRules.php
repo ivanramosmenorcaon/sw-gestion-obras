@@ -5,6 +5,24 @@ namespace App\Support;
 final class BusinessRecordRules
 {
     public const FIELDS = [
+        'project_items' => [
+            'project_id' => ['required', 'integer', 'exists:projects,id'],
+            'project_chapter_id' => ['nullable', 'integer', 'exists:project_chapters,id'],
+            'position' => ['required', 'integer', 'min:1'],
+            'source_code' => ['nullable', 'string', 'max:80'],
+            'description' => ['required', 'string'],
+            'type' => ['required', 'in:material,service,labor,rental'],
+            'product_id' => ['nullable', 'integer', 'exists:products,id'],
+            'product_unit_id' => ['nullable', 'integer', 'exists:product_units,id'],
+            'unit_id' => ['required', 'integer', 'exists:units,id'],
+            'base_unit_id' => ['required', 'integer', 'exists:units,id'],
+            'unit_label' => ['required', 'string', 'max:100'],
+            'base_unit_factor' => ['required', 'numeric', 'decimal:0,12', 'gt:0', 'max:999999999999.999999999999'],
+            'planned_quantity' => ['required', 'numeric', 'decimal:0,6', 'min:0', 'max:99999999999999.999999'],
+            'estimated_unit_cost' => ['required', 'numeric', 'decimal:0,6', 'min:0', 'max:99999999999999.999999'],
+            'estimated_unit_sale_price' => ['required', 'numeric', 'decimal:0,6', 'min:0', 'max:99999999999999.999999'],
+            'discount_percentage' => ['required', 'numeric', 'decimal:0,4', 'between:0,100'],
+        ],
         'budgets' => [
             'project_id' => ['required', 'integer', 'exists:projects,id'],
             'source_work_order_id' => ['nullable', 'integer', 'exists:work_orders,id'],
@@ -54,6 +72,7 @@ final class BusinessRecordRules
             'is_active' => ['required', 'boolean'],
         ],
         'work_orders' => [
+            'purpose' => ['required', 'in:intervention,measurement'],
             'project_id' => ['required', 'integer', 'exists:projects,id'],
             'reference' => ['required', 'string', 'max:80'],
             'name' => ['required', 'string', 'max:255'],
@@ -267,6 +286,7 @@ final class BusinessRecordRules
     ];
 
     public const UNIQUE = [
+        'project_items' => [],
         'budgets' => [['reference']],
         'projects' => [['reference']],
         'project_chapters' => [['project_id', 'code']],
@@ -297,8 +317,8 @@ final class BusinessRecordRules
     ];
 
     public const CHILDREN = [
-        'projects' => ['projectChapters', 'workOrders', 'workOrderLines', 'budgets'],
-        'project_chapters' => ['children', 'workOrderLines'],
+        'projects' => ['projectItems', 'projectChapters', 'workOrders', 'workOrderLines', 'budgets'],
+        'project_chapters' => ['projectItems', 'children', 'workOrderLines'],
         'employees' => ['laborCostRates', 'workTimeEntries', 'workOrders', 'workOrderEmployeeAssignments'],
         'work_orders' => ['materialConsumptions', 'workTimeEntries', 'salesInvoices', 'workOrderPhases', 'workOrderLines', 'workOrderEmployeeAssignments', 'workOrderContractorAssignments'],
         'work_order_phases' => ['materialConsumptions', 'workTimeEntries', 'workOrderLines', 'workOrderEmployeeAssignments', 'workOrderContractorAssignments'],

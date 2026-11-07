@@ -76,6 +76,7 @@ final class ProjectMeasurementImporter
                 }
             }
             $order = $project->workOrders()->create([
+                'purpose' => 'measurement',
                 'reference' => 'MED-'.Str::ulid(), 'name' => $name,
                 'description' => $source.': '.count($document['chapters']).' capítulos y '.count($document['items']).' partidas.',
                 'status' => 'draft', 'priority' => 'normal', 'measurement_import_hash' => $fingerprint,
@@ -83,7 +84,7 @@ final class ProjectMeasurementImporter
             ]);
             foreach ($document['items'] as $position => $item) {
                 $unit = $units[self::UNITS[mb_strtolower($item['unit'])][0]];
-                $order->workOrderLines()->create([
+                $line = $order->workOrderLines()->create([
                     'project_id' => $project->id, 'project_chapter_id' => $chapters->get($item['chapter'])->id,
                     'position' => $position + 1, 'type' => 'service',
                     'source_code' => $item['code'], 'description' => $item['title'].($item['description'] === '' ? '' : "\n\n".$item['description']),
@@ -94,6 +95,7 @@ final class ProjectMeasurementImporter
                     'budget_breakdown' => $item['breakdown'] ?? null,
                     'notes' => ($item['notes'] ?? 'Fila de origen: '.$item['source_row'].'.').($item['price'] === null ? ' Sin precio unitario en el documento original.' : ''),
                 ]);
+                app(ProjectScope::class)->captureLine($line);
             }
 
             return $order;

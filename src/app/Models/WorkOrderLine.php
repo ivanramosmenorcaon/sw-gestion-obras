@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Support\BusinessRecordValidator;
+use App\Support\ProjectScope;
 use Database\Factories\WorkOrderLineFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -11,11 +12,33 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Validation\ValidationException;
 
-#[Fillable(['discount_percentage', 'project_id', 'work_order_id', 'project_chapter_id', 'work_order_phase_id', 'position', 'type', 'product_id', 'product_unit_id', 'description', 'unit_id', 'unit_label', 'base_unit_id', 'base_unit_factor', 'planned_quantity', 'estimated_unit_cost', 'estimated_unit_sale_price', 'notes', 'source_code', 'measurement_details', 'budget_breakdown'])]
+#[Fillable(['project_item_id', 'discount_percentage', 'project_id', 'work_order_id', 'project_chapter_id', 'work_order_phase_id', 'position', 'type', 'product_id', 'product_unit_id', 'description', 'unit_id', 'unit_label', 'base_unit_id', 'base_unit_factor', 'planned_quantity', 'estimated_unit_cost', 'estimated_unit_sale_price', 'notes', 'source_code', 'measurement_details', 'budget_breakdown'])]
 class WorkOrderLine extends Model
 {
     /** @use HasFactory<WorkOrderLineFactory> */
     use HasFactory;
+
+    public function save(array $options = []): bool
+    {
+        return $this->getConnection()->transaction(function () use ($options): bool {
+            if ($this->exists) {
+                $storedItemId = self::whereKey($this->id)->value('project_item_id');
+                if ($storedItemId !== null && (int) $storedItemId !== (int) $this->project_item_id) {
+                    throw ValidationException::withMessages(['project_item_id' => 'La asignación conserva su partida de obra de origen.']);
+                }
+            }
+            if ($this->project_item_id) {
+                app(ProjectScope::class)->prepareAllocation($this);
+            }
+
+            return parent::save($options);
+        }, 3);
+    }
+
+    public function projectItem(): BelongsTo
+    {
+        return $this->belongsTo(ProjectItem::class);
+    }
 
     protected $table = 'work_order_lines';
 

@@ -84,6 +84,11 @@ class Project extends Model
         return $this->hasMany(WorkOrder::class, 'project_id');
     }
 
+    public function projectItems(): HasMany
+    {
+        return $this->hasMany(ProjectItem::class);
+    }
+
     public function workOrderLines(): HasMany
     {
         return $this->hasMany(WorkOrderLine::class, 'project_id');

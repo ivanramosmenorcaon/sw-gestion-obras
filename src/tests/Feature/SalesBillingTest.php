@@ -14,6 +14,7 @@ use App\Models\InvoiceSeries;
 use App\Models\Party;
 use App\Models\PartyAddress;
 use App\Models\Project;
+use App\Models\ProjectItem;
 use App\Models\SalesInvoice;
 use App\Models\SalesInvoiceLine;
 use App\Models\TaxProfile;
@@ -24,6 +25,7 @@ use App\Models\WorkOrderLine;
 use App\Models\WorkOrderPhase;
 use App\Support\BusinessRecordValidator;
 use App\Support\InvoiceCalculator;
+use App\Support\ProjectScope;
 use App\Support\SalesBilling;
 use App\Support\VerifactuClient;
 use App\Support\VerifactuXml;
@@ -94,6 +96,27 @@ class SalesBillingTest extends TestCase
         $issued->customer->update(['legal_name' => 'Nombre cambiado']);
         $this->assertSame($name, $issued->fresh()->recipient_snapshot['identity']['NombreRazon']);
         Http::assertNothingSent();
+    }
+
+    public function test_split_intervention_bills_only_its_assigned_quantity_with_the_project_price(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $invoice = $this->invoice();
+        CompanySetting::first()->update(['sales_tax_profile_id' => $invoice->lines()->first()->tax_profile_id]);
+        $order = WorkOrder::factory()->create(['project_id' => Project::factory()->create(['customer_id' => $invoice->customer_id])->id]);
+        $item = ProjectItem::factory()->create(['project_id' => $order->project_id, 'planned_quantity' => '80', 'estimated_unit_sale_price' => '40', 'discount_percentage' => '10']);
+        $line = app(ProjectScope::class)->assign($order, $item, '20');
+
+        $draft = app(SalesBilling::class)->fromWorkOrder($order, $invoice->invoice_series_id, [$line->work_order_phase_id], '50');
+
+        $this->assertSame('10.000000', $draft->lines()->sole()->quantity);
+        $this->assertSame('40.000000', $draft->lines()->sole()->unit_price);
+        $this->assertSame('10.0000', $draft->lines()->sole()->discount_percentage);
+        $this->assertSame($line->id, $draft->lines()->sole()->work_order_line_id);
+        app(SalesBilling::class)->issue($draft);
+        $this->assertSame('10.000000', $item->invoiceLines()->sole()->quantity);
+        $this->expectException(ValidationException::class);
+        $line->update(['planned_quantity' => '9']);
     }
 
     public function test_official_aeat_hash_example_matches_published_vector(): void

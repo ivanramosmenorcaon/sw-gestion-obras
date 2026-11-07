@@ -241,6 +241,12 @@ final class OperationsManager
             }
         }
         if ($record instanceof WorkProgress) {
+            if (in_array($record->workOrderLine->workOrder->status, ['completed', 'cancelled'], true)) {
+                $this->fail('work_order_line_id', 'La intervención está cerrada o cancelada. Reábrala antes de imputar avance.');
+            }
+            if ($record->workOrderLine->workOrder->purpose === 'measurement') {
+                $this->fail('work_order_line_id', 'Seleccione una partida encargada en una intervención, no una medición de presupuesto.');
+            }
             validator($record->getAttributes(), ['quantity' => ['required', 'numeric', 'decimal:0,6', 'gt:0']])->validate();
             if ($record->workOrderLine->project_id !== $record->project_id) {
                 $this->fail('work_order_line_id', 'La partida debe pertenecer a la obra.');

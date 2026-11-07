@@ -4,6 +4,7 @@ namespace App\Filament\Schemas;
 
 use App\Models\Product;
 use App\Models\PurchaseDeliveryLine;
+use App\Models\WorkOrderPhase;
 use Brick\Math\BigDecimal;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
@@ -26,7 +27,11 @@ final class CostingForms
         $label = fn (string $key): string => __('costing.fields.'.$key);
         $number = fn (string $key, string $default = ''): TextInput => TextInput::make($key)->label($label($key))->numeric()->minValue(0)->step('0.000001')->required()->default($default);
         $phase = fn (): array => [
-            isset($context['work_order_id']) ? Hidden::make('work_order_id')->default($context['work_order_id']) : Select::make('work_order_id')->label($label('work_order_id'))->relationship('workOrder', 'reference')->searchable()->preload()->live()->required()->afterStateUpdated(fn (Set $set) => $set('work_order_phase_id', null)),
+            isset($context['work_order_id']) ? Hidden::make('work_order_id')->default($context['work_order_id']) : Select::make('work_order_id')->label('Intervención / orden de trabajo')->relationship('workOrder', 'reference', fn (Builder $query) => $query->where('purpose', 'intervention'))->searchable()->preload()->live()->required()
+                ->afterStateUpdated(function (Set $set, mixed $state): void {
+                    $phases = WorkOrderPhase::where('work_order_id', $state)->where('status', '!=', 'cancelled')->limit(2)->pluck('id');
+                    $set('work_order_phase_id', $phases->count() === 1 ? $phases->first() : null);
+                }),
             isset($context['work_order_phase_id']) ? Hidden::make('work_order_phase_id')->default($context['work_order_phase_id']) : Select::make('work_order_phase_id')->label($label('work_order_phase_id'))->relationship('workOrderPhase', 'name', fn (Builder $query, Get $get) => $query->where('work_order_id', $get('work_order_id')))->searchable()->preload()->required(),
         ];
         $worker = fn (): array => [

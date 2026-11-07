@@ -51,6 +51,7 @@ class WorkOrdersTable
                     TextColumn::make('project.name')->searchable()->sortable()->label(__('business.fields.project_id'))->toggleable(),
                     TextColumn::make('reference')->searchable()->sortable()->label(__('business.fields.reference'))->toggleable(),
                     TextColumn::make('name')->searchable()->sortable()->label(__('business.fields.name'))->toggleable(),
+                    TextColumn::make('purpose')->label('Tipo')->badge()->formatStateUsing(fn (string $state): string => $state === 'measurement' ? 'Medición de presupuesto' : 'Intervención')->toggleable(),
                     TextColumn::make('supervisor.name')->searchable()->sortable()->label(__('business.fields.supervisor_id'))->toggleable(isToggledHiddenByDefault: true),
                     TextColumn::make('status')->badge()->formatStateUsing(fn (?string $state): string => $state === null ? '' : __('business.options.'.$state))->label(__('business.fields.status'))->toggleable(),
                     TextColumn::make('sales_invoices_count')->label(__('business.fields.invoicing'))
@@ -65,6 +66,7 @@ class WorkOrdersTable
                     TextColumn::make('actual_end_date')->date('d/m/Y')->sortable()->label(__('business.fields.actual_end_date'))->toggleable(isToggledHiddenByDefault: true),
                     TextColumn::make('updated_at')->label(__('business.fields.updated_at'))->dateTime('d/m/Y H:i')->sortable()->toggleable(isToggledHiddenByDefault: true),
                 ])->filters([
+                    SelectFilter::make('purpose')->label('Tipo')->options(['intervention' => 'Intervenciones', 'measurement' => 'Mediciones de presupuesto'])->default('intervention'),
                     SelectFilter::make('status')->label(__('business.fields.status'))->options(['draft' => __('business.options.draft'), 'planned' => __('business.options.planned'), 'in_progress' => __('business.options.in_progress'), 'on_hold' => __('business.options.on_hold'), 'completed' => __('business.options.completed'), 'cancelled' => __('business.options.cancelled')]),
                     SelectFilter::make('priority')->label(__('business.fields.priority'))->options(['low' => __('business.options.low'), 'normal' => __('business.options.normal'), 'high' => __('business.options.high'), 'urgent' => __('business.options.urgent')]),
                 ])->recordActions([

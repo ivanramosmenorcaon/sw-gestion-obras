@@ -385,3 +385,24 @@ Administración y administrador pueden consultar costes; un jefe consulta única
 La herramienta de conexiones de Boost informa SQLite, mientras que database.default en la consola de esta instalación es MySQL. No se confunden esas respuestas ni se considera SQLite una validación de MySQL. Las pruebas fuerzan SQLite :memory: y no realizan escrituras de prueba sobre la base de negocio. No hay migraciones ni nuevas dependencias en esta entrega.
 
 Validación: suite completa de **418 pruebas correctas, 3.948 aserciones**, 94,2 segundos, sobre SQLite :memory:. Las 11 pruebas de ProjectCostReportTest cubren céntimos, saldo inicial, meses vacíos, borradores/otras obras, devoluciones de material, reversiones de horas, compras por línea, subcontratas y caja, renderizado y autorización/revocación de acceso. Pint aplicado; compilación Vite y caché de vistas correctas. composer audit no pasa por los avisos indicados; el ensayo de restauración no pasa por permisos. No se presentan esas dos comprobaciones como correctas.
+
+
+## 18. Reorganización funcional acordada — 7 de noviembre de 2026
+
+Se incorpora la decisión posterior de producto: Obra → Capítulos → Partidas; las órdenes son intervenciones concretas y referencian cantidades de una o varias partidas. Una partida puede repartirse entre distintas intervenciones. La aceptación comercial y la planificación operativa dejan de ser un único paso obligatorio.
+
+Entregado:
+
+- Maestro project_items independiente de las órdenes, accesible desde la obra y desde Obras → Partidas de obra.
+- Cantidades por intervención mediante work_order_lines.project_item_id, conservando identificadores y referencias históricas de ejecución/facturación.
+- Presupuesto desde partidas de una misma obra; incorporación idempotente de la oferta aceptada sin crear órdenes automáticamente y conservando capítulos. Reutilización de las partidas de origen sin encargos activos.
+- Alta de una intervención desde una partida y alta de otras asignaciones desde Trabajos encargados, con control transaccional de obra, cantidades y precio de origen.
+- Distinción entre medición de presupuesto e intervención; las mediciones no consumen la disponibilidad ni se utilizan como documentos de ejecución facturable.
+- Fase general automática en intervenciones sencillas y selección automática en partes/consumos cuando solo hay una fase activa.
+- Vista de cantidades previstas/contratadas, encargadas, pendientes, ejecutadas y facturadas netas; filtros de obra/capítulo y autorización por ámbito.
+- Protección de cancelación/reapertura, estados obsoletos y cantidades ya ejecutadas o reservadas en facturación. Alta inline de partidas con permisos propios y contexto impuesto en servidor.
+- Guía operativa actualizada al recorrido acordado.
+
+Aplicación: copia operations-20261107-102332.sql.enc verificada y migración aditiva aplicada en MySQL, lote 15. Conservadas las 145 líneas existentes y sus referencias; creadas sus 145 partidas de obra y 0 líneas quedan sin vínculo. Los costes y partes anteriores se mantienen por orden/fase. El histórico no se fusiona por similitud ni se crean datos ficticios.
+
+Validación: suite completa de 438 pruebas correctas y 4.075 aserciones; tras la última ampliación de columnas/relación de facturación, 20 pruebas afectadas correctas y 121 aserciones. Pint, Vite y vistas correctos. La sustitución contractual de revisiones con ejecución ya iniciada, la certificación comercial independiente, el reparto fino de costes/partes por partida y la planificación con dependencias/capacidad continúan abiertos; esta reorganización no habilita facturación real ni sustituye validación visual o pruebas concurrentes MySQL.

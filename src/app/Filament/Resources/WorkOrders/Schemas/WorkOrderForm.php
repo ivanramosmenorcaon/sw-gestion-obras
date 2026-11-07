@@ -20,6 +20,10 @@ class WorkOrderForm
     public static function configure(Schema $schema, array $context = []): Schema
     {
         return $schema->columns(2)->components([
+            TextEntry::make('work_purpose')->label('Qué representa este registro')->columnSpanFull()
+                ->state(fn (?WorkOrder $record): string => $record?->purpose === 'measurement'
+                    ? 'Medición de origen para preparar un presupuesto. Incorpore la oferta aceptada a las partidas de la obra y cree después las intervenciones.'
+                    : 'Una intervención concreta. En Trabajos encargados seleccione las partidas de la obra y las cantidades que ejecutará el equipo. La fase general se prepara automáticamente al encargar una partida; divida en fases solo cuando lo necesite.'),
             TextEntry::make('sales_invoices_count')->label(__('business.fields.invoicing'))->columnSpanFull()
                 ->visible(fn (?WorkOrder $record): bool => (bool) $record?->exists)
                 ->state(fn (WorkOrder $record): int => $record->salesInvoices()->count())

@@ -10,6 +10,7 @@ use App\Filament\Resources\LaborCostRates\LaborCostRateResource;
 use App\Filament\Resources\MaterialConsumptions\MaterialConsumptionResource;
 use App\Filament\Resources\Parties\PartyResource;
 use App\Filament\Resources\Products\ProductResource;
+use App\Filament\Resources\ProjectItems\ProjectItemResource;
 use App\Filament\Resources\Projects\ProjectResource;
 use App\Filament\Resources\PurchaseDeliveryNotes\PurchaseDeliveryNoteResource;
 use App\Filament\Resources\SalesInvoices\SalesInvoiceResource;
@@ -58,7 +59,7 @@ class GettingStartedGuide extends Widget
     {
         $resources = [
             'company' => CompanySettingResource::class, 'contacts' => PartyResource::class,
-            'products' => ProductResource::class, 'projects' => ProjectResource::class,
+            'products' => ProductResource::class, 'projects' => ProjectResource::class, 'project_items' => ProjectItemResource::class,
             'orders' => WorkOrderResource::class, 'budgets' => BudgetResource::class,
             'employees' => EmployeeResource::class, 'rates' => LaborCostRateResource::class,
             'receipts' => PurchaseDeliveryNoteResource::class, 'warehouses' => WarehouseResource::class,

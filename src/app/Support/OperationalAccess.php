@@ -116,7 +116,7 @@ final class OperationalAccess
         if ($model instanceof WorkTimeEntry && $user->role === 'worker') {
             return $query->where('employee_id', $employeeId ?? 0);
         }
-        if (in_array($model->getTable(), ['budgets', 'project_chapters', 'project_activities', 'project_expenses', 'contractor_agreements', 'contractor_certificates', 'purchase_orders', 'purchase_invoices', 'payments', 'payment_applications', 'invoice_maturities', 'payment_reversals', 'project_documents', 'work_progress'], true)) {
+        if (in_array($model->getTable(), ['project_items', 'budgets', 'project_chapters', 'project_activities', 'project_expenses', 'contractor_agreements', 'contractor_certificates', 'purchase_orders', 'purchase_invoices', 'payments', 'payment_applications', 'invoice_maturities', 'payment_reversals', 'project_documents', 'work_progress'], true)) {
             return $query->whereIn('project_id', Project::where('manager_id', $user->id)->select('id'));
         }
         if (in_array($model->getTable(), ['work_order_lines', 'work_time_entries', 'material_consumptions', 'work_order_employee_assignments', 'work_order_contractor_assignments', 'sales_invoices'], true)) {

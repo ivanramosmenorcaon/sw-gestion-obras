@@ -63,10 +63,10 @@ class WorkOrderResource extends BusinessResource
     public static function getRelations(): array
     {
         return [
-            RelationManagers\WorkOrderPhasesRelationManager::class,
             RelationManagers\WorkOrderLinesRelationManager::class,
             RelationManagers\WorkOrderEmployeeAssignmentsRelationManager::class,
             RelationManagers\WorkOrderContractorAssignmentsRelationManager::class,
+            RelationManagers\WorkOrderPhasesRelationManager::class,
         ];
     }
 

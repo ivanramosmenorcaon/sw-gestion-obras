@@ -21,7 +21,7 @@ final class WorkOrderChapterTree
                 $chapter = $chapters->get($chapter->parent_id);
             }
             $items[] = [
-                'source_line_id' => $line->id, 'source_code' => $line->source_code,
+                'source_line_id' => $line->id, 'source_code' => $line->source_code, 'source_project_item_id' => $line->project_item_id,
                 'description' => $line->description, 'unit' => $line->unit_label,
                 'quantity' => $line->planned_quantity, 'price' => $line->estimated_unit_sale_price, 'discount_percentage' => $line->discount_percentage,
                 'chapter_path' => $path, 'measurement_details' => $line->measurement_details ?? [],

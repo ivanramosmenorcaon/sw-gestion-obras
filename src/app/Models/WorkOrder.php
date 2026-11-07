@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Support\BusinessRecordValidator;
+use App\Support\ProjectScope;
 use Database\Factories\WorkOrderFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Validation\ValidationException;
 
-#[Fillable(['project_id', 'reference', 'name', 'description', 'supervisor_id', 'status', 'priority', 'planned_start_date', 'planned_end_date', 'actual_start_date', 'actual_end_date', 'instructions', 'measurement_import_hash'])]
+#[Fillable(['purpose', 'project_id', 'reference', 'name', 'description', 'supervisor_id', 'status', 'priority', 'planned_start_date', 'planned_end_date', 'actual_start_date', 'actual_end_date', 'instructions', 'measurement_import_hash'])]
 class WorkOrder extends Model
 {
     /** @use HasFactory<WorkOrderFactory> */
@@ -20,6 +21,7 @@ class WorkOrder extends Model
     protected $table = 'work_orders';
 
     protected $attributes = [
+        'purpose' => 'intervention',
         'status' => 'draft',
         'priority' => 'normal',
     ];
@@ -40,8 +42,13 @@ class WorkOrder extends Model
     {
         return $this->getConnection()->transaction(function () use ($options): bool {
             if ($this->exists) {
-                $this->newQuery()->whereKey($this->id)->lockForUpdate()->firstOrFail();
+                $stored = $this->newQuery()->whereKey($this->id)->lockForUpdate()->firstOrFail();
+                if ($this->isDirty('status') && $stored->status !== $this->getRawOriginal('status')) {
+                    throw ValidationException::withMessages(['status' => 'El estado ha cambiado en otra sesión. Recargue la intervención antes de continuar.']);
+                }
             }
+
+            app(ProjectScope::class)->validateOrderChange($this);
 
             return parent::save($options);
         });

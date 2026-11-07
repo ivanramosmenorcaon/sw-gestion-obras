@@ -1167,3 +1167,40 @@ La copia operations-20261105-181019.sql.enc pasa checksum y descifrado. El ensay
 composer audit encuentra 10 avisos de seguridad en 5 paquetes instalados. No se cambian dependencias sin autorización; su evaluación y actualización quedan pendientes para operación. No se ejecutan envíos a AEAT, migraciones ni cambios de datos de negocio. La revisión de navegador interactivo sigue pendiente.
 
 Validación: **418 pruebas correctas, 3.948 aserciones**, suite completa en SQLite :memory:, 94,2 segundos. Se añaden 11 pruebas del panel/cálculo económico con importes exactos, meses vacíos y saldo inicial, devoluciones, horas revertidas, facturas mixtas y separación de costes/caja, además de renderizado, roles y revocación del acceso de componentes ya abiertos. Pint aplicado; Vite y compilación de vistas correctos. El audit de dependencias y el ensayo de restauración quedan pendientes de resolución, con los resultados indicados arriba.
+
+
+## 2026-11-07 — Partidas de obra e intervenciones con cantidades repartidas
+
+Se adopta la decisión funcional acordada: el capítulo agrupa partidas de la obra; una orden representa una intervención concreta que encarga cantidades de una o varias partidas. Una partida puede repartirse entre varias órdenes sin crear otra partida independiente. Las fases detallan una intervención cuando hace falta; los partes y consumos siguen perteneciendo a la orden/fase.
+
+### Modelo y conservación del histórico
+
+- project_items conserva el alcance de obra: capítulo, descripción, unidad/conversión, cantidad prevista o contratada, precios, descuento y desgloses originales. source_budget_id y source_budget_position identifican la línea aceptada; su combinación es única.
+- work_order_lines conserva su tabla, identificadores y referencias de avance/facturación. En el nuevo flujo cada fila representa una cantidad encargada y referencia project_item_id. Conserva una instantánea del alcance y del precio de origen; no se utiliza como otro maestro editable de la partida.
+- work_orders distingue purpose=intervention y purpose=measurement. Las importaciones se identifican como mediciones de preparación; no reservan ejecución ni admiten nuevas imputaciones productivas o facturación. Las intervenciones se muestran por defecto; el filtro Tipo permite consultar las mediciones y sus rutas históricas permanecen disponibles.
+- La migración es aditiva, conserva todas las líneas antiguas y les incorpora una partida de obra. No fusiona históricos por parecido de descripción. Se puede reintentar el backfill: solo procesa filas sin vínculo y la creación/vinculación de cada partida es transaccional. La reversión se bloquea si eliminaría partidas existentes; los cambios posteriores se hacen mediante migración correctiva.
+
+### Recorrido de uso
+
+1. Crear la obra y sus capítulos. En Partidas de la obra crear o revisar el alcance; también se puede importar PDF, BC3 o Excel.
+2. En Obras → Partidas de obra seleccionar las partidas de una misma obra y pulsar Presupuestar partidas seleccionadas. Se conservan capítulos y desgloses. Continúa disponible el presupuesto manual y la consulta del árbol de mediciones original.
+3. Revisar, preparar envío y registrar aceptación. Incorporar partidas a la obra guarda el acuerdo sin generar automáticamente una orden. Si la partida procede de una medición sin encargos activos se reutiliza su identidad. Repetir la incorporación devuelve las partidas existentes; un alcance ya incorporado no se añade otra vez mediante una revisión sustitutiva sin resolverla.
+4. En una partida pulsar Crear intervención, indicando nombre concreto, cantidad e instrucciones. En la orden, Trabajos encargados → Encargar partida de la obra permite añadir otras partidas de la misma obra. La selección permite alta inline mediante el formulario del resource, autorización propia, contexto de obra impuesto en servidor y selección automática de la ficha creada.
+5. Completar responsable, fechas y equipo. Al encargar trabajos se crea Trabajo general si no hay fase disponible. En partes/consumos una única fase activa se selecciona automáticamente al elegir la intervención. Las fases adicionales se gestionan cuando la intervención necesita más detalle.
+6. Registrar partes, consumos y avance sobre la intervención; facturar sus cantidades conservando el precio/descuento de la partida. La guía del dashboard explica el nuevo orden.
+
+El listado de partidas muestra cantidad prevista/contratada, encargada, pendiente de encargar, ejecutada confirmada y facturada emitida neta. Incluye filtros por obra y capítulo y conserva columnas redimensionables, reordenables y fijables. Los indicadores agregados no convierten el avance automáticamente en una certificación comercial.
+
+### Integridad y permisos
+
+Las asignaciones bloquean la orden y la partida durante la escritura; el total de cantidades en intervenciones no canceladas no puede superar el alcance. Las mediciones de preparación no consumen esa disponibilidad. Se impide cambiar de partida/obra/orden una asignación existente, desligarla para eludir el control, reescribir su unidad/precio/alcance o reducirla por debajo del avance reservado/confirmado o la facturación reservada/emitida. Las partidas contratadas o usadas se conservan.
+
+Cancelar una intervención sin ejecución/facturación libera su cantidad. Reabrirla exige cantidad disponible y acuerdo compatible; una sesión con estado obsoleto no puede saltarse esa comprobación. Las intervenciones canceladas no admiten nuevo avance ni facturación. El recurso y sus selectores aplican el ámbito por obra; los operarios y encargados mantienen sus permisos de partes y no adquieren acceso al maestro económico.
+
+Los costes existentes siguen imputados a orden/fase y no se redistribuyen artificialmente entre partidas. Se mantiene la función interna de conversión completa de una oferta para compatibilidad, pero la acción ordinaria separa incorporación del alcance y creación de intervenciones. Las órdenes históricas conservan sus fases y enlaces.
+
+### Aplicación y validación
+
+Copia previa cifrada y verificada: operations-20261107-102332.sql.enc. La migración figura aplicada en MySQL como lote 15. La comparación de solo lectura con la copia conserva 1 obra, 1 orden, 145 líneas, 2 facturas de venta, 0 presupuestos, 0 partes horarios y 0 consumos. Se incorporan 145 partidas derivadas del histórico y quedan 0 líneas sin vínculo. No se crean obras, clientes, encargos ni facturas ficticios.
+
+Suite completa: 438 pruebas correctas, 4.075 aserciones, 98,6 segundos, con SQLite :memory: forzado. Después de añadir la relación de cantidades facturadas y los filtros de la vista se ejecutan las 20 pruebas afectadas, correctas con 121 aserciones. Cubren reparto de una partida entre órdenes, varias partidas en una orden, límites de seis decimales, cancelación/reapertura, integridad/propiedad, mínimo ejecutado/facturado, publicación sin órdenes y sin duplicación, conservación de capítulos, migración reintentable, fase automática, modales anidados y permisos. Pint, Vite y compilación de vistas correctos. Sin dependencias nuevas ni emisiones fiscales reales. La revisión visual interactiva y la concurrencia con MySQL aislado siguen pendientes.

@@ -29,7 +29,7 @@ final class BusinessRecordValidator
 {
     public static function validate(Model $record): void
     {
-        if ($record instanceof WorkOrderLine && $record->work_order_id && WorkOrder::find($record->work_order_id)?->accepted_budget_id && (! $record->exists || $record->isDirty(['planned_quantity', 'estimated_unit_sale_price', 'description', 'discount_percentage']))) {
+        if ($record instanceof WorkOrderLine && ! $record->project_item_id && $record->work_order_id && WorkOrder::find($record->work_order_id)?->accepted_budget_id && (! $record->exists || $record->isDirty(['planned_quantity', 'estimated_unit_sale_price', 'description', 'discount_percentage']))) {
             throw ValidationException::withMessages(['estimated_unit_sale_price' => 'El alcance y precio proceden de una oferta aceptada. Presupueste un extra o una revisión; no cambie el acuerdo original.']);
         }
         if (auth()->user()?->role === 'manager') {
@@ -141,7 +141,7 @@ final class BusinessRecordValidator
                 }
             }
 
-            if ($table === 'work_order_lines' && (! $record->exists || $record->isDirty(['product_id', 'product_unit_id', 'unit_id', 'base_unit_id', 'type']))) {
+            if (in_array($table, ['work_order_lines', 'project_items'], true) && (! $record->exists || $record->isDirty(['product_id', 'product_unit_id', 'unit_id', 'base_unit_id', 'type']))) {
                 $baseUnit = Unit::query()->find($record->base_unit_id);
                 if ($baseUnit->magnitude !== Unit::query()->find($record->unit_id)->magnitude) {
                     $fail('unit_id', 'incompatible_unit');
