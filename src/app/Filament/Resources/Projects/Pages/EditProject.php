@@ -11,6 +11,7 @@ use App\Support\Bc3BudgetImporter;
 use App\Support\BudgetEditor;
 use App\Support\BusinessRecordValidator;
 use App\Support\PdfBudgetImporter;
+use App\Support\ProjectCostReport;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\TextInput;
@@ -32,6 +33,9 @@ class EditProject extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('projectCosts')->label('Costes y gráficas')
+                ->visible(fn (): bool => ProjectCostReport::canView($this->getRecord()))
+                ->url(fn (): string => ProjectResource::getUrl('costs', ['record' => $this->getRecord()])),
             Action::make('importPdfBudget')
                 ->label('Importar presupuesto PDF')
                 ->authorize(fn (): bool => ProjectResource::canEdit($this->getRecord())

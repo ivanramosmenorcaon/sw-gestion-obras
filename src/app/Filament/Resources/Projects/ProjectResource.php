@@ -7,8 +7,12 @@ use App\Filament\Resources\BusinessResource;
 use App\Filament\Resources\Projects\Pages\CreateProject;
 use App\Filament\Resources\Projects\Pages\EditProject;
 use App\Filament\Resources\Projects\Pages\ListProjects;
+use App\Filament\Resources\Projects\Pages\ProjectCosts;
 use App\Filament\Resources\Projects\Schemas\ProjectForm;
 use App\Filament\Resources\Projects\Tables\ProjectsTable;
+use App\Filament\Resources\Projects\Widgets\ProjectCostBreakdownChart;
+use App\Filament\Resources\Projects\Widgets\ProjectCostHistoryChart;
+use App\Filament\Resources\Projects\Widgets\ProjectCostStats;
 use App\Models\Project;
 use App\Support\BusinessRecordValidator;
 use BackedEnum;
@@ -73,6 +77,12 @@ class ProjectResource extends BusinessResource
             'index' => ListProjects::route('/'),
             'create' => CreateProject::route('/create'),
             'edit' => EditProject::route('/{record}/edit'),
+            'costs' => ProjectCosts::route('/{record}/costs'),
         ];
+    }
+
+    public static function getWidgets(): array
+    {
+        return [ProjectCostStats::class, ProjectCostBreakdownChart::class, ProjectCostHistoryChart::class];
     }
 }

@@ -1143,3 +1143,27 @@ Se comprueba que la ausencia 1 está confirmada; el bloqueo anterior de todo reg
 Las acciones compartidas de edición y consulta reciben autorización explícita del recurso. Confirmar y Cancelar pendiente exigen estado draft para no ofrecer reconfirmación/cancelación de una ausencia ya aprobada. La guía del dashboard explica la excepción de referencia/motivo.
 
 Pruebas: listado con empleado/motivo/fechas y búsqueda, edición real desde el modal en borrador y confirmada, protección de fechas y ocultación de acciones no válidas. Resultado: 14 pruebas correctas, 108 aserciones (EmployeeAbsenceResourceTest, OperationsManagementTest y PurchaseDocumentLinesTest). Pint aplicado y caché de vistas limpiada. Sin migraciones ni modificación manual de ausencias reales.
+
+## 2026-11-07 — Revisión operativa y gestión visual de costes por proyecto
+
+Se revisan en orden recuperación/operación, circuito comercial, costes/tesorería, compras/planificación y facturación real. El resultado y los pendientes de cada bloque se registran en PLAN.md, apartado 17; no se consideran completados los módulos pendientes por haber revisado su código.
+
+### Acceso y lectura del panel
+
+En Obras → Proyectos aparece Costes y gráficas en cada fila y en la cabecera de edición. Abre un panel específico de esa obra con seis indicadores: coste real, venta aceptada, contratado/pedido, cobrado, pagado y flujo de caja neto. Incluye gráfico de barras por categoría, evolución mensual y acumulada con intervalos de 6/12/24 meses, desglose monetario accesible y cifras de facturación. No se añaden entradas globales ni dependencias.
+
+El coste distingue materiales consumidos, horas confirmadas, subcontrata certificada, gastos de obra y compras directas. Se excluyen borradores, se descuentan devoluciones y se respetan las reversiones confirmadas. El acumulado conserva los costes anteriores al intervalo visible. Las reversiones de horas recalculan el mes original; las devoluciones de material se imputan en su propia fecha. Las gráficas incluyen alternativas textuales para lectores de pantalla y los importes se presentan en formato español/EUR.
+
+Se reutilizan las fuentes de ProjectEconomics para el resumen y el histórico, manteniendo aritmética decimal. Una factura con cabecera independiente y una línea vinculada a albarán ya no vuelve a cargar ese material como compra directa: solo se suman las líneas independientes. Las facturas vinculadas por cabecera a albarán o contrato siguen excluidas del coste directo. Los pagos y compromisos se muestran separados del coste incurrido; no se suman como otro gasto.
+
+El panel reautoriza el proyecto en cada petición, incluidos filtros y widgets ya abiertos. Administrador y administración pueden consultar; un jefe de obra consulta únicamente sus proyectos. Operarios, encargados y cuentas inactivas quedan excluidos. El identificador del proyecto de los widgets usa Locked. Se conserva el trait de columnas redimensionables del listado, junto con reordenación y fijación.
+
+### Límites y revisión de operación
+
+Todavía no se incorpora previsión final de costes, margen final, certificación comercial periódica, planificación con capacidad/dependencias ni cierre fiscal real. El importe aceptado es la suma de documentos aceptados: falta un flujo explícito de sustitución contractual para revisiones aceptadas que sustituyen el mismo alcance. Los compromisos son nominales y pueden solaparse con costes ya incurridos.
+
+La copia operations-20261105-181019.sql.enc pasa checksum y descifrado. El ensayo de restauración aislada se intenta y MySQL deniega crear la base temporal; no se utiliza una base de negocio como alternativa. Siguen pendientes respaldo externo de archivos y claves, retención, HTTPS/entorno definitivo y supervisión de servicios. operations:check confirma entorno de desarrollo, debug activo y URL HTTP. Boost informa conexión SQLite y la consola confirma MySQL; las pruebas se fuerzan a SQLite :memory:.
+
+composer audit encuentra 10 avisos de seguridad en 5 paquetes instalados. No se cambian dependencias sin autorización; su evaluación y actualización quedan pendientes para operación. No se ejecutan envíos a AEAT, migraciones ni cambios de datos de negocio. La revisión de navegador interactivo sigue pendiente.
+
+Validación: **418 pruebas correctas, 3.948 aserciones**, suite completa en SQLite :memory:, 94,2 segundos. Se añaden 11 pruebas del panel/cálculo económico con importes exactos, meses vacíos y saldo inicial, devoluciones, horas revertidas, facturas mixtas y separación de costes/caja, además de renderizado, roles y revocación del acceso de componentes ya abiertos. Pint aplicado; Vite y compilación de vistas correctos. El audit de dependencias y el ensayo de restauración quedan pendientes de resolución, con los resultados indicados arriba.

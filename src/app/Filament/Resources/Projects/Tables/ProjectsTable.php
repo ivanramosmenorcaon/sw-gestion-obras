@@ -2,6 +2,10 @@
 
 namespace App\Filament\Resources\Projects\Tables;
 
+use App\Filament\Resources\Projects\ProjectResource;
+use App\Models\Project;
+use App\Support\ProjectCostReport;
+use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -35,6 +39,11 @@ class ProjectsTable
                 TextColumn::make('updated_at')->label(__('business.fields.updated_at'))->dateTime('d/m/Y H:i')->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])->filters([
                 SelectFilter::make('status')->label(__('business.fields.status'))->options(['draft' => __('business.options.draft'), 'quoted' => __('business.options.quoted'), 'approved' => __('business.options.approved'), 'in_progress' => __('business.options.in_progress'), 'on_hold' => __('business.options.on_hold'), 'completed' => __('business.options.completed'), 'cancelled' => __('business.options.cancelled')]),
-            ])->recordActions([EditAction::make()])->defaultSort('id', 'desc');
+            ])->recordActions([
+                Action::make('costs')->label('Costes y gráficas')
+                    ->visible(fn (Project $record): bool => ProjectCostReport::canView($record))
+                    ->url(fn (Project $record): string => ProjectResource::getUrl('costs', ['record' => $record])),
+                EditAction::make(),
+            ])->defaultSort('id', 'desc');
     }
 }

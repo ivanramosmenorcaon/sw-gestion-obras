@@ -3,6 +3,8 @@
 Fecha de revisión: 5 de noviembre de 2026.
 Estado: ejecución parcial con ampliación operativa aplicada el 5 de noviembre de 2026. Véase el seguimiento al final; las casillas históricas del diagnóstico no equivalen a funciones verificadas.
 
+Revisión posterior: 7 de noviembre de 2026, apartado 17. Incluye panel visual de costes y corrección de compras directas por líneas.
+
 ## 1. Conclusión y objetivo
 
 El proyecto tiene una base funcional para administrar obras, capítulos, órdenes, fases, empleados, contratistas, mediciones, presupuestos y costes reales de materiales y horas. Permite iniciar una operativa interna supervisada. Todavía no cubre de principio a fin la gestión comercial, contractual, productiva y económica de una empresa de obras.
@@ -359,3 +361,27 @@ Los modelos y pantallas se han aplicado con migraciones aditivas y copias previa
 El dashboard explica la operativa entregada y señala sus límites. PROYECTO.md contiene decisiones, tablas y recorridos. **Este plan sigue abierto:** no se presenta este bloque como el 100 % de lo solicitado.
 
 Validación final de este bloque: **393 pruebas correctas y 3.688 aserciones**, suite completa sobre SQLite :memory:, Pint y compilación Vite correctos. La prueba de restauración sigue pendiente por permisos; tampoco se ha realizado todavía el recorrido interactivo de teclado/móvil ni la validación integral MySQL concurrente. El cumplimiento de las casillas de aceptación del apartado 14 debe verificarse individualmente; no se marcan todas como terminadas por disponer ya de pantallas.
+
+## 17. Revisión de los cinco bloques y costes visuales — 7 de noviembre de 2026
+
+Revisión en el orden acordado, contrastando servicios, pantallas y pruebas. Revisar estos bloques no equivale a implementar todos los pendientes del apartado 16.
+
+| Orden | Resultado comprobado | Trabajo que permanece abierto |
+| --- | --- | --- |
+| 1. Recuperación y operativa | Checksum y descifrado correctos de operations-20261105-181019.sql.enc. Ensayo aislado intentado: MySQL rechaza crear la base temporal. operations:check detecta entorno distinto de production, debug activo y URL HTTP. Existen tareas programadas de copia y envío fiscal. | Restauración completa acreditada, copia de archivos y claves con destino externo/retención, HTTPS y configuración definitiva, supervisión efectiva de scheduler/worker, concurrencia MySQL y recorrido real de teclado/móvil. composer audit detecta 10 avisos en 5 paquetes; evaluar y actualizar con autorización para cambiar dependencias. |
+| 2. Oferta → ejecución → certificación → factura | Guardado conjunto, protección de edición obsoleta, aceptación, conversión idempotente, precio/descuento de origen y reserva de cantidades facturables cubiertos por pruebas. | Certificación comercial periódica independiente y conciliación de previsto/ejecutado/certificado/facturado. Fiscalidad mixta, numeración configurable, comparación de revisiones y sustitución contractual explícita de revisiones ya aceptadas. La suma documental de ofertas aceptadas no resuelve por sí sola el solapamiento de contratos revisados. |
+| 3. Costes, margen y tesorería | Nuevo panel por proyecto con indicadores, gráfico de categorías e histórico mensual/acumulado. Corrección del doble coste en facturas con líneas vinculadas a albaranes y cabecera independiente. | Previsión de coste de los trabajos pendientes, estimación final/margen, conciliación por plazo, garantías liberables y previsión de caja. Los compromisos nominales no representan coste pendiente. |
+| 4. Compras, almacén y planificación | Verificados mediante pruebas pedidos/facturas por líneas, recepción/consumo, devoluciones y traslados; se conserva la gestión de ausencias y partes. | Abonos, reparto entre obras, conciliación de diferencias, inventario inicial, mínimos/caducidad de reservas, calendario visual, dependencias, capacidad y cuadrillas. |
+| 5. Fiscalidad | La emisión de producción continúa bloqueada; las pruebas comprueban numeración, inmutabilidad, cadena, reintentos y separación de entornos. No se han realizado envíos fiscales desde la revisión. | Subsanación/anulación registral, resolución de rechazados/aceptados con errores/duplicados, identificación real del sistema, certificado y aceptación integral con el responsable fiscal antes de habilitar producción. |
+
+### Panel económico entregado
+
+Acceso desde Obras → Proyectos → Costes y gráficas, tanto en el listado como en la ficha. Muestra coste incurrido, venta aceptada, importes contratados/pedidos, cobrado, pagado y caja neta. Desglosa materiales, horas, subcontratas certificadas, gastos y compras independientes. Permite intervalos de 6, 12 y 24 meses, conserva el saldo anterior al intervalo y ofrece alternativas textuales para las gráficas.
+
+Las fuentes de costes son comunes al resumen y al histórico. Se mantienen decimales exactos para los cálculos monetarios; las series gráficas se convierten a números únicamente al presentarlas. Las devoluciones de material figuran con signo negativo en su fecha; las horas revertidas dejan de contar en su mes de imputación original. Los borradores se excluyen. Los pagos no se vuelven a sumar al gasto.
+
+Administración y administrador pueden consultar costes; un jefe consulta únicamente los proyectos de los que es responsable. Los widgets vuelven a autorizar en peticiones posteriores y el identificador del proyecto está bloqueado frente a cambios del cliente. Operarios, encargados y cuentas inactivas no pueden consultar el panel. La ruta habitual de edición de la obra se conserva.
+
+La herramienta de conexiones de Boost informa SQLite, mientras que database.default en la consola de esta instalación es MySQL. No se confunden esas respuestas ni se considera SQLite una validación de MySQL. Las pruebas fuerzan SQLite :memory: y no realizan escrituras de prueba sobre la base de negocio. No hay migraciones ni nuevas dependencias en esta entrega.
+
+Validación: suite completa de **418 pruebas correctas, 3.948 aserciones**, 94,2 segundos, sobre SQLite :memory:. Las 11 pruebas de ProjectCostReportTest cubren céntimos, saldo inicial, meses vacíos, borradores/otras obras, devoluciones de material, reversiones de horas, compras por línea, subcontratas y caja, renderizado y autorización/revocación de acceso. Pint aplicado; compilación Vite y caché de vistas correctas. composer audit no pasa por los avisos indicados; el ensayo de restauración no pasa por permisos. No se presentan esas dos comprobaciones como correctas.

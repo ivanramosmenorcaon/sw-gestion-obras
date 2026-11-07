@@ -11,6 +11,7 @@ use App\Models\PaymentReversal;
 use App\Models\Project;
 use App\Models\ProjectExpense;
 use App\Models\PurchaseInvoice;
+use App\Models\PurchaseInvoiceLine;
 use App\Models\PurchaseOrder;
 use App\Models\SalesInvoice;
 use App\Models\WorkTimeEntry;
@@ -20,6 +21,32 @@ use Illuminate\Database\Eloquent\Relations\Relation;
 
 final class ProjectEconomics
 {
+    public const COST_LABELS = [
+        'materials' => 'Materiales consumidos',
+        'labor' => 'Horas confirmadas',
+        'contractors' => 'Subcontrata certificada',
+        'expenses' => 'Gastos de obra',
+        'direct_purchases' => 'Compras directas',
+    ];
+
+    /** @return array<string, array{query: Builder, amount: string, date: string}> */
+    public function costSources(Project $project): array
+    {
+        return [
+            'materials' => ['query' => MaterialConsumption::whereHas('workOrder', fn (Builder $q) => $q->where('project_id', $project->id))->where('status', 'posted'), 'amount' => 'total_cost', 'date' => 'consumed_date'],
+            'labor' => ['query' => WorkTimeEntry::whereHas('workOrder', fn (Builder $q) => $q->where('project_id', $project->id))->where('status', 'posted')->whereDoesntHave('reversals', fn (Builder $q) => $q->where('status', 'posted')), 'amount' => 'total_cost', 'date' => 'started_at'],
+            'contractors' => ['query' => ContractorCertificate::where('project_id', $project->id)->where('status', 'posted'), 'amount' => 'amount', 'date' => 'operation_date'],
+            'expenses' => ['query' => ProjectExpense::where('project_id', $project->id)->where('status', 'posted'), 'amount' => 'amount', 'date' => 'operation_date'],
+            'direct_purchases' => [
+                'query' => PurchaseInvoiceLine::query()->join('purchase_invoices', 'purchase_invoices.id', '=', 'purchase_invoice_lines.purchase_invoice_id')
+                    ->where('purchase_invoices.project_id', $project->id)->where('purchase_invoices.status', 'posted')
+                    ->whereNull('purchase_invoices.purchase_delivery_note_id')->whereNull('purchase_invoices.contractor_agreement_id')
+                    ->whereNull('purchase_invoice_lines.purchase_delivery_line_id'),
+                'amount' => 'purchase_invoice_lines.net_amount', 'date' => 'purchase_invoices.operation_date',
+            ],
+        ];
+    }
+
     public static function sum(Builder|Relation $query, string $field): string
     {
         $total = BigDecimal::of(0);
@@ -37,11 +64,11 @@ final class ProjectEconomics
         foreach (Budget::where('project_id', $project->id)->where('status', 'accepted')->get() as $budget) {
             $accepted = $accepted->plus($budget->total());
         }
-        $materials = self::sum(MaterialConsumption::whereHas('workOrder', fn (Builder $q) => $q->where('project_id', $project->id))->where('status', 'posted'), 'total_cost');
-        $labor = self::sum(WorkTimeEntry::whereHas('workOrder', fn (Builder $q) => $q->where('project_id', $project->id))->where('status', 'posted')->whereDoesntHave('reversals', fn (Builder $q) => $q->where('status', 'posted')), 'total_cost');
-        $contractors = self::sum(ContractorCertificate::where('project_id', $project->id)->where('status', 'posted'), 'amount');
-        $expenses = self::sum(ProjectExpense::where('project_id', $project->id)->where('status', 'posted'), 'amount');
-        $directPurchases = self::sum(PurchaseInvoice::where('project_id', $project->id)->where('status', 'posted')->whereNull('purchase_delivery_note_id')->whereNull('contractor_agreement_id'), 'net_amount');
+        $costs = [];
+        foreach ($this->costSources($project) as $category => $source) {
+            $costs[$category] = self::sum($source['query'], $source['amount']);
+        }
+        ['materials' => $materials, 'labor' => $labor, 'contractors' => $contractors, 'expenses' => $expenses, 'direct_purchases' => $directPurchases] = $costs;
         $actual = BigDecimal::of($materials)->plus($labor)->plus($contractors)->plus($expenses)->plus($directPurchases);
         $committed = BigDecimal::of(self::sum(ContractorAgreement::where('project_id', $project->id)->where('status', 'posted'), 'amount'))
             ->plus(self::sum(PurchaseOrder::where('project_id', $project->id)->where('status', 'posted'), 'amount'));
