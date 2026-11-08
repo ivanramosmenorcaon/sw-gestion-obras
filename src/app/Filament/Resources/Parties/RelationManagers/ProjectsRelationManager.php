@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Parties\RelationManagers;
 
 use App\Filament\Resources\Projects\Schemas\ProjectForm;
 use App\Filament\Resources\Projects\Tables\ProjectsTable;
+use App\Filament\Support\ActionIconsHelper;
 use App\Support\BusinessRecordValidator;
 use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions\CreateAction;
@@ -38,7 +39,7 @@ class ProjectsRelationManager extends RelationManager
             ->headerActions([
                 CreateAction::make()->using(fn (array $data): Model => BusinessRecordValidator::inForm(fn (): Model => $this->getRelationship()->create($data), $this->getMountedActionSchema()?->getStatePath() ?? '')),
             ])
-            ->recordActions([
+            ->recordActions(ActionIconsHelper::configureActions([
                 EditAction::make()->using(function (Model $record, array $data): Model {
                     return BusinessRecordValidator::inForm(function () use ($record, $data): Model {
                         $record->update($data);
@@ -47,6 +48,6 @@ class ProjectsRelationManager extends RelationManager
                     }, $this->getMountedActionSchema()?->getStatePath() ?? '');
                 }),
                 DeleteAction::make()->visible(fn (Model $record): bool => BusinessRecordValidator::canDelete($record)),
-            ]);
+            ]));
     }
 }

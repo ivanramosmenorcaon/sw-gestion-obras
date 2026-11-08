@@ -52,4 +52,30 @@ class ActionIconsHelper
     {
         return config('action-icons.actions', []);
     }
+
+    /**
+     * Configura un array de acciones con iconos y tooltips
+     * Solo muestra el icono sin etiqueta
+     */
+    public static function configureActions(array $actions): array
+    {
+        return array_map(function (Action $action) {
+            $actionName = $action->getName();
+            $icon = self::getIcon($actionName);
+            $tooltip = self::getTooltip($actionName);
+
+            if ($icon) {
+                $action->icon($icon);
+            }
+
+            if ($tooltip) {
+                $action->tooltip($tooltip);
+            }
+
+            // Ocultar la etiqueta para mostrar solo el icono
+            $action->label('');
+
+            return $action;
+        }, $actions);
+    }
 }

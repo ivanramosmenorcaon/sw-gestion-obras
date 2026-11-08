@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\PaymentTermInstallments\Tables;
 
+use App\Filament\Support\ActionIconsHelper;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -23,6 +24,6 @@ class PaymentTermInstallmentsTable
                 TextColumn::make('updated_at')->label(__('business.fields.updated_at'))->dateTime('d/m/Y H:i')->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])->filters([
                 SelectFilter::make('reference_event')->label(__('business.fields.reference_event'))->options(['invoice_date' => __('business.options.invoice_date'), 'work_start' => __('business.options.work_start'), 'work_completion' => __('business.options.work_completion')]),
-            ])->recordActions([EditAction::make()])->defaultSort('id', 'desc');
+            ])->recordActions(ActionIconsHelper::configureActions([EditAction::make()]))->defaultSort('id', 'desc');
     }
 }

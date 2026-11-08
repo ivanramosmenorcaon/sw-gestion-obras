@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\WorkOrderLines\Tables;
 
 use App\Filament\Resources\WorkOrderLines\WorkOrderLineResource;
+use App\Filament\Support\ActionIconsHelper;
 use App\Models\WorkOrderLine;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
@@ -51,6 +52,6 @@ class WorkOrderLinesTable
                 TextColumn::make('updated_at')->label(__('business.fields.updated_at'))->dateTime('d/m/Y H:i')->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])->filters([
                 SelectFilter::make('type')->label(__('business.fields.type'))->options(['material' => __('business.options.material'), 'service' => __('business.options.service'), 'labor' => __('business.options.labor'), 'rental' => __('business.options.rental')]),
-            ])->recordActions([self::breakdownAction(), EditAction::make()])->defaultSort('id', 'desc');
+            ])->recordActions(ActionIconsHelper::configureActions([self::breakdownAction(), EditAction::make()]))->defaultSort('id', 'desc');
     }
 }

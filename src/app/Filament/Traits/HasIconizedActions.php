@@ -27,4 +27,13 @@ trait HasIconizedActions
             $this->withActionIcons(DeleteAction::make(), 'delete'),
         ];
     }
+
+    /**
+     * Configura un array de acciones con iconos y tooltips
+     */
+    protected function getIconizedActions(array $actions): array
+    {
+        return ActionIconsHelper::configureActions($actions);
+    }
 }
+

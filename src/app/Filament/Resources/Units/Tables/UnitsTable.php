@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Units\Tables;
 
+use App\Filament\Support\ActionIconsHelper;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -28,6 +29,6 @@ class UnitsTable
             ])->filters([
                 SelectFilter::make('magnitude')->label(__('business.fields.magnitude'))->options(['count' => __('business.options.count'), 'time' => __('business.options.time'), 'mass' => __('business.options.mass'), 'length' => __('business.options.length'), 'area' => __('business.options.area'), 'volume' => __('business.options.volume')]),
                 TernaryFilter::make('is_active')->label(__('business.fields.is_active')),
-            ])->recordActions([EditAction::make()])->defaultSort('id', 'desc');
+            ])->recordActions(ActionIconsHelper::configureActions([EditAction::make()]))->defaultSort('id', 'desc');
     }
 }

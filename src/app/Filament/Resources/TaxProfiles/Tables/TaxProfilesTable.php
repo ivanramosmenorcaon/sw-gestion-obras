@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\TaxProfiles\Tables;
 
+use App\Filament\Support\ActionIconsHelper;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -30,6 +31,6 @@ class TaxProfilesTable
                 SelectFilter::make('tax_system')->label(__('fiscal.fields.tax_system'))->options(__('fiscal.tax_systems')),
                 SelectFilter::make('operation_class')->label(__('fiscal.fields.operation_class'))->options(__('fiscal.operations')),
                 TernaryFilter::make('is_active')->label(__('business.fields.is_active')),
-            ])->recordActions([EditAction::make()])->defaultSort('name');
+            ])->recordActions(ActionIconsHelper::configureActions([EditAction::make()]))->defaultSort('name');
     }
 }

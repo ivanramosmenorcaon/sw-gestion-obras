@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Budgets\Tables;
 
+use App\Filament\Support\ActionIconsHelper;
 use App\Models\Budget;
 use App\Support\BudgetEditor;
 use Filament\Actions\EditAction;
@@ -20,6 +21,6 @@ class BudgetsTable
                 TextColumn::make('total')->label('Total sin impuestos')->state(fn (Budget $record): string => BudgetEditor::formatAmount($record->total())),
                 TextColumn::make('currency_code')->label('Divisa'),
                 TextColumn::make('created_at')->label('Creado')->dateTime('d/m/Y H:i')->sortable(),
-            ])->recordActions([EditAction::make()])->defaultSort('id', 'desc');
+            ])->recordActions(ActionIconsHelper::configureActions([EditAction::make()]))->defaultSort('id', 'desc');
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\InvoiceSeries\Tables;
 
+use App\Filament\Support\ActionIconsHelper;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -17,6 +18,6 @@ class InvoiceSeriesTable
             TextColumn::make('kind')->label(__('billing.fields.kind'))->formatStateUsing(fn (string $state): string => __('billing.options.'.$state)),
             TextColumn::make('environment')->label(__('billing.fields.environment'))->formatStateUsing(fn (string $state): string => __('billing.options.'.$state)),
             TextColumn::make('next_number')->label(__('billing.fields.next_number')),
-        ])->recordActions([EditAction::make()])->dragReorderableColumns()->stickableColumns();
+        ])->recordActions(ActionIconsHelper::configureActions([EditAction::make()]))->dragReorderableColumns()->stickableColumns();
     }
 }

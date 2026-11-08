@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\TaxRates\Tables;
 
+use App\Filament\Support\ActionIconsHelper;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -28,6 +29,6 @@ class TaxRatesTable
             ])->filters([
                 SelectFilter::make('kind')->label(__('fiscal.fields.kind'))->options(__('fiscal.rate_kinds')),
                 TernaryFilter::make('is_active')->label(__('business.fields.is_active')),
-            ])->recordActions([EditAction::make()])->defaultSort('name');
+            ])->recordActions(ActionIconsHelper::configureActions([EditAction::make()]))->defaultSort('name');
     }
 }

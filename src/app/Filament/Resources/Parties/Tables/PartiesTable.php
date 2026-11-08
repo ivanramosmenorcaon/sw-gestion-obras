@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Parties\Tables;
 
+use App\Filament\Support\ActionIconsHelper;
 use App\Support\FiscalCatalog;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\IconColumn;
@@ -36,6 +37,6 @@ class PartiesTable
                 SelectFilter::make('type')->label(__('business.fields.type'))->options(['individual' => __('business.options.individual'), 'organization' => __('business.options.organization')]),
                 TernaryFilter::make('is_active')->label(__('business.fields.is_active')),
                 SelectFilter::make('role')->label(__('business.models.party_roles.singular'))->options(['customer' => __('business.options.customer'), 'supplier' => __('business.options.supplier'), 'subcontractor' => __('business.options.subcontractor')])->query(fn (Builder $query, array $data): Builder => $query->when($data['value'] ?? null, fn (Builder $q, string $role): Builder => $q->whereHas('partyRoles', fn (Builder $roles): Builder => $roles->where('role', $role)))),
-            ])->recordActions([EditAction::make()])->defaultSort('id', 'desc');
+            ])->recordActions(ActionIconsHelper::configureActions([EditAction::make()]))->defaultSort('id', 'desc');
     }
 }

@@ -5,6 +5,7 @@ namespace App\Filament\Resources\WorkOrders\RelationManagers;
 use App\Filament\Resources\WorkOrderLines\Schemas\WorkOrderLineForm;
 use App\Filament\Resources\WorkOrderLines\Tables\WorkOrderLinesTable;
 use App\Filament\Resources\WorkOrderLines\WorkOrderLineResource;
+use App\Filament\Support\ActionIconsHelper;
 use App\Models\ProjectItem;
 use App\Models\WorkOrder;
 use App\Support\BusinessRecordValidator;
@@ -71,7 +72,7 @@ class WorkOrderLinesRelationManager extends RelationManager
                     });
                 }, $this->getMountedActionSchema()?->getStatePath() ?? '')),
             ])
-            ->recordActions([
+            ->recordActions(ActionIconsHelper::configureActions([
                 WorkOrderLinesTable::breakdownAction(),
                 EditAction::make()->using(function (Model $record, array $data): Model {
                     return BusinessRecordValidator::inForm(function () use ($record, $data): Model {
@@ -81,6 +82,6 @@ class WorkOrderLinesRelationManager extends RelationManager
                     }, $this->getMountedActionSchema()?->getStatePath() ?? '');
                 }),
                 DeleteAction::make()->visible(fn (Model $record): bool => BusinessRecordValidator::canDelete($record)),
-            ]);
+            ]));
     }
 }

@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Projects\RelationManagers;
 
 use App\Filament\Resources\WorkOrders\Schemas\WorkOrderForm;
 use App\Filament\Resources\WorkOrders\Tables\WorkOrdersTable;
+use App\Filament\Support\ActionIconsHelper;
 use App\Support\BusinessRecordValidator;
 use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions\CreateAction;
@@ -44,7 +45,7 @@ class WorkOrdersRelationManager extends RelationManager
             ->headerActions([
                 CreateAction::make()->using(fn (array $data): Model => BusinessRecordValidator::inForm(fn (): Model => $this->getRelationship()->create($data), $this->getMountedActionSchema()?->getStatePath() ?? '')),
             ])
-            ->recordActions([
+            ->recordActions(ActionIconsHelper::configureActions([
                 WorkOrdersTable::treeAction(),
                 EditAction::make()->using(function (Model $record, array $data): Model {
                     return BusinessRecordValidator::inForm(function () use ($record, $data): Model {
@@ -54,6 +55,6 @@ class WorkOrdersRelationManager extends RelationManager
                     }, $this->getMountedActionSchema()?->getStatePath() ?? '');
                 }),
                 WorkOrdersTable::deleteAction(),
-            ]);
+            ]));
     }
 }

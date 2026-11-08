@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ProjectChapters\Tables;
 
+use App\Filament\Support\ActionIconsHelper;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\IconColumn;
@@ -27,7 +28,7 @@ class ProjectChaptersTable
                 TextColumn::make('updated_at')->label(__('business.fields.updated_at'))->dateTime('d/m/Y H:i')->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])->filters([
                 TernaryFilter::make('is_active')->label(__('business.fields.is_active')),
-            ])->recordActions([EditAction::make()])->defaultSort('id', 'desc')
+            ])->recordActions(ActionIconsHelper::configureActions([EditAction::make()]))->defaultSort('id', 'desc')
             ->bulkActions([
                 DeleteBulkAction::make(),
             ]);

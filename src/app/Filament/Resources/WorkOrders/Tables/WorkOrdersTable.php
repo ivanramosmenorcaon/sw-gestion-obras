@@ -4,6 +4,7 @@ namespace App\Filament\Resources\WorkOrders\Tables;
 
 use App\Filament\Resources\Budgets\BudgetResource;
 use App\Filament\Resources\WorkOrders\WorkOrderResource;
+use App\Filament\Support\ActionIconsHelper;
 use App\Models\WorkOrder;
 use App\Support\BusinessRecordValidator;
 use Filament\Actions\Action;
@@ -69,10 +70,10 @@ class WorkOrdersTable
                     SelectFilter::make('purpose')->label('Tipo')->options(['intervention' => 'Intervenciones', 'measurement' => 'Mediciones de presupuesto'])->default('intervention'),
                     SelectFilter::make('status')->label(__('business.fields.status'))->options(['draft' => __('business.options.draft'), 'planned' => __('business.options.planned'), 'in_progress' => __('business.options.in_progress'), 'on_hold' => __('business.options.on_hold'), 'completed' => __('business.options.completed'), 'cancelled' => __('business.options.cancelled')]),
                     SelectFilter::make('priority')->label(__('business.fields.priority'))->options(['low' => __('business.options.low'), 'normal' => __('business.options.normal'), 'high' => __('business.options.high'), 'urgent' => __('business.options.urgent')]),
-                ])->recordActions([
+                ])->recordActions(ActionIconsHelper::configureActions([
                     self::treeAction(),
                     EditAction::make(),
                     self::deleteAction(),
-                ])->defaultSort('id', 'desc');
+                ]))->defaultSort('id', 'desc');
     }
 }

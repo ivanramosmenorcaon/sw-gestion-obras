@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\WorkOrderEmployeeAssignments\Tables;
 
+use App\Filament\Support\ActionIconsHelper;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -26,6 +27,6 @@ class WorkOrderEmployeeAssignmentsTable
                 TextColumn::make('updated_at')->label(__('business.fields.updated_at'))->dateTime('d/m/Y H:i')->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])->filters([
                 SelectFilter::make('status')->label(__('business.fields.status'))->options(['planned' => __('business.options.planned'), 'active' => __('business.options.active'), 'completed' => __('business.options.completed'), 'cancelled' => __('business.options.cancelled')]),
-            ])->recordActions([EditAction::make()])->defaultSort('id', 'desc');
+            ])->recordActions(ActionIconsHelper::configureActions([EditAction::make()]))->defaultSort('id', 'desc');
     }
 }

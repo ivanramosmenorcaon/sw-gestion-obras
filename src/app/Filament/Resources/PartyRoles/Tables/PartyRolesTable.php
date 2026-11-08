@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\PartyRoles\Tables;
 
+use App\Filament\Support\ActionIconsHelper;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -20,6 +21,6 @@ class PartyRolesTable
                 TextColumn::make('updated_at')->label(__('business.fields.updated_at'))->dateTime('d/m/Y H:i')->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])->filters([
                 SelectFilter::make('role')->label(__('business.fields.role'))->options(['customer' => __('business.options.customer'), 'supplier' => __('business.options.supplier'), 'subcontractor' => __('business.options.subcontractor')]),
-            ])->recordActions([EditAction::make()])->defaultSort('id', 'desc');
+            ])->recordActions(ActionIconsHelper::configureActions([EditAction::make()]))->defaultSort('id', 'desc');
     }
 }

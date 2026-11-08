@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\SalesInvoices\Tables;
 
+use App\Filament\Support\ActionIconsHelper;
 use App\Models\SalesInvoice;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
@@ -24,6 +25,6 @@ class SalesInvoicesTable
             TextColumn::make('payable_total')->state(fn (SalesInvoice $record): ?string => $record->status === 'issued' ? $record->payable_total : null)->placeholder('—')->label(__('billing.fields.payable_total'))->money('EUR'),
             TextColumn::make('billingRecord.submission.status')->label(__('billing.registry'))->formatStateUsing(fn (?string $state): string => $state ? __('billing.options.'.$state) : '—')->wrap(),
         ])->filters([SelectFilter::make('status')->label(__('billing.fields.status'))->options(collect(['draft', 'issued', 'cancelled'])->mapWithKeys(fn (string $state): array => [$state => __('billing.options.'.$state)]))])
-            ->recordActions([ViewAction::make(), EditAction::make()])->dragReorderableColumns()->stickableColumns();
+            ->recordActions(ActionIconsHelper::configureActions([ViewAction::make(), EditAction::make()]))->dragReorderableColumns()->stickableColumns();
     }
 }
