@@ -1,0 +1,299 @@
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                   ARQUITECTURA DEL SISTEMA DE ICONOS                          ║
+╚════════════════════════════════════════════════════════════════════════════════╝
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        FLUJO DE LA APLICACIÓN                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    Usuario abre Relation Manager
+              ↓
+    ┌─────────────────────┐
+    │  Relation Manager   │
+    │  + HasIconized      │
+    │    Actions trait    │
+    └──────────┬──────────┘
+              ↓
+    ┌─────────────────────────────┐
+    │ $this->withActionIcons()    │
+    │ (Método del trait)          │
+    └──────────┬──────────────────┘
+              ↓
+    ┌────────────────────────────────────┐
+    │ ActionIconsHelper                  │
+    │ ::configureAction()                │
+    └──────────┬───────────────────────────┘
+              ↓
+    ┌────────────────────────────┐
+    │  config/action-icons.php   │
+    │  Obtiene icono + tooltip   │
+    └──────────┬─────────────────┘
+              ↓
+    ┌────────────────────────┐
+    │ Acción configurada     │
+    │ (con icono + tooltip)  │
+    └────────────┬───────────┘
+              ↓
+    ┌────────────────────────────────┐
+    │ Se muestra en la tabla         │
+    │ con icono + tooltip            │
+    └────────────────────────────────┘
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           ESTRUCTURA DE DATOS                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+config/action-icons.php
+├── 'create'       ─ icon: 'tabler-plus'
+│                 └ tooltip: 'Crear nuevo registro'
+├── 'edit'        ─ icon: 'tabler-pencil'
+│                 └ tooltip: 'Editar registro'
+├── 'delete'      ─ icon: 'tabler-trash'
+│                 └ tooltip: 'Eliminar registro'
+├── 'view'        ─ icon: 'tabler-eye'
+│                 └ tooltip: 'Ver detalles'
+└── ... (12 más)
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         COMPONENTES DEL SISTEMA                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  ┌──────────────────────┐
+  │     CONFIG           │
+  │ action-icons.php     │
+  │ (Configuración)      │
+  └──────────┬───────────┘
+             │
+             │ Lee
+             ↓
+  ┌──────────────────────────────┐
+  │        HELPER                │
+  │  ActionIconsHelper.php       │
+  │ ├─ getIcon()                 │
+  │ ├─ getTooltip()              │
+  │ ├─ configureAction()         │
+  │ └─ getAllIcons()             │
+  └──────────┬───────────────────┘
+             │ Usa
+             ↓
+  ┌──────────────────────────────────┐
+  │         TRAIT                    │
+  │ HasIconizedActions.php           │
+  │ ├─ withActionIcons()             │
+  │ └─ getDefaultIconizedActions()   │
+  └──────────┬───────────────────────┘
+             │ Se agrega a
+             ↓
+  ┌──────────────────────────────────────┐
+  │   RELATION MANAGERS (23)              │
+  │ PartyRolesRelationManager             │
+  │ WorkOrderPhasesRelationManager        │
+  │ ... etc                              │
+  └──────────┬───────────────────────────┘
+             │ Muestra
+             ↓
+  ┌──────────────────────────────────┐
+  │         TABLAS                   │
+  │ Con acciones con iconos          │
+  └──────────┬───────────────────────┘
+             │ Lee en dashboard
+             ↓
+  ┌──────────────────────────────────────┐
+  │        WIDGET                        │
+  │ ActionIconsLegendWidget.php          │
+  │ ├─ Muestra leyenda                   │
+  │ └─ Usa vista action-icons-legend    │
+  └──────────────────────────────────────┘
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       DIAGRAMA DE CLASES                                   │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────┐
+│    RelationManager          │
+│    (Filament)               │
+└────────────┬────────────────┘
+             △
+             │ extends
+             │
+┌──────────────────────────────────┐
+│  PartyRolesRelationManager       │
+│  + use HasIconizedActions        │
+│                                  │
+│  table(Table $table)             │
+│  ├─ recordActions([             │
+│  │   $this->withActionIcons()   │
+│  │ ])                           │
+└──────────┬──────────────────────┘
+           │ calls
+           ↓
+┌───────────────────────────────────────┐
+│    ActionIconsHelper                  │
+│    ─────────────────────────────────  │
+│  + getIcon(string): ?string           │
+│  + getTooltip(string): ?string        │
+│  + configureAction(Action, string)    │
+│  + getAllIcons(): array               │
+└───────────────────────────────────────┘
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       FLUJO DE DATOS                                       │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+         Relation Manager
+              │
+              ├─→ $this->withActionIcons(EditAction::make(), 'edit')
+              │            │
+              │            └─→ ActionIconsHelper::configureAction(action, 'edit')
+              │                        │
+              │                        ├─→ config('action-icons.actions.edit')
+              │                        │        │
+              │                        │        └─→ ['icon' => 'tabler-pencil', 'tooltip' => '...']
+              │                        │
+              │                        ├─→ action->icon('tabler-pencil')
+              │                        │
+              │                        └─→ action->tooltip('Editar registro')
+              │
+              └─→ Acción configurada y lista para renderizar
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       CICLO DE VIDA                                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+1. BOOT (Laravel)
+   ├─ Carga config/action-icons.php
+   └─ Registro de commandos Artisan
+
+2. REQUEST (Usuario)
+   ├─ Abre relation manager en navegador
+   └─ Filament renderiza la tabla
+
+3. RENDER (Tabla)
+   ├─ Lee recordActions()
+   ├─ Para cada acción
+   │  ├─ Llama $this->withActionIcons()
+   │  ├─ Obtiene icono y tooltip del config
+   │  ├─ Configura la acción
+   │  └─ Renderiza acción con icono
+   └─ Muestra tabla con iconos
+
+4. INTERACCIÓN (Usuario)
+   ├─ Pasa mouse sobre icono
+   ├─ Ve tooltip
+   ├─ Hace clic en acción
+   └─ Se ejecuta la acción
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      PERSONALIZACIÓN                                       │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Opción 1: CAMBIAR ICONO DEL CONFIG
+  config/action-icons.php
+  └─ 'edit' -> 'icon': 'tabler-pencil' ✎ CAMBIA AQUÍ
+     └─ Se aplica a TODAS las relation managers
+
+Opción 2: SOBRESCRIBIR EN RELATION MANAGER
+  $this->withActionIcons(EditAction::make(), 'edit')
+       ->icon('tabler-custom-icon')  ✎ CAMBIA AQUÍ
+  └─ Se aplica SOLO a esta relation manager
+
+Opción 3: TOOLTIP DINÁMICO
+  $this->withActionIcons(EditAction::make(), 'edit')
+       ->tooltip(fn ($record) => "Editar {$record->name}")  ✎ DINÁMICO
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      VISTA GENERAL DEL PROYECTO                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+app/
+├── Filament/
+│   ├── Support/
+│   │   └── ActionIconsHelper.php ────────┐
+│   ├── Traits/                           │
+│   │   └── HasIconizedActions.php ───────┼─→ Usadas en Relation Managers
+│   ├── Widgets/                          │
+│   │   └── ActionIconsLegendWidget.php ──┼─→ Muestra en Dashboard
+│   ├── Resources/
+│   │   ├── Parties/                      │
+│   │   │   └── RelationManagers/ ────────┘
+│   │   └── ... (22 más)
+│   └── Console/Commands/
+│       └── ApplyActionIconsToRelationManagers.php
+│
+config/
+└── action-icons.php ←── ARCHIVO CENTRAL (EDITAR AQUÍ)
+
+resources/views/
+└── filament/widgets/
+    ├── action-icons-legend.blade.php
+    └── action-icons-legend-alt.blade.php
+
+tests/Unit/
+└── ActionIconsHelperTest.php ←── TESTS
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      SECUENCIA TEMPORAL                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+INSTALACIÓN (Una sola vez):
+┌──────────────────────────┐
+│ 1. Crear archivos (hecho)│
+└────────┬─────────────────┘
+         ↓
+┌──────────────────────────┐
+│ 2. Agregar trait (manual)│
+└────────┬─────────────────┘
+         ↓
+┌──────────────────────────┐
+│ 3. Actualizar acciones   │
+└────────┬─────────────────┘
+         ↓
+┌──────────────────────────┐
+│ 4. Ejecutar pint         │
+└────────┬─────────────────┘
+         ↓
+┌──────────────────────────┐
+│ ✓ Listo para usar        │
+└──────────────────────────┘
+
+CADA VEZ QUE CAMBIES ICONOS:
+┌──────────────────────────────────┐
+│ 1. Editar config/action-icons.php│
+└────────┬───────────────────────────┘
+         ↓
+┌──────────────────────────────────┐
+│ 2. Guardar                       │
+└────────┬───────────────────────────┘
+         ↓
+┌──────────────────────────────────┐
+│ 3. Recargar navegador (F5)       │
+└────────┬───────────────────────────┘
+         ↓
+┌──────────────────────────────────┐
+│ ✓ Cambios aplicados              │
+└──────────────────────────────────┘
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      SEGURIDAD                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+✓ No hay cambios en Filament (solo código tuyo)
+✓ No hay dependencias nuevas
+✓ Config es solo datos (arrays)
+✓ Trait es solo utilidad
+✓ Totalmente reversible (quita trait y listo)
+
+
+═════════════════════════════════════════════════════════════════════════════════
+                    Hecho con ❤️ para tu aplicación
+═════════════════════════════════════════════════════════════════════════════════
