@@ -19,7 +19,7 @@
             }
         }
     @endphp
-    <div class="space-y-6" x-on:input="dirty = true" x-on:budget-saved.window="dirty = false" x-on:beforeunload.window="if (dirty) { $event.preventDefault(); $event.returnValue = ''; }" x-data="{ dirty: false, search: '', expand(open) { $refs.tree.querySelectorAll('details[data-chapter]').forEach(node => node.open = open); } }">
+    <div class="space-y-6" x-on:budget-created.window="dirty = false; window.location.assign($event.detail.url)" x-on:input="dirty = true" x-on:budget-saved.window="dirty = false" x-on:beforeunload.window="if (dirty) { $event.preventDefault(); $event.returnValue = ''; }" x-data="{ dirty: false, search: '', expand(open) { $refs.tree.querySelectorAll('details').forEach(node => node.open = open); } }">
         <div class="rounded-2xl bg-gray-950 p-6 text-white dark:bg-gray-800">
             <p class="text-xs text-gray-300">{{ $this->getRecord()->project->name }} · {{ $this->getRecord()->reference }}</p>
             <h2 class="mt-2 text-xl font-semibold">{{ $editingBudget ? 'Edición del presupuesto' : 'Prepara tu presupuesto' }}</h2>

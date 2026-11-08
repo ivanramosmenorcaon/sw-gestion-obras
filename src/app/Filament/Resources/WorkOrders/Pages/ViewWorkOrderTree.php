@@ -94,7 +94,7 @@ class ViewWorkOrderTree extends ViewRecord
                 ->action(function (): void {
                     $budget = app(BudgetEditor::class)->create($this->getRecord(), $this->budgetName, $this->selection);
                     Notification::make()->success()->title('Presupuesto creado')->send();
-                    $this->redirect(BudgetResource::getUrl('edit', ['record' => $budget]));
+                    $this->dispatch('budget-created', url: BudgetResource::getUrl('edit', ['record' => $budget]));
                 }),
         ];
     }

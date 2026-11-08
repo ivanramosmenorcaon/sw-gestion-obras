@@ -7,7 +7,7 @@
         }
     @endphp
     <div class="space-y-4" x-data="{ search: '', dirty: false, expand(open) { $refs.tree.querySelectorAll('details').forEach(node => node.open = open); } }"
-         x-on:input="dirty = true" x-on:beforeunload.window="if (dirty) { $event.preventDefault(); $event.returnValue = ''; }">
+         x-on:budget-created.window="dirty = false; window.location.assign($event.detail.url)" x-on:input="dirty = true" x-on:beforeunload.window="if (dirty) { $event.preventDefault(); $event.returnValue = ''; }">
         <div class="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
             <div>
                 <p class="font-semibold text-gray-950 dark:text-white">{{ $this->getRecord()->project->name }}</p>

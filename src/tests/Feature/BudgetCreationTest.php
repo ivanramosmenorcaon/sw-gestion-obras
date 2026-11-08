@@ -51,7 +51,7 @@ class BudgetCreationTest extends TestCase
     public function test_budget_copies_only_selected_items_and_changes_do_not_modify_measurements(): void
     {
         $this->actingAs(User::factory()->create());
-        [$order, $parent, $child, $one, $two] = $this->measurements();
+        [$order, $parent, $child, $one, $two] = $this->measurements('measurement');
 
         Livewire::test(ViewWorkOrderTree::class, ['record' => $order->id])
             ->set('budgetName', 'Oferta parcial')
@@ -59,7 +59,8 @@ class BudgetCreationTest extends TestCase
             ->set('selection.'.$one->id.'.price', '12.34')
             ->set('selection.'.$one->id.'.unit', 'm²')
             ->set('selection.'.$two->id.'.included', false)
-            ->callAction('createBudget')->assertNotified('Presupuesto creado')->assertHasNoActionErrors();
+            ->callAction('createBudget')->assertNotified('Presupuesto creado')->assertHasNoActionErrors()
+            ->assertDispatched('budget-created', fn (string $event, array $params): bool => $params['url'] === BudgetResource::getUrl('edit', ['record' => Budget::query()->sole()]));
 
         $budget = Budget::query()->sole();
         $this->assertSame('Oferta parcial', $budget->name);
@@ -91,6 +92,39 @@ class BudgetCreationTest extends TestCase
         $this->assertCount(1, $budget->items);
         $this->assertSame($other->id, $budget->items[0]['source_line_id']);
         $this->assertSame(3, $order->workOrderLines()->count());
+    }
+
+    public function test_budget_groups_original_resources_and_measurements_under_their_own_item_title(): void
+    {
+        $this->actingAs(User::factory()->create());
+        [$order, $parent, $child, $one, $two] = $this->measurements();
+        $one->update([
+            'budget_breakdown' => [
+                ['code' => 'AUX', 'name' => 'Mortero auxiliar', 'depth' => 1],
+                ['code' => 'MAT', 'name' => 'Cemento original', 'parent_code' => 'AUX', 'depth' => 2, 'type' => '3', 'quantity' => 2, 'price' => 4],
+            ],
+            'measurement_details' => [['label' => 'Pared del salón', 'units' => 1, 'length' => 5, 'height' => 2, 'subtotal' => 10]],
+        ]);
+        $budget = app(BudgetEditor::class)->create($order, 'Presupuesto agrupado', [
+            $one->id => ['included' => true, 'quantity' => '10', 'price' => '20'],
+            $two->id => ['included' => true, 'quantity' => '1', 'price' => '5'],
+        ]);
+        $one->update(['budget_breakdown' => [['code' => 'NEW', 'name' => 'Recurso posterior', 'depth' => 1]]]);
+
+        $page = Livewire::test(EditBudget::class, ['record' => $budget->id])
+            ->assertSuccessful()->assertSee('205,00 EUR')->assertDontSee('Recurso posterior');
+
+        $document = new \DOMDocument;
+        $document->loadHTML('<?xml encoding="UTF-8">'.$page->html(), LIBXML_NOERROR | LIBXML_NOWARNING);
+        $xpath = new \DOMXPath($document);
+        $firstItem = '//details[@data-budget-item="'.$one->id.'"]';
+        $secondItem = '//details[@data-budget-item="'.$two->id.'"]';
+        $this->assertStringContainsString('Medición uno', $xpath->query($firstItem.'/summary')->item(0)->textContent);
+        $this->assertStringContainsString('Cemento original', $xpath->query($firstItem)->item(0)->textContent);
+        $this->assertStringContainsString('Pared del salón', $xpath->query($firstItem)->item(0)->textContent);
+        $this->assertSame(1, $xpath->query($firstItem.'//details[@data-resource-depth="1"]//details[@data-resource-depth="2"]')->length);
+        $this->assertStringNotContainsString('Cemento original', $xpath->query($secondItem)->item(0)->textContent);
+        $this->assertStringContainsString('Esta partida no tiene recursos descompuestos', $xpath->query($secondItem)->item(0)->textContent);
     }
 
     public function test_saved_budget_can_change_prices_and_remove_items_without_changing_source(): void
@@ -160,10 +194,12 @@ class BudgetCreationTest extends TestCase
 
         Livewire::test(ViewWorkOrderTree::class, ['record' => $order->id])
             ->set('selection.'.$one->id.'.price', '-1')
-            ->callAction('createBudget')->assertHasErrors('selection.'.$one->id.'.price');
+            ->callAction('createBudget')->assertHasErrors('selection.'.$one->id.'.price')
+            ->assertNotDispatched('budget-created')->assertNoRedirect();
         Livewire::test(ViewWorkOrderTree::class, ['record' => $order->id])
             ->call('toggleChapter', (string) $parent->id, false)
-            ->callAction('createBudget')->assertHasErrors('selection');
+            ->callAction('createBudget')->assertHasErrors('selection')
+            ->assertNotDispatched('budget-created')->assertNoRedirect();
 
         $this->assertDatabaseCount('budgets', 0);
     }
@@ -246,9 +282,9 @@ class BudgetCreationTest extends TestCase
     }
 
     /** @return array{WorkOrder, ProjectChapter, ProjectChapter, WorkOrderLine, WorkOrderLine} */
-    private function measurements(): array
+    private function measurements(string $purpose = 'intervention'): array
     {
-        $order = WorkOrder::factory()->create();
+        $order = WorkOrder::factory()->create(['purpose' => $purpose]);
         $parent = ProjectChapter::factory()->for($order->project)->create(['code' => '01', 'name' => 'Demoliciones']);
         $child = ProjectChapter::factory()->for($order->project)->create(['code' => '01.01', 'name' => 'Tabiques', 'parent_id' => $parent->id]);
         $one = WorkOrderLine::factory()->for($order)->for($parent, 'projectChapter')->create(['position' => 1, 'description' => 'Medición uno', 'planned_quantity' => '10']);
