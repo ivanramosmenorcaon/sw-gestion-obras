@@ -257,6 +257,30 @@ class ProjectInterventionsTest extends TestCase
         $this->assertSame('60.000000', $item->remainingQuantity());
     }
 
+    public function test_project_items_are_grouped_by_chapter_with_a_group_for_unassigned_items(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $project = Project::factory()->create();
+        $firstChapter = ProjectChapter::factory()->for($project)->create(['code' => '01', 'name' => 'Acabados']);
+        $secondChapter = ProjectChapter::factory()->for($project)->create(['code' => '02', 'name' => 'Acabados']);
+        $items = ProjectItem::factory()->for($project)->count(2)->create(['project_chapter_id' => $firstChapter->id]);
+        $items->push(ProjectItem::factory()->for($project)->create(['project_chapter_id' => $secondChapter->id]));
+        $items->push(ProjectItem::factory()->for($project)->create(['project_chapter_id' => null]));
+        $foreignItem = ProjectItem::factory()->create();
+
+        $page = Livewire::test(ProjectItemsRelationManager::class, ['ownerRecord' => $project, 'pageClass' => EditProject::class])
+            ->assertSuccessful()->assertCanSeeTableRecords($items)->assertCanNotSeeTableRecords([$foreignItem])
+            ->assertSee('01 · Acabados')->assertSee('02 · Acabados')->assertSee('Sin capítulo asignado');
+
+        $document = new \DOMDocument;
+        $document->loadHTML($page->html(), LIBXML_NOERROR | LIBXML_NOWARNING);
+        $xpath = new \DOMXPath($document);
+        $this->assertSame(3, $xpath->query('//tr[contains(concat(" ", normalize-space(@class), " "), " fi-ta-group-header-row ")]')->length);
+
+        Livewire::test(ManageProjectItems::class)->assertSuccessful()
+            ->assertCanSeeTableRecords($items)->assertSee('01 · Acabados')->assertSee('02 · Acabados')->assertSee('Sin capítulo asignado');
+    }
+
     public function test_manager_cannot_view_items_of_another_project(): void
     {
         $item = ProjectItem::factory()->create();

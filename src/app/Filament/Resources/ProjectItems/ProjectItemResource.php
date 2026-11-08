@@ -26,6 +26,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -85,6 +86,15 @@ class ProjectItemResource extends BusinessResource
     {
         return $table
             ->dragReorderableColumns()->stickableColumns()
+            ->defaultGroup(
+                Group::make('project_chapter_id')
+                    ->label('Capítulo')
+                    ->getTitleFromRecordUsing(fn (ProjectItem $record): string => $record->projectChapter
+                        ? $record->projectChapter->code.' · '.$record->projectChapter->name
+                        : 'Sin capítulo asignado')
+                    ->titlePrefixedWithLabel(false)
+                    ->collapsible()
+            )
             ->modifyQueryUsing(fn (Builder $query) => $query->with(['project', 'projectChapter', 'sourceBudget'])
                 ->withSum(['workOrderLines as allocated_quantity' => fn (Builder $q) => $q->whereHas('workOrder', fn (Builder $q) => $q->where('purpose', 'intervention')->where('status', '!=', 'cancelled'))], 'planned_quantity')
                 ->withSum(['progress as executed_quantity' => fn (Builder $q) => $q->where('status', 'posted')], 'quantity')
