@@ -45,7 +45,12 @@ final class BudgetWorkflow
                 $ancestor = Budget::whereKey($ancestor)->value('revises_id');
             }
             foreach ($current->items as $position => $snapshot) {
-                $unit = Unit::where('is_active', true)->where(fn ($q) => $q->where('symbol', $snapshot['unit'])->orWhere('name', $snapshot['unit']))->first();
+                $sourceLine = $current->source_work_order_id && ($snapshot['source_line_id'] ?? 0) > 0
+                    ? WorkOrderLine::where('work_order_id', $current->source_work_order_id)->where('project_id', $current->project_id)->whereKey($snapshot['source_line_id'])->lockForUpdate()->first()
+                    : null;
+                $unit = $sourceLine && $sourceLine->unit_label === $snapshot['unit']
+                    ? Unit::whereKey($sourceLine->unit_id)->where('is_active', true)->first()
+                    : Unit::where('is_active', true)->where(fn ($q) => $q->where('symbol', $snapshot['unit'])->orWhere('name', $snapshot['unit']))->first();
                 if (! $unit) {
                     throw ValidationException::withMessages(['name' => 'Registre una unidad activa con símbolo «'.$snapshot['unit'].'» antes de incorporar las partidas.']);
                 }
@@ -62,7 +67,7 @@ final class BudgetWorkflow
                 }
                 $sourceId = $snapshot['source_project_item_id'] ?? null;
                 if (! $sourceId && $current->source_work_order_id && ($snapshot['source_line_id'] ?? 0) > 0) {
-                    $sourceId = WorkOrderLine::where('work_order_id', $current->source_work_order_id)->whereKey($snapshot['source_line_id'])->value('project_item_id');
+                    $sourceId = $sourceLine?->project_item_id;
                 }
                 $item = $sourceId ? ProjectItem::whereKey($sourceId)->where('project_id', $current->project_id)->lockForUpdate()->first() : null;
                 if ($sourceId && ! $item) {
@@ -81,6 +86,12 @@ final class BudgetWorkflow
                     'measurement_details' => $snapshot['measurement_details'] ?? [], 'budget_breakdown' => $snapshot['budget_breakdown'] ?? [],
                 ]);
                 $item->forceFill(['source_budget_id' => $current->id, 'source_budget_position' => $position + 1])->save();
+                if ($current->source_work_order_id && ($snapshot['source_line_id'] ?? 0) > 0) {
+                    WorkOrderLine::where('work_order_id', $current->source_work_order_id)
+                        ->whereKey($snapshot['source_line_id'])->whereNull('project_item_id')
+                        ->whereHas('workOrder', fn ($query) => $query->where('purpose', 'measurement'))
+                        ->update(['project_item_id' => $item->id]);
+                }
                 $items->push($item);
             }
 

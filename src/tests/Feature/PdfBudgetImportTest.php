@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Filament\Resources\Projects\Pages\EditProject;
-use App\Filament\Resources\WorkOrders\WorkOrderResource;
 use App\Models\Project;
 use App\Models\User;
 use App\Models\WorkOrder;
@@ -13,7 +12,6 @@ use App\Support\PdfBudgetReader;
 use App\Support\WorkOrderChapterTree;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -64,20 +62,15 @@ class PdfBudgetImportTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
         $project = Project::factory()->create();
-        $upload = UploadedFile::fake()->createWithContent('Presupuesto.pdf', file_get_contents(base_path('tests/Fixtures/budget-listado.pdf')));
-
-        $page = Livewire::test(EditProject::class, ['record' => $project->id])
-            ->mountAction('importPdfBudget')
-            ->setActionData(['file' => $upload, 'name' => 'Oferta PR-293'])
-            ->goToNextWizardStep()->assertWizardCurrentStep(2)
-            ->assertSet('pdfImportPreview.chapters', 23)
-            ->assertSet('pdfImportPreview.items', 145)
-            ->assertSet('pdfImportPreview.total', '160.489,06 EUR');
-
+        $service = app(PdfBudgetImporter::class);
+        $path = base_path('tests/Fixtures/budget-listado.pdf');
+        $preview = $service->inspect($path);
+        $this->assertCount(23, $preview['chapters']);
+        $this->assertCount(145, $preview['items']);
+        $this->assertSame('160489.06', $preview['net_total']);
         $this->assertSame(0, $project->workOrders()->count());
-        $page->callMountedAction()->assertNotified('Presupuesto PDF importado');
-        $order = $project->workOrders()->sole();
-        $page->assertRedirect(WorkOrderResource::getUrl('tree', ['record' => $order]));
+
+        $order = $service->import($project, $path, 'Oferta PR-293');
         $this->assertStringContainsString('IVA', $order->instructions);
         $this->assertStringContainsString('33.702,70', $order->instructions);
         $this->assertSame(145, $order->workOrderLines()->count());
@@ -153,7 +146,7 @@ class PdfBudgetImportTest extends TestCase
         $project = Project::factory()->create();
         Gate::policy(WorkOrder::class, DenyPdfWorkOrderCreation::class);
 
-        Livewire::test(EditProject::class, ['record' => $project->id])->assertActionHidden('importPdfBudget');
+        Livewire::test(EditProject::class, ['record' => $project->id])->assertActionDoesNotExist('importPdfBudget');
 
         $this->assertSame(0, $project->workOrders()->count());
     }

@@ -84,6 +84,11 @@ class Project extends Model
         return $this->hasMany(WorkOrder::class, 'project_id');
     }
 
+    public function measurements(): HasMany
+    {
+        return $this->hasMany(WorkOrder::class, 'project_id')->where('purpose', 'measurement');
+    }
+
     public function projectItems(): HasMany
     {
         return $this->hasMany(ProjectItem::class);

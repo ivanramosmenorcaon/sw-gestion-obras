@@ -56,7 +56,7 @@ class ArchitectMeasurementSpreadsheetTest extends TestCase
             ->assertHasNoActionErrors()->assertNotified('Mediciones importadas');
 
         $order = $project->workOrders()->sole();
-        $page->assertRedirect(WorkOrderResource::getUrl('edit', ['record' => $order]));
+        $page->assertRedirect(WorkOrderResource::getUrl('tree', ['record' => $order]));
         $this->assertSame('draft', $order->status);
         $this->assertSame(23, $project->projectChapters()->count());
         $this->assertSame('Conservar capítulo', $existing->fresh()->name);
@@ -78,6 +78,19 @@ class ArchitectMeasurementSpreadsheetTest extends TestCase
         $this->assertStringContainsString('Sin precio unitario', $line->notes);
         Livewire::test(EditWorkOrderLine::class, ['record' => $line->id])
             ->assertSuccessful()->assertSee('Desglose de medición del arquitecto');
+    }
+
+    public function test_budget_file_import_actions_are_no_longer_available(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $project = Project::factory()->create();
+
+        Livewire::test(EditProject::class, ['record' => $project->id])
+            ->assertActionDoesNotExist('importPdfBudget')
+            ->assertActionDoesNotExist('importBc3Budget')
+            ->assertActionExists('importArchitectMeasurements');
+
+        $this->assertSame(0, $project->workOrders()->count());
     }
 
     /** @return array<string, array{string}> */
@@ -205,6 +218,20 @@ class ArchitectMeasurementSpreadsheetTest extends TestCase
             ->assertHasActionErrors(['file'])->assertNotNotified();
 
         $this->assertSame(0, $project->workOrders()->count());
+    }
+
+    public function test_measurements_upload_rejects_pdf_files(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $project = Project::factory()->create();
+        $upload = UploadedFile::fake()->createWithContent('mediciones.pdf', file_get_contents(base_path('tests/Fixtures/budget-listado.pdf')));
+
+        Livewire::test(EditProject::class, ['record' => $project->id])
+            ->callAction('importArchitectMeasurements', ['file' => $upload, 'name' => 'Mediciones'])
+            ->assertHasActionErrors(['file'])->assertNotNotified();
+
+        $this->assertSame(0, $project->workOrders()->count());
+        $this->assertSame(0, $project->projectChapters()->count());
     }
 
     public function test_import_respects_creation_authorization(): void

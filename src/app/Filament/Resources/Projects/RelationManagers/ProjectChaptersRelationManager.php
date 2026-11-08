@@ -54,7 +54,7 @@ class ProjectChaptersRelationManager extends RelationManager
                     ->schema([
                         FileUpload::make('file')
                             ->label('Plantilla Excel')
-                            ->helperText('Solo la plantilla descargable de capítulos (.xlsx, hasta 2 MB y 1000 capítulos). Para el Excel del arquitecto, utilice «Importar mediciones» en la cabecera de la obra.')
+                            ->helperText('Solo la plantilla descargable de capítulos (.xlsx, hasta 2 MB y 1000 capítulos). Para el BC3 o Excel del arquitecto, utilice «Importar mediciones (BC3 o Excel)» en la cabecera de la obra.')
                             ->acceptedFileTypes(['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'])
                             ->maxSize(2048)
                             ->storeFiles(false)

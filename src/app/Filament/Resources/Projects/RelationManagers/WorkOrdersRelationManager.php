@@ -10,7 +10,9 @@ use Filament\Actions\CreateAction;
 use Filament\Actions\EditAction;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class WorkOrdersRelationManager extends RelationManager
@@ -32,6 +34,11 @@ class WorkOrdersRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return WorkOrdersTable::configure($table)
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->where('purpose', 'intervention'))
+            ->filters([
+                SelectFilter::make('status')->label('Estado')->options(['draft' => 'Borrador', 'planned' => 'Planificada', 'in_progress' => 'En curso', 'on_hold' => 'En pausa', 'completed' => 'Terminada', 'cancelled' => 'Cancelada']),
+                SelectFilter::make('priority')->label('Prioridad')->options(['low' => 'Baja', 'normal' => 'Normal', 'high' => 'Alta', 'urgent' => 'Urgente']),
+            ])
             ->modelLabel(__('business.models.work_orders.singular'))
             ->pluralModelLabel(__('business.models.work_orders.plural'))
             ->headerActions([

@@ -66,6 +66,7 @@ class ProjectResource extends BusinessResource
     public static function getRelations(): array
     {
         return [
+            RelationManagers\MeasurementsRelationManager::class,
             RelationManagers\ProjectItemsRelationManager::class,
             RelationManagers\ProjectChaptersRelationManager::class,
             RelationManagers\WorkOrdersRelationManager::class,

@@ -19,11 +19,11 @@
             }
         }
     @endphp
-    <div class="space-y-6" x-on:input="dirty = true" x-on:budget-saved.window="dirty = false" x-on:beforeunload.window="if (dirty) { $event.preventDefault(); $event.returnValue = ''; }" x-data="{ dirty: false, expand(open) { $refs.tree.querySelectorAll('details').forEach(node => node.open = open); } }">
+    <div class="space-y-6" x-on:input="dirty = true" x-on:budget-saved.window="dirty = false" x-on:beforeunload.window="if (dirty) { $event.preventDefault(); $event.returnValue = ''; }" x-data="{ dirty: false, search: '', expand(open) { $refs.tree.querySelectorAll('details[data-chapter]').forEach(node => node.open = open); } }">
         <div class="rounded-2xl bg-gray-950 p-6 text-white dark:bg-gray-800">
             <p class="text-xs text-gray-300">{{ $this->getRecord()->project->name }} · {{ $this->getRecord()->reference }}</p>
-            <h2 class="mt-2 text-xl font-semibold">{{ $editingBudget ? 'Edición del presupuesto' : 'Capítulos → Subcapítulos → Partidas' }}</h2>
-            <p class="mt-3 text-sm text-gray-300">{{ $editingBudget ? 'Excluya partidas o capítulos para eliminarlos de este presupuesto al guardar. Sus mediciones de origen se conservarán.' : 'Seleccione lo que desea presupuestar y ajuste cantidades y precios. Los cambios de esta pantalla solo se aplicarán al nuevo presupuesto; las mediciones originales se conservarán.' }}</p>
+            <h2 class="mt-2 text-xl font-semibold">{{ $editingBudget ? 'Edición del presupuesto' : 'Prepara tu presupuesto' }}</h2>
+            <p class="mt-3 text-sm text-gray-300">{{ $editingBudget ? 'Excluya partidas o capítulos para eliminarlos de este presupuesto al guardar. Sus mediciones de origen se conservarán.' : 'Todas las partidas están incluidas. Desmarca las que no necesites, introduce tus precios y pulsa «Crear presupuesto». Puedes ajustar las cantidades sin cambiar las mediciones originales.' }}</p>
             <div class="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-white/15 pt-5">
                 <span>{{ $includedCount }} de {{ count($items) }} partidas incluidas</span>
                 <span class="text-2xl font-semibold tabular-nums">{{ \App\Support\BudgetEditor::formatAmount((string) $total) }} {{ $currency }}</span>
@@ -73,6 +73,12 @@
             @endif
         @endif
         @error('selection') <p role="alert" class="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">{{ $message }}</p> @enderror
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">
+            Buscar partida por código o descripción
+            <x-filament::input.wrapper class="mt-2">
+                <x-filament::input type="search" x-model="search" x-on:input.stop="if (search) expand(true)" placeholder="Ej.: demolición, pintura, 0207…" />
+            </x-filament::input.wrapper>
+        </label>
         <div class="flex flex-wrap gap-2">
             <x-filament::button color="gray" size="sm" x-on:click="expand(true)">Desplegar todo</x-filament::button>
             <x-filament::button color="gray" size="sm" x-on:click="expand(false)">Plegar todo</x-filament::button>

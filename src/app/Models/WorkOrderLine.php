@@ -21,6 +21,10 @@ class WorkOrderLine extends Model
     public function save(array $options = []): bool
     {
         return $this->getConnection()->transaction(function () use ($options): bool {
+            if ($this->exists && $this->isDirty(array_merge(ProjectScope::SNAPSHOT_FIELDS, ['project_id', 'work_order_id', 'planned_quantity', 'position', 'notes']))
+                && WorkOrder::whereKey($this->getRawOriginal('work_order_id'))->where('purpose', 'measurement')->whereNotNull('measurement_import_hash')->exists()) {
+                throw ValidationException::withMessages(['description' => 'Las mediciones importadas se conservan como origen. Ajuste las cantidades y precios en el presupuesto o importe una nueva revisión.']);
+            }
             if ($this->exists) {
                 $storedItemId = self::whereKey($this->id)->value('project_item_id');
                 if ($storedItemId !== null && (int) $storedItemId !== (int) $this->project_item_id) {

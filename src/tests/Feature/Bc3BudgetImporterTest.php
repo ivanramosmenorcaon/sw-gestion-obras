@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Filament\Resources\Projects\Pages\EditProject;
 use App\Filament\Resources\WorkOrderLines\Pages\EditWorkOrderLine;
+use App\Filament\Resources\WorkOrders\WorkOrderResource;
 use App\Models\Project;
 use App\Models\User;
 use App\Models\WorkOrder;
@@ -42,12 +43,12 @@ class Bc3BudgetImporterTest extends TestCase
         $project = Project::factory()->create();
         $other = Project::factory()->create();
         $upload = UploadedFile::fake()->createWithContent('PRESUPUESTO.BC3', file_get_contents(base_path('tests/Fixtures/architect-budget.bc3')));
-
         $page = Livewire::test(EditProject::class, ['record' => $project->id])
-            ->callAction('importBc3Budget', ['file' => $upload, 'name' => 'Presupuesto Rovellada'])
-            ->assertHasNoActionErrors()->assertNotified('Presupuesto BC3 importado');
+            ->callAction('importArchitectMeasurements', ['file' => $upload, 'name' => 'Mediciones Rovellada'])
+            ->assertHasNoActionErrors()->assertNotified('Mediciones importadas');
 
         $order = $project->workOrders()->sole();
+        $page->assertRedirect(WorkOrderResource::getUrl('tree', ['record' => $order]));
         $this->assertSame('draft', $order->status);
         $this->assertSame(23, $project->projectChapters()->count());
         $this->assertSame(149, $order->workOrderLines()->count());
@@ -178,9 +179,8 @@ class Bc3BudgetImporterTest extends TestCase
         $this->actingAs(User::factory()->create());
         $project = Project::factory()->create();
         $upload = UploadedFile::fake()->createWithContent('invalid.bc3', 'No es un presupuesto');
-
         Livewire::test(EditProject::class, ['record' => $project->id])
-            ->callAction('importBc3Budget', ['file' => $upload, 'name' => 'No importar'])
+            ->callAction('importArchitectMeasurements', ['file' => $upload, 'name' => 'No importar'])
             ->assertHasActionErrors(['file'])->assertNotNotified();
 
         $this->assertSame(0, $project->workOrders()->count());
@@ -192,7 +192,7 @@ class Bc3BudgetImporterTest extends TestCase
         $project = Project::factory()->create();
         Gate::policy(WorkOrder::class, DenyBc3WorkOrderCreation::class);
 
-        Livewire::test(EditProject::class, ['record' => $project->id])->assertActionHidden('importBc3Budget');
+        Livewire::test(EditProject::class, ['record' => $project->id])->assertActionHidden('importArchitectMeasurements');
 
         $this->assertSame(0, $project->workOrders()->count());
     }

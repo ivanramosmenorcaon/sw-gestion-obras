@@ -130,6 +130,6 @@ class WorkOrderLineForm
             }
         }
 
-        return $schema;
+        return $schema->disabled(fn (?Model $record): bool => $record instanceof WorkOrderLine && $record->workOrder?->purpose === 'measurement' && filled($record->workOrder?->measurement_import_hash));
     }
 }
